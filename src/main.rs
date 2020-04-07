@@ -1,4 +1,5 @@
 use anyhow::{Context as ErrorContext, Result};
+use include_dir::{include_dir, Dir, DirEntry};
 use lazy_static::lazy_static;
 use serde::Serialize;
 use std::env;
@@ -7,14 +8,22 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tera::{self, Context, Tera};
 
+const TEMPLATES_DIR: Dir = include_dir!("templates/rust");
+
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
-        match Tera::new("templates/rust/**/*") {
-            Ok(t) => t,
-            Err(e) => {
-                panic!("Parsing error(s): {}", e);
-            }
+        let mut tera = Tera::default();
+        for entry in TEMPLATES_DIR.find("**/*").expect("find templates") {
+            let f = match entry {
+                DirEntry::File(f) => f,
+                _ => continue,
+            };
+            let path = f.path().to_str().expect("template path");
+            let contents = String::from_utf8(f.contents().to_vec()).expect("template contents");
+            tera.add_raw_template(path, &contents)
+                .expect("failed to add template");
         }
+        tera
     };
 }
 
