@@ -24,10 +24,10 @@ build: ${CONTRACTS_BIN}
 	cp $^ build/
 
 build-via-docker:
-	docker run -eOWNER=`id -u`:`id -g` --rm -v `pwd`/..:/code ${BUILDER_DOCKER} bash -c "cd /code/contracts && make contracts"
+	docker run -eOWNER=`id -u`:`id -g` --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make build"
 
 $({{name}}_bin):
-	cd $({{name}}_path) && RUSTFLAGS=${RUSTFLAGS} cargo build --target ${RUST_TARGET} --release && cd - && \
+	cd $({{name}}_path) && RUSTFLAGS=${RUSTFLAGS} cargo build --target ${RUST_TARGET} --release && chown -R $$OWNER target && cd - && \
 		ckb-binary-patcher -i $({{name}}_bin) -o $({{name}}_bin)
 
 clean-cargo:
