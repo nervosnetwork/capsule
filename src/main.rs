@@ -60,21 +60,29 @@ fn new_project<P: AsRef<Path>>(name: String, path: P) -> Result<()> {
         dir_path.push(f);
         fs::create_dir(&dir_path)?;
     }
+    // generate files
+    let context = Context::from_serialize(&CreateProject {
+        name: name.clone(),
+        path: project_path.clone(),
+    })?;
+    for f in &["Makefile", "README.md", "rust-toolchain", "Cargo.toml"] {
+        let content = TEMPLATES.render(f, &context)?;
+        let mut file_path = project_path.clone();
+        file_path.push(f);
+        fs::write(file_path, content)?;
+        println!("Created file {:?}", f);
+    }
     println!("Created {:?}", &project_path);
     let mut default_contract_path = project_path.clone();
     default_contract_path.push("contracts");
     default_contract_path.push(&name);
-    // generate cargo project
+    // generate contract
     Command::new("cargo")
         .arg("new")
         .arg(&default_contract_path)
         .spawn()?
         .wait()?;
     // initialize contract code
-    let context = Context::from_serialize(&CreateProject {
-        name: name.clone(),
-        path: project_path.clone(),
-    })?;
     for f in &["src/main.rs", "Cargo.toml"] {
         let template_path = format!("contract/{}", f);
         let content = TEMPLATES.render(&template_path, &context)?;
@@ -83,14 +91,27 @@ fn new_project<P: AsRef<Path>>(name: String, path: P) -> Result<()> {
         fs::write(file_path, content)?;
     }
     println!("Created contract {:?}", name);
-    // generate files
-    for f in &["Makefile", "README.md", "rust-toolchain"] {
-        let content = TEMPLATES.render(f, &context)?;
-        let mut file_path = project_path.clone();
+    // generate contract tests
+    let mut default_tests_path = project_path.clone();
+    default_tests_path.push("tests");
+    Command::new("cargo")
+        .arg("new")
+        .arg(&default_tests_path)
+        .spawn()?
+        .wait()?;
+    // initialize tests code
+    let context = Context::from_serialize(&CreateProject {
+        name: name.clone(),
+        path: project_path.clone(),
+    })?;
+    for f in &["src/lib.rs", "src/tests.rs", "Cargo.toml"] {
+        let template_path = format!("tests/{}", f);
+        let content = TEMPLATES.render(&template_path, &context)?;
+        let mut file_path = default_tests_path.clone();
         file_path.push(f);
         fs::write(file_path, content)?;
-        println!("Created file {:?}", f);
     }
+    println!("Created tests");
     println!("Done");
     Ok(())
 }
