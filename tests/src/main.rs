@@ -32,7 +32,7 @@ fn test_build<P: AsRef<Path>>(dir: P) -> Result<(), Error> {
     env::set_current_dir(&contract_path)?;
     let exit_code = Command::new("bash")
         .arg("-c")
-        .arg("make build-via-docker")
+        .arg("capsule build")
         .spawn()?
         .wait()?;
     if !exit_code.success() {
