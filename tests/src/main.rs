@@ -20,7 +20,11 @@ fn test_build<P: AsRef<Path>>(dir: P) -> Result<(), Error> {
     contract_path.push(&dir);
     contract_path.push(CONTRACT_NAME);
     println!("Creating {:?} ...", contract_path);
-    let exit_code = Command::new("capsule").arg(CONTRACT_NAME).spawn()?.wait()?;
+    let exit_code = Command::new("capsule")
+        .arg("new")
+        .arg(CONTRACT_NAME)
+        .spawn()?
+        .wait()?;
     if !exit_code.success() {
         panic!("command crash, exit_code {:?}", exit_code.code());
     }
@@ -37,7 +41,7 @@ fn test_build<P: AsRef<Path>>(dir: P) -> Result<(), Error> {
     println!("Run contract test ...");
     let exit_code = Command::new("bash")
         .arg("-c")
-        .arg("cargo test -p tests")
+        .arg("capsule test")
         .spawn()?
         .wait()?;
     if !exit_code.success() {
