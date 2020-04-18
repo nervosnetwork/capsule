@@ -78,7 +78,13 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
         name: name.clone(),
         path: project_path.clone(),
     })?;
-    for f in &["capsule.toml", "README.md", "rust-toolchain", "Cargo.toml"] {
+    for f in &[
+        "capsule.toml",
+        "deployment.toml",
+        "README.md",
+        "rust-toolchain",
+        "Cargo.toml",
+    ] {
         let content = TEMPLATES.render(f, &context)?;
         let mut file_path = project_path.clone();
         file_path.push(f);

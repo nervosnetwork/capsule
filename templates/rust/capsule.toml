@@ -1,3 +1,5 @@
+deployment = "deployment.toml"
+
 [[contracts]]
 name = "{{name}}"
 template_type = "Rust"

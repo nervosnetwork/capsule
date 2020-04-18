@@ -1,4 +1,5 @@
-use crate::config::Config;
+/// Project Context
+use crate::config::{Config, Deployment};
 use anyhow::Result;
 use std::env;
 use std::fs;
@@ -29,6 +30,13 @@ impl Context {
         let mut path = self.project_path.clone();
         path.push(CONTRACTS_BUILD_DIR);
         path
+    }
+
+    pub fn load_deployment(&self) -> Result<Deployment> {
+        let mut path = self.project_path.clone();
+        path.push(&self.config.deployment);
+        let deployment: Deployment = toml::from_slice(&fs::read(path)?)?;
+        Ok(deployment)
     }
 }
 

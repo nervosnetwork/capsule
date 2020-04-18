@@ -13,7 +13,9 @@ lazy_static = "1.4"
 serde = { version = "1.0", features = [ "derive" ] }
 include_dir = "0.5"
 toml = "0.5"
-  
+ckb-tool = { git = "https://github.com/jjyr/ckb-tool.git", branch = "master" }
+simple-jsonrpc-client = "0.1"
+
 [workspace]
 members = [
     "tests",

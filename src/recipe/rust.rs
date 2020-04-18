@@ -5,7 +5,7 @@ use anyhow::Result;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{exit, Command};
 
 const DOCKER_IMAGE: &str = "jjy0/ckb-riscv-rust-toolchain:2020-2-6";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
@@ -29,7 +29,6 @@ impl<'a> Rust<'a> {
         env::set_current_dir(&contract_path)?;
         // docker cargo build
         let mut contract_bin_path = PathBuf::new();
-        contract_bin_path.push(&contract_path);
         contract_bin_path.push(format!(
             "target/{}/release/{}",
             RUST_TARGET, &self.contract.name
@@ -49,11 +48,14 @@ impl<'a> Rust<'a> {
             contract_bin = contract_bin_path.to_str().expect("path")
         );
         println!("build cmd : {}", build_cmd);
-        Command::new("bash")
+        let exit_code = Command::new("bash")
             .arg("-c")
             .arg(build_cmd)
             .spawn()?
             .wait()?;
+        if !exit_code.success() {
+            exit(exit_code.code().unwrap_or(-1));
+        }
         // copy to build dir
         let mut target_path = self.context.contracts_build_path();
         target_path.push(&self.contract.name);

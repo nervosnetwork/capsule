@@ -1,0 +1,18 @@
+# [[cells]]
+# name = "my_cell"
+# enable_type_id = false
+# location = { file = "build/my_cell" }
+
+# # Dep group cells
+# [[dep_groups]]
+# name = "my_dep_group"
+# cells = [
+#   "my_cell",
+#   "secp256k1_data"
+# ]
+
+# # Replace with your own lock if you want to unlock deployed cells.
+# [lock]
+# code_hash = "0x0000000000000000000000000000000000000000000000000000000000000000"
+# args = "0x"
+# hash_type = "data"
