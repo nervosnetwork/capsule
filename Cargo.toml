@@ -15,6 +15,9 @@ include_dir = "0.5"
 toml = "0.5"
 ckb-tool = { git = "https://github.com/jjyr/ckb-tool.git", branch = "master" }
 simple-jsonrpc-client = "0.1"
+bech32 = "0.6"
+secp256k1 = "0.17"
+serde_json = "1.0"
 
 [workspace]
 members = [

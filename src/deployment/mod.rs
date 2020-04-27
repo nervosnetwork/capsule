@@ -12,11 +12,9 @@ use ckb_tool::ckb_types::{
     core::{Capacity, ScriptHashType, TransactionBuilder, TransactionView},
     packed,
     prelude::*,
-    H256,
 };
 use std::fs;
 use std::io::Read;
-use std::path::PathBuf;
 
 pub struct DeploymentProcess {
     wallet: Wallet,
@@ -54,18 +52,19 @@ impl DeploymentProcess {
         Ok(())
     }
 
-    fn build_cells_tx(&self, deployable_cells: &[(Cell, Bytes)]) -> TransactionView {
+    fn build_cells_tx(&mut self, deployable_cells: &[(Cell, Bytes)]) -> TransactionView {
         let lock: packed::Script = self.config.lock.to_owned().into();
         // type_id requires at least one input
-        let type_id_live_cells: Vec<_> = self.wallet.collect_live_cells(Capacity::shannons(1));
+        let type_id_live_cells = self.wallet.collect_live_cells(Capacity::shannons(1));
+        self.wallet.lock_cells(type_id_live_cells.clone().into_iter());
         let inputs: Vec<_> = type_id_live_cells
             .iter()
             .map(|live_cell| {
-                let index: u64 = live_cell.created_by.index.into();
+                let index: u32 = live_cell.index.output_index;
                 packed::CellInput::new_builder()
                     .previous_output(
                         packed::OutPoint::new_builder()
-                            .tx_hash(live_cell.created_by.tx_hash.pack())
+                            .tx_hash(live_cell.tx_hash.pack())
                             .index((index as u32).pack())
                             .build(),
                     )
@@ -98,13 +97,13 @@ impl DeploymentProcess {
         let tx = self.wallet.complete_tx_lock_deps(tx);
         let tx = self
             .wallet
-            .complete_tx_inputs(tx, type_id_live_cells, self.tx_fee);
-        let tx = self.wallet.sign_tx(tx);
+            .complete_tx_inputs(tx, type_id_live_cells.iter(), self.tx_fee);
+        self.wallet.lock_tx_inputs(&tx);
         tx
     }
 
     fn build_dep_groups_tx(
-        &self,
+        &mut self,
         cell_txs: &[&CellTxRecipe],
         deployable_dep_groups: &[DepGroup],
     ) -> TransactionView {
@@ -158,22 +157,28 @@ impl DeploymentProcess {
             .outputs_data(cells_data.pack())
             .build();
         let tx = self.wallet.complete_tx_lock_deps(tx);
-        let tx = self.wallet.complete_tx_inputs(tx, Vec::new(), self.tx_fee);
-        let tx = self.wallet.sign_tx(tx);
+        let tx = self.wallet.complete_tx_inputs(tx, Vec::new().into_iter(), self.tx_fee);
+        self.wallet.lock_tx_inputs(&tx);
         tx
     }
 
     fn build_recipe(
-        &self,
+        &mut self,
         cells: Vec<(Cell, Bytes)>,
         dep_groups: Vec<DepGroup>,
     ) -> (DeploymentRecipe, Vec<TransactionView>) {
         // build cells tx
-        let cells_tx = self.build_cells_tx(&cells);
+        let mut cells_tx = self.build_cells_tx(&cells);
         let cells_tx_recipe = build_cell_tx_recipe(&cells_tx, &cells);
         // build dep_groups tx
-        let dep_groups_tx = self.build_dep_groups_tx(&[&cells_tx_recipe], &dep_groups);
+        let mut dep_groups_tx = self.build_dep_groups_tx(&[&cells_tx_recipe], &dep_groups);
         let dep_group_tx_recipe = build_dep_group_tx_recipe(&dep_groups_tx, &dep_groups);
+        // sign txs
+        {
+            let password = self.wallet.read_password().expect("read password");
+            cells_tx = self.wallet.sign_tx(cells_tx, password.clone()).expect("sign cells_tx");
+            dep_groups_tx = self.wallet.sign_tx(dep_groups_tx, password).expect("sign dep_groups_tx");
+        }
         // construct deployment recipe
         let recipe = DeploymentRecipe {
             cell_txs: vec![cells_tx_recipe],
@@ -198,7 +203,8 @@ impl DeploymentProcess {
                     cell_tx.tx_hash == tx_hash
                 })
                 .expect("missing recipe tx");
-            self.wallet.send_transaction(tx.to_owned())?;
+            let tx_hash = self.wallet.send_transaction(tx.to_owned())?;
+            println!("send cell_tx {}", tx_hash);
         }
         for dep_group_tx in recipe.dep_group_txs {
             if self
@@ -215,7 +221,8 @@ impl DeploymentProcess {
                     dep_group_tx.tx_hash == tx_hash
                 })
                 .expect("missing recipe tx");
-            self.wallet.send_transaction(tx.to_owned())?;
+            let tx_hash = self.wallet.send_transaction(tx.to_owned())?;
+            println!("send dep_group_tx {}", tx_hash);
         }
         Ok(())
     }

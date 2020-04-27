@@ -1,18 +1,23 @@
+use super::cli_types::{Address, LiveCellInfo, SignatureOutput};
 use super::collector::Collector;
+use super::password::Password;
 use super::util;
 
 use anyhow::Result;
-use ckb_tool::ckb_jsonrpc_types::{LiveCell, TransactionWithStatus};
+use ckb_tool::ckb_jsonrpc_types::{TransactionWithStatus};
 use ckb_tool::ckb_types::{
     bytes::Bytes,
-    core::{BlockView, Capacity, DepType, ScriptHashType, TransactionBuilder, TransactionView},
+    core::{BlockView, Capacity, DepType, TransactionView},
     packed,
     prelude::*,
     H256,
 };
+use ckb_tool::faster_hex::hex_decode;
 use ckb_tool::faster_hex::hex_encode;
 use ckb_tool::rpc_client::RpcClient;
-use std::process::Command;
+use std::collections::HashSet;
+use std::io::Write;
+use std::process::{Command, Stdio};
 
 pub const DEFAULT_CKB_CLI_BIN_NAME: &str = "ckb-cli";
 pub const DEFAULT_CKB_RPC_URL: &str = "http://localhost:8114";
@@ -20,21 +25,21 @@ pub const DEFAULT_CKB_RPC_URL: &str = "http://localhost:8114";
 pub struct Wallet {
     bin: String,
     rpc_client: RpcClient,
-    lock_arg: [u8; 20],
+    address: Address,
     genesis: BlockView,
     collector: Collector,
 }
 
 impl Wallet {
-    pub fn load(ckb_cli_bin: String, rpc_client: RpcClient, lock_arg: [u8; 20]) -> Self {
+    pub fn load(ckb_cli_bin: String, rpc_client: RpcClient, address: Address) -> Self {
         let genesis = rpc_client
             .get_block_by_number(0u64.into())
             .expect("genesis");
-        let collector = Collector::new();
+        let collector = Collector::new(ckb_cli_bin.clone());
         Wallet {
             bin: ckb_cli_bin,
             rpc_client,
-            lock_arg,
+            address,
             genesis: genesis.into(),
             collector,
         }
@@ -53,10 +58,10 @@ impl Wallet {
         tx.as_advanced_builder().cell_dep(cell_dep).build()
     }
 
-    pub fn complete_tx_inputs(
+    pub fn complete_tx_inputs<'a>(
         &self,
         tx: TransactionView,
-        inputs_live_cells: Vec<LiveCell>,
+        inputs_live_cells: impl Iterator<Item = &'a LiveCellInfo>,
         fee: Capacity,
     ) -> TransactionView {
         // create change cell
@@ -84,24 +89,17 @@ impl Wallet {
         let inputs_capacity = live_cells
             .iter()
             .map(|c| {
-                let capacity: u64 = c.cell_output.capacity.into();
+                let capacity: u64 = c.capacity();
                 capacity
             })
             .sum::<u64>();
         let mut inputs: Vec<_> = tx.inputs().into_iter().collect();
         inputs.extend(live_cells.into_iter().map(|cell| {
-            let out_point = packed::OutPoint::new_builder()
-                .tx_hash(cell.created_by.tx_hash.pack())
-                .index((cell.created_by.index.value() as u32).pack())
-                .build();
-            packed::CellInput::new_builder()
-                .previous_output(out_point)
-                .build()
+            cell.input()
         }));
         let original_inputs_capacity = inputs_live_cells
-            .iter()
             .map(|c| {
-                let capacity: u64 = c.cell_output.capacity.into();
+                let capacity: u64 = c.capacity();
                 capacity
             })
             .sum::<u64>();
@@ -114,45 +112,76 @@ impl Wallet {
             .build();
         let tx = tx
             .as_advanced_builder()
-            .inputs(inputs)
+            .set_inputs(inputs)
             .output(change_output)
             .output_data(Default::default())
             .build();
         tx
     }
 
-    pub fn sign_tx(&self, tx: TransactionView) -> TransactionView {
+    pub fn read_password(&self) -> Result<Password> {
+        println!("Password:");
+        let mut buf = String::new();
+        std::io::stdin().read_line(&mut buf)?;
+        Ok(Password::new(buf))
+    }
+
+    pub fn sign_tx(&self, tx: TransactionView, password: Password) -> Result<TransactionView> {
+        // complete witnesses
+        let mut witnesses: Vec<Bytes> = tx.witnesses().unpack();
+        if witnesses.is_empty() {
+            // input group witness
+            witnesses.push(packed::WitnessArgs::default().as_bytes());
+        }
+        witnesses.extend(
+            (witnesses.len()..tx.inputs().len())
+                .into_iter()
+                .map(|_| Bytes::new()),
+        );
+        let tx = tx.as_advanced_builder().witnesses(witnesses.pack()).build();
         let witnesses_len = tx.witnesses().len();
-        let message: [u8; 32] = util::tx_sign_message(tx, 0, witnesses_len).into();
-        let lock_arg_hex = {
-            let mut dst = [0u8; 40];
-            hex_encode(&self.lock_arg, &mut dst).expect("hex");
-            String::from_utf8(dst.to_vec()).expect("utf8")
-        };
+        let message: [u8; 32] = util::tx_sign_message(&tx, 0, witnesses_len).into();
+        let address_hex = self
+            .address()
+            .display_with_network(self.address().network());
         let message_hex = {
             let mut dst = [0u8; 64];
             hex_encode(&message, &mut dst).expect("hex");
             String::from_utf8(dst.to_vec()).expect("utf8")
         };
-        let output = self
-            .build_cmd()
+        let mut child = Command::new(&self.bin)
+            .stdin(Stdio::piped())
+            .stderr(Stdio::piped())
+            .stdout(Stdio::piped())
             .arg("util")
             .arg("sign-message")
+            .arg("--recoverable")
             .arg("--output-format")
             .arg("json")
             .arg("--from-account")
-            .arg(lock_arg_hex)
+            .arg(address_hex)
             .arg("--message")
             .arg(message_hex)
-            .output()
-            .expect("sign tx");
-        println!(
-            "sign tx output {}",
-            String::from_utf8(output.stdout).unwrap()
-        );
-        let signature = unreachable!();
-        let tx = util::attach_signature(tx, signature, 0);
-        tx
+            .spawn()?;
+        unsafe {
+            let stdin = child.stdin.as_mut().expect("Failed to open stdin");
+            stdin
+                .write_all(password.take().as_bytes())
+                .expect("Failed to write to stdin");
+        }
+
+        let output = util::handle_cmd(child.wait_with_output()?).expect("sign tx");
+        let output = String::from_utf8(output).expect("parse utf8");
+        let output = output.trim_start_matches("Password:").trim();
+        let output: SignatureOutput = serde_json::from_str(output).expect("parse json");
+        if !output.recoverable {
+            panic!("expect recoverable signature")
+        }
+        let output_signature = output.signature.trim_start_matches("0x");
+        let mut signature = [0u8; 65];
+        hex_decode(output_signature.as_bytes(), &mut signature).expect("dehex");
+        let tx = util::attach_signature(tx, signature.to_vec().into(), 0);
+        Ok(tx)
     }
 
     pub fn query_transaction(&self, tx_hash: &[u8; 32]) -> Result<Option<TransactionWithStatus>> {
@@ -161,51 +190,46 @@ impl Wallet {
         Ok(tx_opt)
     }
 
-    pub fn send_transaction(&mut self, tx: TransactionView) -> Result<[u8; 32]> {
+    pub fn send_transaction(&mut self, tx: TransactionView) -> Result<H256> {
         let tx_hash: packed::Byte32 = self.rpc_client().send_transaction(tx.data().into());
-        for out_point in tx.input_pts_iter() {
-            self.collector.lock_cell(out_point);
-        }
+        self.lock_tx_inputs(&tx);
         Ok(tx_hash.unpack())
     }
 
-    pub fn collect_live_cells(&self, capacity: Capacity) -> Vec<LiveCell> {
+    fn lock_out_points(&mut self, out_points: impl Iterator<Item = packed::OutPoint>) {
+        for out_point in out_points {
+            self.collector.lock_cell(out_point);
+        }
+    }
+
+    pub fn lock_cells(&mut self, cells: impl Iterator<Item = LiveCellInfo>) {
+        let out_points = cells.map(|cell| {
+            packed::OutPoint::new_builder()
+                .tx_hash(cell.tx_hash.pack())
+                .index(cell.index.output_index.pack())
+                .build()
+        });
+        self.lock_out_points(out_points);
+    }
+
+    pub fn lock_tx_inputs(&mut self, tx: &TransactionView) {
+        self.lock_out_points(tx.input_pts_iter());
+    }
+
+    pub fn collect_live_cells(&self, capacity: Capacity) -> HashSet<LiveCellInfo> {
         self.collector
-            .collect_live_cells(self.rpc_client(), self.lock_hash(), capacity)
+            .collect_live_cells(self.address().to_owned(), capacity)
     }
 
     fn lock_script(&self) -> packed::Script {
-        let output = self
-            .genesis
-            .transactions()
-            .get(0)
-            .unwrap()
-            .outputs()
-            .get(1)
-            .unwrap();
-        let type_id = output
-            .type_()
-            .to_opt()
-            .as_ref()
-            .expect("lock script type id")
-            .calc_script_hash();
-        let lock_script = packed::Script::new_builder()
-            .code_hash(type_id)
-            .hash_type(ScriptHashType::Type.into())
-            .args(Bytes::from(self.lock_arg.to_vec()).pack())
-            .build();
-        lock_script
+        self.address().payload().into()
     }
 
-    fn lock_hash(&self) -> packed::Byte32 {
-        self.lock_script().calc_script_hash()
+    fn address(&self) -> &Address {
+        &self.address
     }
 
     fn rpc_client(&self) -> &RpcClient {
         &self.rpc_client
-    }
-
-    fn build_cmd(&self) -> Command {
-        Command::new(&self.bin)
     }
 }

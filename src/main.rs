@@ -9,16 +9,16 @@ mod wallet;
 use std::env;
 use std::path::PathBuf;
 use std::process::{exit, Command};
+use std::str::FromStr;
 
 use anyhow::Result;
-use ckb_tool::faster_hex::hex_decode;
 use ckb_tool::rpc_client::RpcClient;
 use deployment::DeploymentProcess;
 use generator::new_project;
 use project_context::load_project_context;
 use recipe::get_recipe;
 use setup::setup;
-use wallet::{Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
+use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 
 fn run_cli() -> Result<()> {
     let mut args = env::args().skip(1);
@@ -52,15 +52,16 @@ fn run_cli() -> Result<()> {
             exit(exit_code.code().unwrap_or(1));
         }
         "deploy" => {
-            let lock_arg = {
-                let lock_arg_hex = args.next().expect("lock_arg");
-                let mut buf = [0u8; 20];
-                hex_decode(lock_arg_hex.as_bytes(), &mut buf).expect("dehex");
-                buf
+            let address = {
+                let address_hex = args.next().expect("address");
+                // let mut buf = [0u8; 20];
+                // hex_decode(lock_arg_hex.as_bytes(), &mut buf).expect("dehex");
+                // buf
+                Address::from_str(&address_hex).expect("parse address")
             };
             let context = load_project_context()?;
             let rpc_client = RpcClient::new(DEFAULT_CKB_RPC_URL);
-            let wallet = Wallet::load(DEFAULT_CKB_CLI_BIN_NAME.to_string(), rpc_client, lock_arg);
+            let wallet = Wallet::load(DEFAULT_CKB_CLI_BIN_NAME.to_string(), rpc_client, address);
             DeploymentProcess::new(context.load_deployment()?, wallet).deploy()?;
         }
         _ => {
