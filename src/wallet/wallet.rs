@@ -1,10 +1,10 @@
-use super::cli_types::{Address, LiveCellInfo, SignatureOutput};
+use super::cli_types::{Address, LiveCell, SignatureOutput};
 use super::collector::Collector;
 use super::password::Password;
 use super::util;
 
 use anyhow::Result;
-use ckb_tool::ckb_jsonrpc_types::{TransactionWithStatus};
+use ckb_tool::ckb_jsonrpc_types::TransactionWithStatus;
 use ckb_tool::ckb_types::{
     bytes::Bytes,
     core::{BlockView, Capacity, DepType, TransactionView},
@@ -23,7 +23,8 @@ pub const DEFAULT_CKB_CLI_BIN_NAME: &str = "ckb-cli";
 pub const DEFAULT_CKB_RPC_URL: &str = "http://localhost:8114";
 
 pub struct Wallet {
-    bin: String,
+    ckb_cli_bin: String,
+    api_uri: String,
     rpc_client: RpcClient,
     address: Address,
     genesis: BlockView,
@@ -31,13 +32,15 @@ pub struct Wallet {
 }
 
 impl Wallet {
-    pub fn load(ckb_cli_bin: String, rpc_client: RpcClient, address: Address) -> Self {
+    pub fn load(uri: String, ckb_cli_bin: String, address: Address) -> Self {
+        let rpc_client = RpcClient::new(&uri);
         let genesis = rpc_client
             .get_block_by_number(0u64.into())
             .expect("genesis");
-        let collector = Collector::new(ckb_cli_bin.clone());
+        let collector = Collector::new(uri.clone(), ckb_cli_bin.clone());
         Wallet {
-            bin: ckb_cli_bin,
+            ckb_cli_bin,
+            api_uri: uri,
             rpc_client,
             address,
             genesis: genesis.into(),
@@ -61,7 +64,7 @@ impl Wallet {
     pub fn complete_tx_inputs<'a>(
         &self,
         tx: TransactionView,
-        inputs_live_cells: impl Iterator<Item = &'a LiveCellInfo>,
+        original_inputs_capacity: Capacity,
         fee: Capacity,
     ) -> TransactionView {
         // create change cell
@@ -86,26 +89,12 @@ impl Wallet {
             .expect("capacity");
         // collect inputs
         let live_cells = self.collect_live_cells(required_capacity);
-        let inputs_capacity = live_cells
-            .iter()
-            .map(|c| {
-                let capacity: u64 = c.capacity();
-                capacity
-            })
-            .sum::<u64>();
+        let inputs_capacity = live_cells.iter().map(|c| c.capacity).sum::<u64>();
         let mut inputs: Vec<_> = tx.inputs().into_iter().collect();
-        inputs.extend(live_cells.into_iter().map(|cell| {
-            cell.input()
-        }));
-        let original_inputs_capacity = inputs_live_cells
-            .map(|c| {
-                let capacity: u64 = c.capacity();
-                capacity
-            })
-            .sum::<u64>();
+        inputs.extend(live_cells.into_iter().map(|cell| cell.input()));
         // calculate change capacity
         let change_capacity =
-            original_inputs_capacity + inputs_capacity - required_capacity.as_u64();
+            original_inputs_capacity.as_u64() + inputs_capacity - required_capacity.as_u64();
         let change_output = change_output
             .as_builder()
             .capacity(change_capacity.pack())
@@ -149,10 +138,12 @@ impl Wallet {
             hex_encode(&message, &mut dst).expect("hex");
             String::from_utf8(dst.to_vec()).expect("utf8")
         };
-        let mut child = Command::new(&self.bin)
+        let mut child = Command::new(&self.ckb_cli_bin)
             .stdin(Stdio::piped())
             .stderr(Stdio::piped())
             .stdout(Stdio::piped())
+            .arg("--url")
+            .arg(&self.api_uri)
             .arg("util")
             .arg("sign-message")
             .arg("--recoverable")
@@ -202,11 +193,11 @@ impl Wallet {
         }
     }
 
-    pub fn lock_cells(&mut self, cells: impl Iterator<Item = LiveCellInfo>) {
+    pub fn lock_cells(&mut self, cells: impl Iterator<Item = LiveCell>) {
         let out_points = cells.map(|cell| {
             packed::OutPoint::new_builder()
                 .tx_hash(cell.tx_hash.pack())
-                .index(cell.index.output_index.pack())
+                .index(cell.index.pack())
                 .build()
         });
         self.lock_out_points(out_points);
@@ -216,7 +207,7 @@ impl Wallet {
         self.lock_out_points(tx.input_pts_iter());
     }
 
-    pub fn collect_live_cells(&self, capacity: Capacity) -> HashSet<LiveCellInfo> {
+    pub fn collect_live_cells(&self, capacity: Capacity) -> HashSet<LiveCell> {
         self.collector
             .collect_live_cells(self.address().to_owned(), capacity)
     }

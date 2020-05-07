@@ -1,9 +1,6 @@
 use super::human_capacity::HumanCapacity;
-use ckb_tool::ckb_types::{
-    packed::{CellInput, OutPoint},
-    prelude::*,
-    H256,
-};
+use super::live_cell::LiveCell;
+use ckb_tool::ckb_types::H256;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -33,14 +30,23 @@ pub struct LiveCellInfo {
     pub mature: bool,
 }
 
-impl LiveCellInfo {
-    pub fn out_point(&self) -> OutPoint {
-        OutPoint::new(self.tx_hash.clone().pack(), self.index.output_index)
+impl Into<LiveCell> for LiveCellInfo {
+    fn into(self) -> LiveCell {
+        let capacity = self.capacity();
+        let index = self.index.output_index;
+        let LiveCellInfo {
+            tx_hash, mature, ..
+        } = self;
+        LiveCell {
+            tx_hash,
+            index,
+            capacity,
+            mature,
+        }
     }
-    pub fn input(&self) -> CellInput {
-        CellInput::new(self.out_point(), 0)
-    }
+}
 
+impl LiveCellInfo {
     pub fn capacity(&self) -> u64 {
         HumanCapacity::from_str(&self.capacity)
             .expect("parse capacity")

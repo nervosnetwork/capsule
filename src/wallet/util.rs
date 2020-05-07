@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use ckb_tool::ckb_hash::new_blake2b;
 use ckb_tool::ckb_types::{
     bytes::Bytes,
@@ -6,7 +7,6 @@ use ckb_tool::ckb_types::{
     prelude::*,
     H256,
 };
-use anyhow::{Result, anyhow};
 use std::process::Output;
 
 pub const SIGNATURE_SIZE: usize = 65;

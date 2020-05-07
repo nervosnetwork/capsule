@@ -21,12 +21,6 @@ pub struct Config {
 }
 
 // Deployment
-// TODO
-// 1. support refer to builtin cells by name
-// 2. deploy via ckb cli
-// 3. output simulation before deployment
-// 4. output type_id.toml as deployment results
-// 5. two phase deploy, 1 use a unlockable script, 2 use a true lock script
 #[derive(Clone, Default, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct Deployment {
     pub lock: Script,
@@ -40,15 +34,6 @@ pub struct Deployment {
 pub enum CellLocation {
     OutPoint { tx_hash: H256, index: u32 },
     File { file: String },
-}
-
-impl CellLocation {
-    pub fn is_on_chain(&self) -> bool {
-        match self {
-            CellLocation::File { .. } => false,
-            _ => true,
-        }
-    }
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

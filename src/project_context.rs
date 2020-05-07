@@ -7,10 +7,20 @@ use std::path::{Path, PathBuf};
 
 const CONTRACTS_DIR: &str = "contracts";
 const CONTRACTS_BUILD_DIR: &str = "build";
+const MIGRATIONS_DIR: &str = "migrations";
+const RELEASE_PREFIX: &str = "release";
+const DEV_PREFIX: &str = "dev";
+
+#[derive(Debug)]
+pub enum Env {
+    Dev,
+    Release,
+}
 
 pub struct Context {
     pub project_path: PathBuf,
     pub config: Config,
+    pub env: Env,
 }
 
 impl Context {
@@ -32,6 +42,17 @@ impl Context {
         path
     }
 
+    pub fn migrations_path(&self) -> PathBuf {
+        let mut path = self.project_path.clone();
+        path.push(MIGRATIONS_DIR);
+        let prefix = match self.env {
+            Env::Release => RELEASE_PREFIX,
+            Env::Dev => DEV_PREFIX,
+        };
+        path.push(prefix);
+        path
+    }
+
     pub fn load_deployment(&self) -> Result<Deployment> {
         let mut path = self.project_path.clone();
         path.push(&self.config.deployment);
@@ -40,7 +61,7 @@ impl Context {
     }
 }
 
-pub fn load_project_context() -> Result<Context> {
+pub fn load_project_context(env: Env) -> Result<Context> {
     const CONFIG_NAME: &str = "capsule.toml";
 
     let mut project_path = PathBuf::new();
@@ -51,5 +72,6 @@ pub fn load_project_context() -> Result<Context> {
     Ok(Context {
         config,
         project_path,
+        env,
     })
 }

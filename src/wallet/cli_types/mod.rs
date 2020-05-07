@@ -1,10 +1,12 @@
 mod address;
 mod human_capacity;
+mod live_cell;
 mod live_cell_info;
 mod network_type;
 mod signature;
 
 pub use address::Address;
+pub use live_cell::LiveCell;
 pub use live_cell_info::{LiveCellInfo, LiveCellInfoVec};
 pub use signature::SignatureOutput;
 

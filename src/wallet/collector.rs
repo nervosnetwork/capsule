@@ -1,19 +1,21 @@
-use super::cli_types::{Address, LiveCellInfo, LiveCellInfoVec};
+use super::cli_types::{Address, LiveCell, LiveCellInfo, LiveCellInfoVec};
 use super::util::handle_cmd;
-use ckb_tool::ckb_types::{core::Capacity, packed::*, prelude::*};
+use ckb_tool::ckb_types::{core::Capacity, packed::*};
 use std::collections::HashSet;
 use std::process::Command;
 
 pub struct Collector {
     locked_cells: HashSet<OutPoint>,
-    bin: String,
+    ckb_cli_bin: String,
+    api_uri: String,
 }
 
 impl Collector {
-    pub fn new(bin: String) -> Self {
+    pub fn new(api_uri: String, ckb_cli_bin: String) -> Self {
         Collector {
             locked_cells: HashSet::default(),
-            bin,
+            api_uri,
+            ckb_cli_bin,
         }
     }
 
@@ -21,15 +23,11 @@ impl Collector {
         self.locked_cells.insert(out_point);
     }
 
-    pub fn is_live_cell_locked(&self, live_cell: &LiveCellInfo) -> bool {
+    pub fn is_live_cell_locked(&self, live_cell: &LiveCell) -> bool {
         self.locked_cells.contains(&live_cell.out_point())
     }
 
-    pub fn collect_live_cells(
-        &self,
-        address: Address,
-        capacity: Capacity,
-    ) -> HashSet<LiveCellInfo> {
+    pub fn collect_live_cells(&self, address: Address, capacity: Capacity) -> HashSet<LiveCell> {
         const BLOCKS_IN_BATCH: u64 = 10000u64;
         const LIMIT: u64 = 20;
         const MAX_RETRIES: usize = 50;
@@ -52,11 +50,12 @@ impl Collector {
                 .into_iter()
                 .filter(|cell| cell.data_bytes == 0 && cell.type_hashes.is_none());
             for cell in iter {
+                let cell: LiveCell = cell.into();
                 // cell is in use, but not yet committed
                 if self.is_live_cell_locked(&cell) {
                     continue;
                 }
-                let cell_capacity = cell.capacity();
+                let cell_capacity = cell.capacity;
                 if !live_cells.insert(cell) {
                     // skip collected cell
                     continue;
@@ -81,7 +80,9 @@ impl Collector {
         limit: u64,
     ) -> Vec<LiveCellInfo> {
         let output = handle_cmd(
-            Command::new(&self.bin)
+            Command::new(&self.ckb_cli_bin)
+                .arg("--url")
+                .arg(&self.api_uri)
                 .arg("wallet")
                 .arg("--wait-for-sync")
                 .arg("get-live-cells")

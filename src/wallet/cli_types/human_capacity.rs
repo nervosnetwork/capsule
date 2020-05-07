@@ -33,7 +33,7 @@ impl FromStr for HumanCapacity {
             .trim()
             .split('.')
             .collect::<Vec<_>>();
-    let mut capacity = ONE_CKB
+        let mut capacity = ONE_CKB
             * parts
                 .get(0)
                 .ok_or_else(|| "Missing input".to_owned())?

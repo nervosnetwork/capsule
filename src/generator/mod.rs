@@ -67,11 +67,13 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
     };
     fs::create_dir(&project_path)
         .with_context(|| format!("directory exists {:?}", &project_path))?;
-    for f in &["contracts", "build"] {
+    for f in &["contracts", "build", "migrations"] {
         let mut dir_path = PathBuf::new();
         dir_path.push(&project_path);
         dir_path.push(f);
         fs::create_dir(&dir_path)?;
+        dir_path.push(".gitkeep");
+        fs::File::create(&dir_path)?;
     }
     // generate files
     let context = Context::from_serialize(&CreateProject {

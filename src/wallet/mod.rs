@@ -1,8 +1,8 @@
-mod cli_types;
+pub(crate) mod cli_types;
 mod collector;
+mod password;
 mod util;
 mod wallet;
-mod password;
 
 pub use cli_types::Address;
 pub use wallet::*;
