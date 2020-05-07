@@ -9,7 +9,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Install binary
-      run: cargo install --path .
+    - name: Build
+      run: cargo build
     - name: Run tests
       run: cargo run -p tests
