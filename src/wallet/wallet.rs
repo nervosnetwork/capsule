@@ -174,9 +174,8 @@ impl Wallet {
         Ok(tx)
     }
 
-    pub fn query_transaction(&self, tx_hash: &[u8; 32]) -> Result<Option<TransactionWithStatus>> {
-        let tx_hash: H256 = tx_hash.to_owned().into();
-        let tx_opt = self.rpc_client().get_transaction(tx_hash);
+    pub fn query_transaction(&self, tx_hash: &H256) -> Result<Option<TransactionWithStatus>> {
+        let tx_opt = self.rpc_client().get_transaction(tx_hash.to_owned());
         Ok(tx_opt)
     }
 

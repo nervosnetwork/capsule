@@ -10,6 +10,7 @@ use ckb_tool::ckb_types::{
     core::{Capacity, ScriptHashType, TransactionBuilder, TransactionView},
     packed,
     prelude::*,
+    H256,
 };
 use std::fs;
 use std::io::Read;
@@ -100,11 +101,11 @@ impl DeploymentProcess {
 
     fn build_dep_groups_tx(
         &mut self,
-        cell_txs: &[&CellTxRecipe],
+        cell_txs: &[CellTxRecipe],
         deployable_dep_groups: &[DepGroup],
         pre_inputs_cells: Vec<LiveCell>,
     ) -> TransactionView {
-        fn find_cell(name: &str, cell_txs: &[&CellTxRecipe]) -> Option<([u8; 32], CellRecipe)> {
+        fn find_cell(name: &str, cell_txs: &[CellTxRecipe]) -> Option<(H256, CellRecipe)> {
             for tx in cell_txs {
                 if let Some(c) = tx.cells.iter().find(|c| c.name == name) {
                     return Some((tx.tx_hash.to_owned(), c.clone()));
@@ -180,31 +181,36 @@ impl DeploymentProcess {
         dep_groups: Vec<DepGroup>,
         pre_inputs_cells: Vec<LiveCell>,
     ) -> (DeploymentRecipe, Vec<TransactionView>) {
+        let mut txs = Vec::new();
+        let mut cell_txs = Vec::new();
+        let mut dep_group_txs = Vec::new();
         // build cells tx
-        let mut cells_tx = self.build_cells_tx(&cells, pre_inputs_cells);
-        let cells_tx_recipe = build_cell_tx_recipe(&cells_tx, &cells);
+        if !cells.is_empty() {
+            let tx = self.build_cells_tx(&cells, pre_inputs_cells);
+            let cells_tx_recipe = build_cell_tx_recipe(&tx, &cells);
+            txs.push(tx);
+            cell_txs.push(cells_tx_recipe);
+        }
         // build dep_groups tx
-        let mut dep_groups_tx =
-            self.build_dep_groups_tx(&[&cells_tx_recipe], &dep_groups, Vec::new());
-        let dep_group_tx_recipe = build_dep_group_tx_recipe(&dep_groups_tx, &dep_groups);
-        // sign txs
-        {
-            let password = self.wallet.read_password().expect("read password");
-            cells_tx = self
-                .wallet
-                .sign_tx(cells_tx, password.clone())
-                .expect("sign cells_tx");
-            dep_groups_tx = self
-                .wallet
-                .sign_tx(dep_groups_tx, password)
-                .expect("sign dep_groups_tx");
+        if !dep_groups.is_empty() {
+            let tx = self.build_dep_groups_tx(&cell_txs, &dep_groups, Vec::new());
+            let dep_group_tx_recipe = build_dep_group_tx_recipe(&tx, &dep_groups);
+            txs.push(tx);
+            dep_group_txs.push(dep_group_tx_recipe)
         }
         // construct deployment recipe
         let recipe = DeploymentRecipe {
-            cell_txs: vec![cells_tx_recipe],
-            dep_group_txs: vec![dep_group_tx_recipe],
+            cell_txs,
+            dep_group_txs,
         };
-        (recipe, vec![cells_tx, dep_groups_tx])
+        (recipe, txs)
+    }
+
+    pub fn sign_txs(&self, txs: Vec<TransactionView>) -> Result<Vec<TransactionView>> {
+        let password = self.wallet.read_password().expect("read password");
+        txs.into_iter()
+            .map(|tx| self.wallet.sign_tx(tx, password.clone()))
+            .collect()
     }
 
     pub fn execute_recipe(
@@ -219,7 +225,7 @@ impl DeploymentProcess {
             let tx = txs
                 .iter()
                 .find(|tx| {
-                    let tx_hash: [u8; 32] = tx.hash().unpack();
+                    let tx_hash = tx.hash().unpack();
                     cell_tx.tx_hash == tx_hash
                 })
                 .expect("missing recipe tx");
@@ -237,7 +243,7 @@ impl DeploymentProcess {
             let tx = txs
                 .iter()
                 .find(|tx| {
-                    let tx_hash: [u8; 32] = tx.hash().unpack();
+                    let tx_hash = tx.hash().unpack();
                     dep_group_tx.tx_hash == tx_hash
                 })
                 .expect("missing recipe tx");
@@ -254,10 +260,23 @@ fn build_cell_tx_recipe(tx: &TransactionView, cells: &[(Cell, Bytes)]) -> CellTx
         cells: cells
             .iter()
             .enumerate()
-            .map(|(i, (c, data))| CellRecipe {
-                index: i as u32,
-                name: c.name.to_owned(),
-                data_hash: packed::CellOutput::calc_data_hash(&data).unpack(),
+            .map(|(i, (c, data))| {
+                let occupied_capacity = tx
+                    .outputs()
+                    .get(i)
+                    .expect("get cell")
+                    .occupied_capacity(
+                        Capacity::bytes(tx.outputs_data().get(i).expect("get data").len())
+                            .expect("capacity"),
+                    )
+                    .expect("capacity")
+                    .as_u64();
+                CellRecipe {
+                    index: i as u32,
+                    name: c.name.to_owned(),
+                    data_hash: packed::CellOutput::calc_data_hash(&data).unpack(),
+                    occupied_capacity,
+                }
             })
             .collect(),
     }
@@ -269,9 +288,22 @@ fn build_dep_group_tx_recipe(tx: &TransactionView, dep_groups: &[DepGroup]) -> D
         dep_groups: dep_groups
             .iter()
             .enumerate()
-            .map(|(i, dep_group)| DepGroupRecipe {
-                index: i as u32,
-                name: dep_group.name.to_owned(),
+            .map(|(i, dep_group)| {
+                let occupied_capacity = tx
+                    .outputs()
+                    .get(i)
+                    .expect("get cell")
+                    .occupied_capacity(
+                        Capacity::bytes(tx.outputs_data().get(i).expect("get data").len())
+                            .expect("capacity"),
+                    )
+                    .expect("capacity")
+                    .as_u64();
+                DepGroupRecipe {
+                    index: i as u32,
+                    name: dep_group.name.to_owned(),
+                    occupied_capacity,
+                }
             })
             .collect(),
     }

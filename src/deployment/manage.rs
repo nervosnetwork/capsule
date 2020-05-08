@@ -1,9 +1,10 @@
-use super::{deployment_process::DeploymentProcess, recipe::DeploymentRecipe};
+use super::{deployment_process::DeploymentProcess, plan::Plan, recipe::DeploymentRecipe};
 use crate::config::Deployment;
+use crate::util::ask_for_confirm;
 use crate::wallet::{cli_types::LiveCell, Wallet};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::prelude::*;
-use ckb_tool::ckb_types::core::Capacity;
+use ckb_tool::ckb_types::core::{Capacity, TransactionView};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -36,7 +37,7 @@ impl Manage {
         let snapshot_name = now.format("%Y-%m-%d-%H%M%S.toml").to_string();
         let mut path = self.migration_dir.clone();
         path.push(snapshot_name);
-        let content = toml::to_vec(recipe)?;
+        let content = serde_json::to_vec(recipe)?;
         fs::OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -50,7 +51,7 @@ impl Manage {
         path.push(snapshot_name);
         let mut buf = Vec::new();
         fs::File::open(path)?.read_to_end(&mut buf)?;
-        let recipe = toml::from_slice(&buf)?;
+        let recipe = serde_json::from_slice(&buf)?;
         Ok(recipe)
     }
 
@@ -111,9 +112,44 @@ impl Manage {
             pre_inputs.extend(self.collect_migration_live_cells(&wallet)?);
         }
         let mut process = DeploymentProcess::new(deployment, wallet, opt.tx_fee);
-        let (recipe, txs) = process.prepare_recipe(pre_inputs)?;
-        self.snapshot_recipe(&recipe)?;
-        process.execute_recipe(recipe, txs)?;
+        let (recipe, txs) = process.prepare_recipe(pre_inputs.clone())?;
+        if txs.is_empty() {
+            return Err(anyhow!("Nothing to deploy"));
+        }
+        self.output_deployment_plan(&recipe, &txs, &pre_inputs, &opt);
+        if ask_for_confirm("Confirm deployment?")? {
+            self.snapshot_recipe(&recipe)?;
+            let txs = process.sign_txs(txs)?;
+            process.execute_recipe(recipe, txs)?;
+            println!("Deployment complete");
+        } else {
+            println!("Cancelled");
+        }
         Ok(())
+    }
+
+    fn output_deployment_plan(
+        &self,
+        recipe: &DeploymentRecipe,
+        txs: &[TransactionView],
+        pre_inputs: &[LiveCell],
+        opt: &DeployOption,
+    ) {
+        let migrated_capacity = pre_inputs.iter().map(|cell| cell.capacity).sum::<u64>();
+        let total_used_capacity = txs
+            .iter()
+            .map(|tx| tx.outputs_capacity().expect("capacity").as_u64())
+            .sum::<u64>();
+        let new_capacity = total_used_capacity - migrated_capacity;
+        let plan = Plan::new(
+            migrated_capacity,
+            new_capacity,
+            total_used_capacity,
+            opt.tx_fee.as_u64(),
+            recipe.to_owned(),
+        );
+        let plan = serde_yaml::to_string(&plan).unwrap();
+        println!("Deployment plan:");
+        println!("{}", plan);
     }
 }

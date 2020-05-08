@@ -4,6 +4,7 @@ mod generator;
 mod project_context;
 mod recipe;
 mod setup;
+mod util;
 mod wallet;
 
 use std::env;

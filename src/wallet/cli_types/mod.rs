@@ -6,6 +6,7 @@ mod network_type;
 mod signature;
 
 pub use address::Address;
+pub use human_capacity::HumanCapacity;
 pub use live_cell::LiveCell;
 pub use live_cell_info::{LiveCellInfo, LiveCellInfoVec};
 pub use signature::SignatureOutput;
