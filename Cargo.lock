@@ -206,6 +206,7 @@ dependencies = [
  "ckb-tool",
  "include_dir",
  "lazy_static",
+ "rpassword",
  "secp256k1 0.17.2",
  "serde",
  "serde_json",
@@ -2209,6 +2210,16 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg",
+]
+
+[[package]]
+name = "rpassword"
+version = "4.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99371657d3c8e4d816fb6221db98fa408242b0b53bac08f8676a41f8554fe99f"
+dependencies = [
+ "libc",
+ "winapi 0.3.8",
 ]
 
 [[package]]

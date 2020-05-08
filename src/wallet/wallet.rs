@@ -109,10 +109,9 @@ impl Wallet {
     }
 
     pub fn read_password(&self) -> Result<Password> {
-        println!("Password:");
-        let mut buf = String::new();
-        std::io::stdin().read_line(&mut buf)?;
-        Ok(Password::new(buf))
+        let password =
+            rpassword::read_password_from_tty(Some("Password: ")).expect("read password");
+        Ok(Password::new(password))
     }
 
     pub fn sign_tx(&self, tx: TransactionView, password: Password) -> Result<TransactionView> {
