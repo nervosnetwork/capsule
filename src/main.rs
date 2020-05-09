@@ -3,7 +3,6 @@ mod deployment;
 mod generator;
 mod project_context;
 mod recipe;
-mod setup;
 mod tester;
 mod util;
 mod wallet;
@@ -19,7 +18,6 @@ use deployment::manage::{DeployOption, Manage as DeployManage};
 use generator::new_project;
 use project_context::{load_project_context, Env};
 use recipe::get_recipe;
-use setup::setup;
 use tester::Tester;
 use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 
@@ -28,10 +26,6 @@ fn run_cli() -> Result<()> {
     let command = args.next().expect("command");
     let env = Env::Dev;
     match &command[..] {
-        "setup" => {
-            setup()?;
-            println!("Done");
-        }
         "new" => {
             let mut name = args.next().expect("name");
             let mut path = PathBuf::new();
