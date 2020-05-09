@@ -21,6 +21,7 @@ serde_json = "1.0"
 chrono = "0.4"
 rpassword = "4.0"
 serde_yaml = "0.8.11"
+users = "0.10"
 
 [workspace]
 members = [

@@ -4,12 +4,13 @@ mod generator;
 mod project_context;
 mod recipe;
 mod setup;
+mod tester;
 mod util;
 mod wallet;
 
 use std::env;
 use std::path::PathBuf;
-use std::process::{exit, Command};
+use std::process::exit;
 use std::str::FromStr;
 
 use anyhow::Result;
@@ -19,6 +20,7 @@ use generator::new_project;
 use project_context::{load_project_context, Env};
 use recipe::get_recipe;
 use setup::setup;
+use tester::Tester;
 use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 
 fn run_cli() -> Result<()> {
@@ -50,7 +52,8 @@ fn run_cli() -> Result<()> {
             println!("Done");
         }
         "test" => {
-            let exit_code = Command::new("cargo").arg("test").spawn()?.wait()?;
+            let context = load_project_context(env)?;
+            let exit_code = Tester::run(&context.project_path)?;
             exit(exit_code.code().unwrap_or(1));
         }
         "deploy" => {
