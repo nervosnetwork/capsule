@@ -1,13 +1,13 @@
 use crate::config::Contract;
 use crate::project_context::Context;
+use crate::util::build_docker_cmd;
 use anyhow::Result;
 
-use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::process::{exit, Command};
+use std::process::exit;
 
-const DOCKER_IMAGE: &str = "jjy0/ckb-riscv-rust-toolchain:2020-2-6";
+pub const DOCKER_IMAGE: &str = "jjy0/ckb-capsule-recipe-rust:2020-5-9";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
 const RUST_FLAGS: &str = "-C link-arg=-s";
 
@@ -23,45 +23,38 @@ impl<'a> Rust<'a> {
 
     // build contract
     pub fn run_build(&self) -> Result<()> {
-        let old_dir = env::current_dir()?;
-        let contract_path = self.context.contract_path(&self.contract.name);
-        // set current dir to contract path
-        env::set_current_dir(&contract_path)?;
+        let contract_source_path = self.context.contract_path(&self.contract.name);
         // docker cargo build
-        let mut contract_bin_path = PathBuf::new();
-        contract_bin_path.push(format!(
+        let mut bin_path = PathBuf::new();
+        bin_path.push(format!(
             "target/{}/release/{}",
             RUST_TARGET, &self.contract.name
         ));
         let build_cmd = format!(
-            "docker run \
-         -eOWNER=`id -u`:`id -g` \
-         --rm -v `pwd`:/code {docker_image} \
-         bash -c \
-         \"cd /code && \
+            "cd /code && \
          RUSTFLAGS='{rust_flags}' cargo build --target {rust_target} --release && \
-         chown -R \\$OWNER target && \
-         ckb-binary-patcher -i {contract_bin} -o {contract_bin}\"",
-            docker_image = DOCKER_IMAGE,
+         ckb-binary-patcher -i {contract_bin} -o {contract_bin}; \
+         EXITCODE=$?;chown -R $UID:$GID target; exit $EXITCODE",
             rust_flags = RUST_FLAGS,
             rust_target = RUST_TARGET,
-            contract_bin = contract_bin_path.to_str().expect("path")
+            contract_bin = bin_path.to_str().expect("bin")
         );
-        println!("build cmd : {}", build_cmd);
-        let exit_code = Command::new("bash")
-            .arg("-c")
-            .arg(build_cmd)
-            .spawn()?
-            .wait()?;
+        let exit_code = build_docker_cmd(
+            &build_cmd,
+            contract_source_path.to_str().expect("pwd"),
+            DOCKER_IMAGE,
+        )?
+        .spawn()?
+        .wait()?;
         if !exit_code.success() {
             exit(exit_code.code().unwrap_or(-1));
         }
         // copy to build dir
         let mut target_path = self.context.contracts_build_path();
         target_path.push(&self.contract.name);
+        let mut contract_bin_path = contract_source_path.clone();
+        contract_bin_path.push(bin_path);
         fs::copy(contract_bin_path, target_path)?;
-        // set current dir back
-        env::set_current_dir(old_dir)?;
         Ok(())
     }
 }

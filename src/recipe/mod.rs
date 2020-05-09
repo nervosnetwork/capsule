@@ -1,4 +1,4 @@
-mod rust;
+pub mod rust;
 
 use crate::config::{Contract, TemplateType};
 use crate::project_context::Context;
