@@ -1,3 +1,4 @@
+mod checker;
 mod config;
 mod deployment;
 mod generator;
@@ -13,6 +14,7 @@ use std::process::exit;
 use std::str::FromStr;
 
 use anyhow::Result;
+use checker::Checker;
 use ckb_tool::ckb_types::core::Capacity;
 use deployment::manage::{DeployOption, Manage as DeployManage};
 use generator::new_project;
@@ -26,6 +28,9 @@ fn run_cli() -> Result<()> {
     let command = args.next().expect("command");
     let env = Env::Dev;
     match &command[..] {
+        "check" => {
+            Checker::run()?;
+        }
         "new" => {
             let mut name = args.next().expect("name");
             let mut path = PathBuf::new();
