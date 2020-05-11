@@ -1,8 +1,9 @@
 /// Project Context
 use crate::config::{Config, Deployment};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use std::env;
 use std::fs;
+use std::io::ErrorKind as IOErrorKind;
 use std::path::{Path, PathBuf};
 
 const CONTRACTS_DIR: &str = "contracts";
@@ -68,10 +69,18 @@ pub fn load_project_context(env: Env) -> Result<Context> {
     project_path.push(env::current_dir()?);
     let mut path = project_path.clone();
     path.push(CONFIG_NAME);
-    let config: Config = toml::from_slice(&fs::read(path)?)?;
-    Ok(Context {
-        config,
-        project_path,
-        env,
-    })
+    match fs::read(path) {
+        Ok(content) => {
+            let config: Config = toml::from_slice(&content)?;
+            Ok(Context {
+                config,
+                project_path,
+                env,
+            })
+        }
+        Err(err) if err.kind() == IOErrorKind::NotFound => {
+            Err(anyhow!("Can't found {}, not in the project directory", CONFIG_NAME))
+        }
+        Err(err) => Err(err.into()),
+    }
 }
