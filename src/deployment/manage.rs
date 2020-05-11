@@ -145,7 +145,7 @@ impl Manage {
             migrated_capacity,
             new_capacity,
             total_used_capacity,
-            opt.tx_fee.as_u64(),
+            opt.tx_fee.as_u64() * txs.len() as u64,
             recipe.to_owned(),
         );
         let plan = serde_yaml::to_string(&plan).unwrap();

@@ -9,7 +9,7 @@ pub struct Plan {
     migrated_capacity: String,
     new_capacity: String,
     total_used_capacity: String,
-    tx_fee_capacity: String,
+    total_tx_fee_capacity: String,
     recipe: RecipePlan,
 }
 
@@ -99,14 +99,14 @@ impl Plan {
         migrated_capacity: u64,
         new_capacity: u64,
         total_used_capacity: u64,
-        tx_fee_capacity: u64,
+        total_tx_fee_capacity: u64,
         recipe: DeploymentRecipe,
     ) -> Self {
         Plan {
             migrated_capacity: format!("{:#}", HumanCapacity::from(migrated_capacity)),
             new_capacity: format!("{:#}", HumanCapacity::from(new_capacity)),
             total_used_capacity: format!("{:#}", HumanCapacity::from(total_used_capacity)),
-            tx_fee_capacity: format!("{:#}", HumanCapacity::from(tx_fee_capacity)),
+            total_tx_fee_capacity: format!("{:#}", HumanCapacity::from(total_tx_fee_capacity)),
             recipe: recipe.into(),
         }
     }
