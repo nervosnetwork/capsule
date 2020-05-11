@@ -51,7 +51,6 @@ fn run_cli() -> Result<()> {
                 ]),
         )
         .get_matches();
-    matches.subcommand();
     let env = Env::Dev;
     match matches.subcommand() {
         ("check", _args) => {

@@ -13,10 +13,16 @@ pub fn build_docker_cmd(shell_cmd: &str, code_path: &str, docker_image: &str) ->
     let mut cmd = Command::new("docker");
     let uid = users::get_current_uid();
     let gid = users::get_current_gid();
+    let user = users::get_current_username()
+        .expect("user")
+        .to_str()
+        .expect("username")
+        .to_string();
     cmd.args(&[
         "run",
         format!("-eUID={}", uid).as_str(),
         format!("-eGID={}", gid).as_str(),
+        format!("-eUSER={}", user).as_str(),
         "--rm",
         "-v",
         format!("{}:/code", code_path).as_str(),

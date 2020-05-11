@@ -1,3 +1,5 @@
+use crate::recipe::rust::DOCKER_IMAGE;
+use crate::util::build_docker_cmd;
 use anyhow::{Context as ErrorContext, Result};
 use include_dir::{include_dir, Dir, DirEntry};
 use lazy_static::lazy_static;
@@ -39,15 +41,21 @@ struct CreateContract {
 
 fn new_contract<P: AsRef<Path>>(name: String, path: P) -> Result<()> {
     let context = Context::from_serialize(&CreateContract { name: name.clone() })?;
+    // generate contract
+    build_docker_cmd(
+        format!(
+            "cd /code && cargo new {project} && chown -R $UID:$GID {project}",
+            project = name
+        )
+        .as_str(),
+        path.as_ref().to_str().expect("path"),
+        DOCKER_IMAGE,
+    )?
+    .spawn()?
+    .wait()?;
     let mut contract_path = PathBuf::new();
     contract_path.push(path);
-    contract_path.push(&name);
-    // generate contract
-    Command::new("cargo")
-        .arg("new")
-        .arg(&contract_path)
-        .spawn()?
-        .wait()?;
+    contract_path.push(name);
     // initialize contract code
     for f in &["src/main.rs", "Cargo.toml"] {
         let template_path = format!("contract/{}", f);
