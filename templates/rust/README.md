@@ -1,3 +1,13 @@
 # {{name}}
 
-Use `make build` to build contracts.
+Build contracts:
+
+``` sh
+capsule build
+```
+
+Run tests:
+
+``` sh
+capsule test
+```
