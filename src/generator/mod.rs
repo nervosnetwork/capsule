@@ -6,7 +6,6 @@ use lazy_static::lazy_static;
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use tera::{self, Context, Tera};
 
 const TEMPLATES_DIR: Dir = include_dir!("templates/rust");
@@ -99,27 +98,35 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
 }
 
 fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P) -> Result<()> {
+    const DEFAULT_TESTS_DIR: &str = "tests";
+
+    build_docker_cmd(
+        format!(
+            "cd /code && cargo new {project} && chown -R $UID:$GID {project}",
+            project = DEFAULT_TESTS_DIR
+        )
+        .as_str(),
+        project_path.as_ref().to_str().expect("path"),
+        DOCKER_IMAGE,
+    )?
+    .spawn()?
+    .wait()?;
     let project_path = {
         let mut path = PathBuf::new();
         path.push(project_path);
         path
     };
-    let mut default_tests_path = project_path.clone();
-    default_tests_path.push("tests");
-    Command::new("cargo")
-        .arg("new")
-        .arg(&default_tests_path)
-        .spawn()?
-        .wait()?;
     // initialize tests code
     let context = Context::from_serialize(&CreateProject {
         name: name.clone(),
         path: project_path.clone(),
     })?;
+    let mut tests_path = project_path;
+    tests_path.push(DEFAULT_TESTS_DIR);
     for f in &["src/lib.rs", "src/tests.rs", "Cargo.toml"] {
         let template_path = format!("tests/{}", f);
         let content = TEMPLATES.render(&template_path, &context)?;
-        let mut file_path = default_tests_path.clone();
+        let mut file_path = tests_path.clone();
         file_path.push(f);
         fs::write(file_path, content)?;
     }
