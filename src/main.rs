@@ -23,16 +23,42 @@ use recipe::get_recipe;
 use tester::Tester;
 use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 
+use clap::{App, Arg, SubCommand};
+
 fn run_cli() -> Result<()> {
-    let mut args = env::args().skip(1);
-    let command = args.next().expect("command");
+    let matches = App::new("Capsule")
+        .version("0.0.0-pre1")
+        .author("Nervos Developer Tools Team")
+        .about("Capsule CKB contract scaffold")
+        .subcommand(SubCommand::with_name("check").about("Check environment and dependencies"))
+        .subcommand(SubCommand::with_name("new").about("Create a new project").arg(Arg::with_name("name").help("project name").index(1).required(true).takes_value(true)))
+        .subcommand(SubCommand::with_name("build").about("Build contracts"))
+        .subcommand(SubCommand::with_name("test").about("Run tests"))
+        .subcommand(
+            SubCommand::with_name("deploy")
+                .about("Deploy contracts")
+                .help("Edit deployment.toml to custodian deployment recipe.")
+                .args(&[
+                    Arg::with_name("address").long("address").help(
+                        "Denote which address provides cells",
+                    ).required(true).takes_value(true),
+                    Arg::with_name("fee").long("fee").help(
+                        "Per transaction's fee, deployment may involve more than one transaction.",
+                    ).default_value("0.0001").takes_value(true),
+                    Arg::with_name("no-migrate")
+                        .long("no-migrate")
+                        .help("Do not use deployed cells as inputs."),
+                ]),
+        )
+        .get_matches();
+    matches.subcommand();
     let env = Env::Dev;
-    match &command[..] {
-        "check" => {
+    match matches.subcommand() {
+        ("check", _args) => {
             Checker::run()?;
         }
-        "new" => {
-            let mut name = args.next().expect("name");
+        ("new", Some(args)) => {
+            let mut name = args.value_of("name").expect("name").to_string();
             let mut path = PathBuf::new();
             if let Some(index) = name.rfind("/") {
                 path.push(&name[..index]);
@@ -42,7 +68,7 @@ fn run_cli() -> Result<()> {
             }
             new_project(name.to_string(), path)?;
         }
-        "build" => {
+        ("build", _args) => {
             let context = load_project_context(env)?;
             for c in &context.config.contracts {
                 println!("Building contract {}", c.name);
@@ -50,14 +76,14 @@ fn run_cli() -> Result<()> {
             }
             println!("Done");
         }
-        "test" => {
+        ("test", _args) => {
             let context = load_project_context(env)?;
             let exit_code = Tester::run(&context.project_path)?;
             exit(exit_code.code().unwrap_or(1));
         }
-        "deploy" => {
+        ("deploy", Some(args)) => {
             let address = {
-                let address_hex = args.next().expect("address");
+                let address_hex = args.value_of("address").expect("address");
                 Address::from_str(&address_hex).expect("parse address")
             };
             let context = load_project_context(env)?;
@@ -73,8 +99,8 @@ fn run_cli() -> Result<()> {
             };
             DeployManage::new(migration_dir, context.load_deployment()?).deploy(wallet, opt)?;
         }
-        _ => {
-            println!("unrecognize command '{}'", command);
+        (command, _) => {
+            eprintln!("unrecognize command '{}'", command);
             exit(1);
         }
     }
