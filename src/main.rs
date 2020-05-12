@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use checker::Checker;
 use ckb_tool::ckb_types::core::Capacity;
 use deployment::manage::{DeployOption, Manage as DeployManage};
@@ -21,13 +21,14 @@ use generator::new_project;
 use project_context::{load_project_context, Env};
 use recipe::get_recipe;
 use tester::Tester;
+use wallet::cli_types::HumanCapacity;
 use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 
 use clap::{App, Arg, SubCommand};
 
 fn run_cli() -> Result<()> {
     let matches = App::new("Capsule")
-        .version("0.0.0-pre1")
+        .version("0.0.0-pre.1")
         .author("Nervos Developer Tools Team")
         .about("Capsule CKB contract scaffold")
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies"))
@@ -54,7 +55,7 @@ fn run_cli() -> Result<()> {
     let env = Env::Dev;
     match matches.subcommand() {
         ("check", _args) => {
-            Checker::run()?;
+            Checker::build()?.print_report();
         }
         ("new", Some(args)) => {
             let mut name = args.value_of("name").expect("name").to_string();
@@ -81,6 +82,10 @@ fn run_cli() -> Result<()> {
             exit(exit_code.code().unwrap_or(1));
         }
         ("deploy", Some(args)) => {
+            if !Checker::build()?.ckb_cli {
+                eprintln!("Can't find ckb-cli, install it to enable deployment");
+                exit(1);
+            }
             let address = {
                 let address_hex = args.value_of("address").expect("address");
                 Address::from_str(&address_hex).expect("parse address")
@@ -92,10 +97,12 @@ fn run_cli() -> Result<()> {
                 address,
             );
             let migration_dir = context.migrations_path();
-            let opt = DeployOption {
-                migrate: true,
-                tx_fee: Capacity::bytes(1).unwrap(),
+            let migrate = !args.is_present("no-migrate");
+            let tx_fee = match HumanCapacity::from_str(args.value_of("fee").expect("tx fee")) {
+                Ok(tx_fee) => Capacity::shannons(tx_fee.0),
+                Err(err) => return Err(anyhow!(err)),
             };
+            let opt = DeployOption { migrate, tx_fee };
             DeployManage::new(migration_dir, context.load_deployment()?).deploy(wallet, opt)?;
         }
         (command, _) => {

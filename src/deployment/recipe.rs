@@ -6,32 +6,23 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CellRecipe {
     pub name: String,
+    pub tx_hash: H256,
     pub index: u32,
     pub occupied_capacity: u64,
     pub data_hash: H256,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CellTxRecipe {
-    pub tx_hash: H256,
-    pub cells: Vec<CellRecipe>,
+    pub type_id: Option<H256>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DepGroupRecipe {
     pub name: String,
+    pub tx_hash: H256,
     pub index: u32,
     pub occupied_capacity: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct DepGroupTxRecipe {
-    pub tx_hash: H256,
-    pub dep_groups: Vec<DepGroupRecipe>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DeploymentRecipe {
-    pub cell_txs: Vec<CellTxRecipe>,
-    pub dep_group_txs: Vec<DepGroupTxRecipe>,
+    pub cell_recipes: Vec<CellRecipe>,
+    pub dep_group_recipes: Vec<DepGroupRecipe>,
 }

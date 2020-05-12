@@ -7,41 +7,32 @@ use serde::Serialize;
 #[derive(Serialize)]
 pub struct Plan {
     migrated_capacity: String,
-    new_capacity: String,
-    total_used_capacity: String,
-    total_tx_fee_capacity: String,
+    new_occupied_capacity: String,
+    txs_fee_capacity: String,
+    total_occupied_capacity: String,
     recipe: RecipePlan,
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct RecipePlan {
-    pub cell_txs: Vec<CellTxPlan>,
-    pub dep_group_txs: Vec<DepGroupTxPlan>,
+    pub cells: Vec<CellPlan>,
+    pub dep_groups: Vec<DepGroupPlan>,
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct CellPlan {
     pub name: String,
     pub index: u32,
+    pub tx_hash: H256,
     pub occupied_capacity: String,
     pub data_hash: H256,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct CellTxPlan {
-    pub tx_hash: H256,
-    pub cells: Vec<CellPlan>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct DepGroupTxPlan {
-    pub tx_hash: H256,
-    pub dep_groups: Vec<DepGroupPlan>,
+    pub type_id: Option<H256>,
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct DepGroupPlan {
     pub name: String,
+    pub tx_hash: H256,
     pub index: u32,
     pub occupied_capacity: String,
 }
@@ -49,17 +40,12 @@ pub struct DepGroupPlan {
 impl From<DeploymentRecipe> for RecipePlan {
     fn from(recipe: DeploymentRecipe) -> Self {
         RecipePlan {
-            cell_txs: recipe.cell_txs.into_iter().map(Into::into).collect(),
-            dep_group_txs: recipe.dep_group_txs.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<CellTxRecipe> for CellTxPlan {
-    fn from(recipe: CellTxRecipe) -> Self {
-        CellTxPlan {
-            tx_hash: recipe.tx_hash,
-            cells: recipe.cells.into_iter().map(Into::into).collect(),
+            cells: recipe.cell_recipes.into_iter().map(Into::into).collect(),
+            dep_groups: recipe
+                .dep_group_recipes
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }
@@ -71,15 +57,8 @@ impl From<CellRecipe> for CellPlan {
             index: recipe.index,
             data_hash: recipe.data_hash,
             occupied_capacity: format!("{:#}", HumanCapacity::from(recipe.occupied_capacity)),
-        }
-    }
-}
-
-impl From<DepGroupTxRecipe> for DepGroupTxPlan {
-    fn from(recipe: DepGroupTxRecipe) -> Self {
-        DepGroupTxPlan {
             tx_hash: recipe.tx_hash,
-            dep_groups: recipe.dep_groups.into_iter().map(Into::into).collect(),
+            type_id: recipe.type_id,
         }
     }
 }
@@ -90,6 +69,7 @@ impl From<DepGroupRecipe> for DepGroupPlan {
             name: recipe.name,
             index: recipe.index,
             occupied_capacity: format!("{:#}", HumanCapacity::from(recipe.occupied_capacity)),
+            tx_hash: recipe.tx_hash,
         }
     }
 }
@@ -97,16 +77,16 @@ impl From<DepGroupRecipe> for DepGroupPlan {
 impl Plan {
     pub fn new(
         migrated_capacity: u64,
-        new_capacity: u64,
-        total_used_capacity: u64,
-        total_tx_fee_capacity: u64,
+        new_occupied_capacity: u64,
+        total_occupied_capacity: u64,
+        txs_fee_capacity: u64,
         recipe: DeploymentRecipe,
     ) -> Self {
         Plan {
             migrated_capacity: format!("{:#}", HumanCapacity::from(migrated_capacity)),
-            new_capacity: format!("{:#}", HumanCapacity::from(new_capacity)),
-            total_used_capacity: format!("{:#}", HumanCapacity::from(total_used_capacity)),
-            total_tx_fee_capacity: format!("{:#}", HumanCapacity::from(total_tx_fee_capacity)),
+            new_occupied_capacity: format!("{:#}", HumanCapacity::from(new_occupied_capacity)),
+            txs_fee_capacity: format!("{:#}", HumanCapacity::from(txs_fee_capacity)),
+            total_occupied_capacity: format!("{:#}", HumanCapacity::from(total_occupied_capacity)),
             recipe: recipe.into(),
         }
     }

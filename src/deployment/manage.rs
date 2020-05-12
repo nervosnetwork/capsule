@@ -55,7 +55,7 @@ impl Manage {
         Ok(recipe)
     }
 
-    fn collect_migration_live_cells(&self, wallet: &Wallet) -> Result<Vec<LiveCell>> {
+    fn collect_migration_live_cells(&self, wallet: &Wallet) -> Result<Vec<(String, LiveCell)>> {
         // read last migration
         let file_names: Vec<_> = fs::read_dir(&self.migration_dir)?
             .map(|d| d.map(|d| d.file_name()))
@@ -68,33 +68,31 @@ impl Manage {
         let last_migration_file = last_migration_file.unwrap();
         let recipe = self.load_snapshot(last_migration_file.into_string().unwrap())?;
 
-        // query cells txs
-        for tx_recipe in recipe.cell_txs {
-            if let Some(tx) = wallet.query_transaction(&tx_recipe.tx_hash)? {
-                cells.extend(tx_recipe.cells.iter().map(|cell| {
-                    let output = &tx.transaction.inner.outputs[cell.index as usize];
-                    LiveCell {
-                        tx_hash: tx.transaction.hash.clone(),
-                        index: cell.index,
-                        capacity: output.capacity.value(),
-                        mature: true,
-                    }
-                }));
+        // query cells recipes
+        for cell in recipe.cell_recipes {
+            if let Some(tx) = wallet.query_transaction(&cell.tx_hash)? {
+                let output = &tx.transaction.inner.outputs[cell.index as usize];
+                let live_cell = LiveCell {
+                    tx_hash: tx.transaction.hash.clone(),
+                    index: cell.index,
+                    capacity: output.capacity.value(),
+                    mature: true,
+                };
+                cells.push((cell.name.clone(), live_cell));
             }
         }
 
-        // query dep groups txs
-        for tx_recipe in recipe.dep_group_txs {
-            if let Some(tx) = wallet.query_transaction(&tx_recipe.tx_hash)? {
-                cells.extend(tx_recipe.dep_groups.iter().map(|cell| {
-                    let output = &tx.transaction.inner.outputs[cell.index as usize];
-                    LiveCell {
-                        tx_hash: tx.transaction.hash.clone(),
-                        index: cell.index,
-                        capacity: output.capacity.value(),
-                        mature: true,
-                    }
-                }));
+        // query dep groups recipes
+        for dep_group in recipe.dep_group_recipes {
+            if let Some(tx) = wallet.query_transaction(&dep_group.tx_hash)? {
+                let output = &tx.transaction.inner.outputs[dep_group.index as usize];
+                let live_cell = LiveCell {
+                    tx_hash: tx.transaction.hash.clone(),
+                    index: dep_group.index,
+                    capacity: output.capacity.value(),
+                    mature: true,
+                };
+                cells.push((dep_group.name.clone(), live_cell));
             }
         }
 
@@ -132,19 +130,38 @@ impl Manage {
         &self,
         recipe: &DeploymentRecipe,
         txs: &[TransactionView],
-        pre_inputs: &[LiveCell],
+        pre_inputs: &[(String, LiveCell)],
         opt: &DeployOption,
     ) {
-        let migrated_capacity = pre_inputs.iter().map(|cell| cell.capacity).sum::<u64>();
-        let total_used_capacity = txs
+        let migrated_capacity = pre_inputs
             .iter()
-            .map(|tx| tx.outputs_capacity().expect("capacity").as_u64())
+            .map(|(_name, cell)| cell.capacity)
             .sum::<u64>();
-        let new_capacity = total_used_capacity - migrated_capacity;
+        let total_occupied_capacity = txs
+            .iter()
+            .map(|tx| {
+                tx.outputs_with_data_iter()
+                    .filter_map(|(output, data)| {
+                        if data.is_empty() {
+                            None
+                        } else {
+                            let data_capacity = Capacity::bytes(data.len()).expect("bytes");
+                            Some(
+                                output
+                                    .occupied_capacity(data_capacity)
+                                    .expect("occupied")
+                                    .as_u64(),
+                            )
+                        }
+                    })
+                    .sum::<u64>()
+            })
+            .sum::<u64>();
+        let new_capacity = total_occupied_capacity - migrated_capacity;
         let plan = Plan::new(
             migrated_capacity,
             new_capacity,
-            total_used_capacity,
+            total_occupied_capacity,
             opt.tx_fee.as_u64() * txs.len() as u64,
             recipe.to_owned(),
         );

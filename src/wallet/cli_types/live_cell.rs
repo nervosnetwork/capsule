@@ -3,9 +3,8 @@ use ckb_tool::ckb_types::{
     prelude::*,
     H256,
 };
-use serde::{Deserialize, Serialize};
 
-#[derive(Hash, Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Hash, Eq, PartialEq, Debug, Clone)]
 pub struct LiveCell {
     pub tx_hash: H256,
     pub index: u32,

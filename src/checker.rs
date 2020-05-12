@@ -12,25 +12,30 @@ fn check_cmd(program: &str, arg: &str) -> Result<bool> {
     Ok(success)
 }
 
-pub struct Checker;
+pub struct Checker {
+    pub docker: bool,
+    pub ckb_cli: bool,
+}
 
 impl Checker {
-    pub fn run() -> Result<()> {
-        let docker_exist = check_cmd("docker", "version").unwrap_or(false);
-        let ckb_cli_exist = check_cmd("ckb-cli", "--version").unwrap_or(false);
+    pub fn build() -> Result<Self> {
+        let docker = check_cmd("docker", "version").unwrap_or(false);
+        let ckb_cli = check_cmd("ckb-cli", "--version").unwrap_or(false);
+        Ok(Checker { docker, ckb_cli })
+    }
 
+    pub fn print_report(&self) {
         println!("------------------------------");
-        if docker_exist {
+        if self.docker {
             println!("docker\tinstalled");
         } else {
             println!("docker\tnot found - Please install docker");
         }
-        if ckb_cli_exist {
+        if self.ckb_cli {
             println!("ckb-cli\tinstalled");
         } else {
             println!("ckb-cli\tnot found - The deployment feature is disabled");
         }
         println!("------------------------------");
-        Ok(())
     }
 }

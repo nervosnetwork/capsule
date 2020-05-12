@@ -185,20 +185,10 @@ impl Wallet {
         Ok(tx_hash.unpack())
     }
 
-    fn lock_out_points(&mut self, out_points: impl Iterator<Item = packed::OutPoint>) {
+    pub fn lock_out_points(&mut self, out_points: impl Iterator<Item = packed::OutPoint>) {
         for out_point in out_points {
             self.collector.lock_cell(out_point);
         }
-    }
-
-    pub fn lock_cells(&mut self, cells: impl Iterator<Item = LiveCell>) {
-        let out_points = cells.map(|cell| {
-            packed::OutPoint::new_builder()
-                .tx_hash(cell.tx_hash.pack())
-                .index(cell.index.pack())
-                .build()
-        });
-        self.lock_out_points(out_points);
     }
 
     pub fn lock_tx_inputs(&mut self, tx: &TransactionView) {
