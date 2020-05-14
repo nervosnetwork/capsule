@@ -6,11 +6,56 @@ The name "capsule" is from the dragon ball, which hints our goal is to provide a
 
 ## Installation
 
+### Requirements
+
+* docker - capsule use `docker` to build contracts and run tests.
+* ckb-cli (optional) - capsule require `ckb-cli` to enable contracts deployment feature.
+
+Make sure you installed the dependencies, and their binaries exist in the `PATH`.
+
 ### Install preview version
 
 ``` sh
 cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag v0.0.1-pre.1
 ```
+
+## Usage
+
+``` sh
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+SUBCOMMANDS:
+    check     Check environment and dependencies
+    new       Create a new project
+    build     Build contracts
+    test      Run tests
+    deploy    Deploy contracts
+    help      Prints this message or the help of the given subcommand(s)
+```
+
+### Quick start
+
+``` sh
+# check environment
+capsule check
+
+# create project
+capsule new my-demo
+cd my-demo
+capsule build
+capsule test
+```
+
+### Project layout
+
+* `capsule.toml`    - Capsule manifest file.
+* `deployment.toml` - Deployment configuration.
+* `contracts`       - Contracts directory.
+* `tests`           - Contracts tests.
+* `build`           - Contracts binaries.
+* `migrations`      - Deployment histories.
 
 ## Documentation
 
