@@ -31,10 +31,10 @@ fn run_cli() -> Result<()> {
         .version("0.0.0-pre.1")
         .author("Nervos Developer Tools Team")
         .about("Capsule CKB contract scaffold")
-        .subcommand(SubCommand::with_name("check").about("Check environment and dependencies"))
-        .subcommand(SubCommand::with_name("new").about("Create a new project").arg(Arg::with_name("name").help("project name").index(1).required(true).takes_value(true)))
-        .subcommand(SubCommand::with_name("build").about("Build contracts"))
-        .subcommand(SubCommand::with_name("test").about("Run tests"))
+        .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
+        .subcommand(SubCommand::with_name("new").about("Create a new project").arg(Arg::with_name("name").help("project name").index(1).required(true).takes_value(true)).display_order(1))
+        .subcommand(SubCommand::with_name("build").about("Build contracts").display_order(2))
+        .subcommand(SubCommand::with_name("test").about("Run tests").display_order(3))
         .subcommand(
             SubCommand::with_name("deploy")
                 .about("Deploy contracts")
@@ -49,7 +49,7 @@ fn run_cli() -> Result<()> {
                     Arg::with_name("no-migrate")
                         .long("no-migrate")
                         .help("Do not use deployed cells as inputs."),
-                ]),
+                ]).display_order(4),
         )
         .get_matches();
     let env = Env::Dev;
