@@ -1,5 +1,5 @@
 use crate::recipe::rust::DOCKER_IMAGE;
-use crate::util::build_docker_cmd;
+use crate::util::DockerCommand;
 use anyhow::{Context as ErrorContext, Result};
 use include_dir::{include_dir, Dir, DirEntry};
 use lazy_static::lazy_static;
@@ -41,17 +41,12 @@ struct CreateContract {
 fn new_contract<P: AsRef<Path>>(name: String, path: P) -> Result<()> {
     let context = Context::from_serialize(&CreateContract { name: name.clone() })?;
     // generate contract
-    build_docker_cmd(
-        format!(
-            "cd /code && cargo new {project} && chown -R $UID:$GID {project}",
-            project = name
-        )
-        .as_str(),
-        path.as_ref().to_str().expect("path"),
-        DOCKER_IMAGE,
-    )?
-    .spawn()?
-    .wait()?;
+    let path = path.as_ref().to_str().expect("path");
+    let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), path.to_string(), None)
+        .fix_dir_permission(name.clone());
+    cmd.build(format!("cd /code && cargo new {}", name))?
+        .spawn()?
+        .wait()?;
     let mut contract_path = PathBuf::new();
     contract_path.push(path);
     contract_path.push(name);
@@ -74,7 +69,13 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
     };
     fs::create_dir(&project_path)
         .with_context(|| format!("directory exists {:?}", &project_path))?;
-    for f in &["contracts", "build", "migrations"] {
+    for f in &[
+        "contracts",
+        "build",
+        "migrations",
+        ".cache",
+        ".cache/.cargo",
+    ] {
         let mut dir_path = PathBuf::new();
         dir_path.push(&project_path);
         dir_path.push(f);
@@ -87,7 +88,13 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
         name: name.clone(),
         path: project_path.clone(),
     })?;
-    for f in &["capsule.toml", "deployment.toml", "README.md", "Cargo.toml"] {
+    for f in &[
+        "capsule.toml",
+        "deployment.toml",
+        "README.md",
+        "Cargo.toml",
+        ".gitignore",
+    ] {
         let content = TEMPLATES.render(f, &context)?;
         let mut file_path = project_path.clone();
         file_path.push(f);
@@ -100,17 +107,12 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
 fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P) -> Result<()> {
     const DEFAULT_TESTS_DIR: &str = "tests";
 
-    build_docker_cmd(
-        format!(
-            "cd /code && cargo new {project} && chown -R $UID:$GID {project}",
-            project = DEFAULT_TESTS_DIR
-        )
-        .as_str(),
-        project_path.as_ref().to_str().expect("path"),
-        DOCKER_IMAGE,
-    )?
-    .spawn()?
-    .wait()?;
+    let project_path = project_path.as_ref().to_str().expect("path");
+    let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), project_path.to_string(), None)
+        .fix_dir_permission(DEFAULT_TESTS_DIR.to_string());
+    cmd.build(format!("cd /code && cargo new {}", DEFAULT_TESTS_DIR))?
+        .spawn()?
+        .wait()?;
     let project_path = {
         let mut path = PathBuf::new();
         path.push(project_path);

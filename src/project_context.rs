@@ -11,6 +11,8 @@ const CONTRACTS_BUILD_DIR: &str = "build";
 const MIGRATIONS_DIR: &str = "migrations";
 const RELEASE_PREFIX: &str = "release";
 const DEV_PREFIX: &str = "dev";
+const CACHE_DIR: &str = ".cache";
+const CARGO_DIR: &str = ".cargo";
 
 #[derive(Debug)]
 pub enum Env {
@@ -34,6 +36,13 @@ impl Context {
     pub fn contract_path<P: AsRef<Path>>(&self, contract_name: P) -> PathBuf {
         let mut path = self.contracts_path();
         path.push(contract_name);
+        path
+    }
+
+    pub fn cargo_cache_path(&self) -> PathBuf {
+        let mut path = self.project_path.clone();
+        path.push(CACHE_DIR);
+        path.push(CARGO_DIR);
         path
     }
 

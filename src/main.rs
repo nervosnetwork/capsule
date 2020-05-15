@@ -78,7 +78,7 @@ fn run_cli() -> Result<()> {
         }
         ("test", _args) => {
             let context = load_project_context(env)?;
-            let exit_code = Tester::run(&context.project_path)?;
+            let exit_code = Tester::run(&context)?;
             exit(exit_code.code().unwrap_or(1));
         }
         ("deploy", Some(args)) => {

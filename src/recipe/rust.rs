@@ -1,6 +1,6 @@
 use crate::config::Contract;
 use crate::project_context::Context;
-use crate::util::build_docker_cmd;
+use crate::util::DockerCommand;
 use anyhow::Result;
 
 use std::fs;
@@ -33,26 +33,27 @@ impl<'a> Rust<'a> {
         let build_cmd = format!(
             "cd /code && \
          RUSTFLAGS='{rust_flags}' cargo build --target {rust_target} --release && \
-         ckb-binary-patcher -i {contract_bin} -o {contract_bin}; \
-         EXITCODE=$?;chown -R $UID:$GID target; exit $EXITCODE",
+         ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
             rust_flags = RUST_FLAGS,
             rust_target = RUST_TARGET,
             contract_bin = bin_path.to_str().expect("bin")
         );
-        let exit_code = build_docker_cmd(
-            &build_cmd,
-            contract_source_path.to_str().expect("pwd"),
-            DOCKER_IMAGE,
-        )?
-        .spawn()?
-        .wait()?;
+        let contract_source_path = contract_source_path.to_str().expect("path");
+        let cmd = DockerCommand::with_context(
+            self.context,
+            DOCKER_IMAGE.to_string(),
+            contract_source_path.to_string(),
+        )
+        .fix_dir_permission("target".to_string());
+        let exit_code = cmd.build(build_cmd)?.spawn()?.wait()?;
         if !exit_code.success() {
             exit(exit_code.code().unwrap_or(-1));
         }
         // copy to build dir
         let mut target_path = self.context.contracts_build_path();
         target_path.push(&self.contract.name);
-        let mut contract_bin_path = contract_source_path.clone();
+        let mut contract_bin_path = PathBuf::new();
+        contract_bin_path.push(contract_source_path);
         contract_bin_path.push(bin_path);
         fs::copy(contract_bin_path, target_path)?;
         Ok(())
