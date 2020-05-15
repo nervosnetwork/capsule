@@ -78,8 +78,7 @@ fn run_cli() -> Result<()> {
         }
         ("test", _args) => {
             let context = load_project_context(env)?;
-            let exit_code = Tester::run(&context)?;
-            exit(exit_code.code().unwrap_or(1));
+            Tester::run(&context)?;
         }
         ("deploy", Some(args)) => {
             if !Checker::build()?.ckb_cli {

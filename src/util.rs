@@ -1,5 +1,5 @@
 use crate::project_context::Context;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use std::io;
 use std::process::Command;
 
@@ -61,7 +61,18 @@ impl DockerCommand {
         self
     }
 
-    pub fn build(self, mut shell_cmd: String) -> Result<Command> {
+    pub fn run(self, shell_cmd: String) -> Result<()> {
+        let mut cmd = self.build(shell_cmd)?;
+        let exit_status = cmd.spawn()?.wait()?;
+        if exit_status.success() {
+            Ok(())
+        } else {
+            let err = anyhow!("docker container exit with code {:?}", exit_status.code());
+            Err(err)
+        }
+    }
+
+    fn build(self, mut shell_cmd: String) -> Result<Command> {
         let DockerCommand {
             bin,
             uid,

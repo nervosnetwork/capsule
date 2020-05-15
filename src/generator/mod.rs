@@ -44,9 +44,7 @@ fn new_contract<P: AsRef<Path>>(name: String, path: P) -> Result<()> {
     let path = path.as_ref().to_str().expect("path");
     let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), path.to_string(), None)
         .fix_dir_permission(name.clone());
-    cmd.build(format!("cd /code && cargo new {}", name))?
-        .spawn()?
-        .wait()?;
+    cmd.run(format!("cd /code && cargo new {}", name))?;
     let mut contract_path = PathBuf::new();
     contract_path.push(path);
     contract_path.push(name);
@@ -110,9 +108,7 @@ fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P) -> Result<()>
     let project_path = project_path.as_ref().to_str().expect("path");
     let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), project_path.to_string(), None)
         .fix_dir_permission(DEFAULT_TESTS_DIR.to_string());
-    cmd.build(format!("cd /code && cargo new {}", DEFAULT_TESTS_DIR))?
-        .spawn()?
-        .wait()?;
+    cmd.run(format!("cd /code && cargo new {}", DEFAULT_TESTS_DIR))?;
     let project_path = {
         let mut path = PathBuf::new();
         path.push(project_path);

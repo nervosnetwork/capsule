@@ -5,7 +5,6 @@ use anyhow::Result;
 
 use std::fs;
 use std::path::PathBuf;
-use std::process::exit;
 
 pub const DOCKER_IMAGE: &str = "jjy0/ckb-capsule-recipe-rust:2020-5-9";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
@@ -45,10 +44,7 @@ impl<'a> Rust<'a> {
             contract_source_path.to_string(),
         )
         .fix_dir_permission("target".to_string());
-        let exit_code = cmd.build(build_cmd)?.spawn()?.wait()?;
-        if !exit_code.success() {
-            exit(exit_code.code().unwrap_or(-1));
-        }
+        cmd.run(build_cmd)?;
         // copy to build dir
         let mut target_path = self.context.contracts_build_path();
         target_path.push(&self.contract.name);
