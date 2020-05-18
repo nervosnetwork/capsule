@@ -13,7 +13,7 @@ const MIGRATIONS_DIR: &str = "migrations";
 const CACHE_DIR: &str = ".cache";
 const CARGO_DIR: &str = ".cargo";
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum BuildEnv {
     Debug,
     Release,
@@ -31,7 +31,7 @@ impl FromStr for BuildEnv {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum DeployEnv {
     Dev,
     Production,
@@ -74,21 +74,23 @@ impl Context {
         path
     }
 
-    pub fn contracts_build_path(&self) -> PathBuf {
+    pub fn contracts_build_path(&self, env: BuildEnv) -> PathBuf {
         let mut path = self.project_path.clone();
         path.push(CONTRACTS_BUILD_DIR);
+        let prefix = match env {
+            BuildEnv::Debug => "debug",
+            BuildEnv::Release => "release",
+        };
+        path.push(prefix);
         path
     }
 
     pub fn migrations_path(&self, env: DeployEnv) -> PathBuf {
-        const PROD_DIR: &str = "production";
-        const DEV_DIR: &str = "dev";
-
         let mut path = self.project_path.clone();
         path.push(MIGRATIONS_DIR);
         let prefix = match env {
-            DeployEnv::Production => PROD_DIR,
-            DeployEnv::Dev => DEV_DIR,
+            DeployEnv::Production => "production",
+            DeployEnv::Dev => "dev",
         };
         path.push(prefix);
         path

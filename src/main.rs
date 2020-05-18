@@ -33,8 +33,12 @@ fn run_cli() -> Result<()> {
         .about("Capsule CKB contract scaffold")
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
         .subcommand(SubCommand::with_name("new").about("Create a new project").arg(Arg::with_name("name").help("project name").index(1).required(true).takes_value(true)).display_order(1))
-        .subcommand(SubCommand::with_name("build").about("Build contracts").display_order(2))
-        .subcommand(SubCommand::with_name("test").about("Run tests").display_order(3))
+        .subcommand(SubCommand::with_name("build").about("Build contracts").arg(
+                    Arg::with_name("release").long("release").help("Build contracts in release mode.")
+        ).display_order(2))
+        .subcommand(SubCommand::with_name("test").about("Run tests").arg(
+                    Arg::with_name("release").long("release").help("Test release mode contracts.")
+        ).display_order(3))
         .subcommand(
             SubCommand::with_name("deploy")
                 .about("Deploy contracts, edit deployment.toml to custodian deployment recipe.")
@@ -45,7 +49,7 @@ fn run_cli() -> Result<()> {
                     Arg::with_name("fee").long("fee").help(
                         "Per transaction's fee, deployment may involve more than one transaction.",
                     ).default_value("0.0001").takes_value(true),
-                    Arg::with_name("deploy-env").long("deploy-env").help("Deployment environment.")
+                    Arg::with_name("env").long("env").help("Deployment environment.")
                     .possible_values(&["dev", "production"]).default_value("dev").takes_value(true),
                     Arg::with_name("migrate")
                         .long("migrate")
@@ -68,17 +72,27 @@ fn run_cli() -> Result<()> {
             }
             new_project(name.to_string(), path)?;
         }
-        ("build", _args) => {
+        ("build", Some(args)) => {
             let context = load_project_context()?;
+            let build_env: BuildEnv = if args.is_present("release") {
+                BuildEnv::Release
+            } else {
+                BuildEnv::Debug
+            };
             for c in &context.config.contracts {
                 println!("Building contract {}", c.name);
-                get_recipe(&context, c)?.run_build()?;
+                get_recipe(&context, c)?.run_build(build_env)?;
             }
             println!("Done");
         }
-        ("test", _args) => {
+        ("test", Some(args)) => {
             let context = load_project_context()?;
-            Tester::run(&context)?;
+            let build_env: BuildEnv = if args.is_present("release") {
+                BuildEnv::Release
+            } else {
+                BuildEnv::Debug
+            };
+            Tester::run(&context, build_env)?;
         }
         ("deploy", Some(args)) => {
             if !Checker::build()?.ckb_cli {
@@ -96,7 +110,7 @@ fn run_cli() -> Result<()> {
                 address,
             );
             let deploy_env: DeployEnv = args
-                .value_of("deploy-env")
+                .value_of("env")
                 .expect("deploy env")
                 .parse()
                 .map_err(|err: &str| anyhow!(err))?;
