@@ -18,7 +18,7 @@ use checker::Checker;
 use ckb_tool::ckb_types::core::Capacity;
 use deployment::manage::{DeployOption, Manage as DeployManage};
 use generator::new_project;
-use project_context::{load_project_context, Env};
+use project_context::{load_project_context, BuildEnv, DeployEnv};
 use recipe::get_recipe;
 use tester::Tester;
 use wallet::cli_types::HumanCapacity;
@@ -37,8 +37,7 @@ fn run_cli() -> Result<()> {
         .subcommand(SubCommand::with_name("test").about("Run tests").display_order(3))
         .subcommand(
             SubCommand::with_name("deploy")
-                .about("Deploy contracts")
-                .help("Edit deployment.toml to custodian deployment recipe.")
+                .about("Deploy contracts, edit deployment.toml to custodian deployment recipe.")
                 .args(&[
                     Arg::with_name("address").long("address").help(
                         "Denote which address provides cells",
@@ -46,13 +45,14 @@ fn run_cli() -> Result<()> {
                     Arg::with_name("fee").long("fee").help(
                         "Per transaction's fee, deployment may involve more than one transaction.",
                     ).default_value("0.0001").takes_value(true),
-                    Arg::with_name("no-migrate")
-                        .long("no-migrate")
-                        .help("Do not use deployed cells as inputs."),
+                    Arg::with_name("deploy-env").long("deploy-env").help("Deployment environment.")
+                    .possible_values(&["dev", "production"]).default_value("dev").takes_value(true),
+                    Arg::with_name("migrate")
+                        .long("migrate")
+                        .help("Use previously deployed cells as inputs.").possible_values(&["on", "off"]).default_value("on").takes_value(true),
                 ]).display_order(4),
         )
         .get_matches();
-    let env = Env::Dev;
     match matches.subcommand() {
         ("check", _args) => {
             Checker::build()?.print_report();
@@ -69,7 +69,7 @@ fn run_cli() -> Result<()> {
             new_project(name.to_string(), path)?;
         }
         ("build", _args) => {
-            let context = load_project_context(env)?;
+            let context = load_project_context()?;
             for c in &context.config.contracts {
                 println!("Building contract {}", c.name);
                 get_recipe(&context, c)?.run_build()?;
@@ -77,7 +77,7 @@ fn run_cli() -> Result<()> {
             println!("Done");
         }
         ("test", _args) => {
-            let context = load_project_context(env)?;
+            let context = load_project_context()?;
             Tester::run(&context)?;
         }
         ("deploy", Some(args)) => {
@@ -89,14 +89,19 @@ fn run_cli() -> Result<()> {
                 let address_hex = args.value_of("address").expect("address");
                 Address::from_str(&address_hex).expect("parse address")
             };
-            let context = load_project_context(env)?;
+            let context = load_project_context()?;
             let wallet = Wallet::load(
                 DEFAULT_CKB_RPC_URL.to_string(),
                 DEFAULT_CKB_CLI_BIN_NAME.to_string(),
                 address,
             );
-            let migration_dir = context.migrations_path();
-            let migrate = !args.is_present("no-migrate");
+            let deploy_env: DeployEnv = args
+                .value_of("deploy-env")
+                .expect("deploy env")
+                .parse()
+                .map_err(|err: &str| anyhow!(err))?;
+            let migration_dir = context.migrations_path(deploy_env);
+            let migrate = args.value_of("migrate").expect("migrate").to_lowercase() == "on";
             let tx_fee = match HumanCapacity::from_str(args.value_of("fee").expect("tx fee")) {
                 Ok(tx_fee) => Capacity::shannons(tx_fee.0),
                 Err(err) => return Err(anyhow!(err)),

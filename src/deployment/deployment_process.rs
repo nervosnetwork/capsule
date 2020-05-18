@@ -35,7 +35,7 @@ impl DeploymentProcess {
         &mut self,
         pre_inputs_cells: Vec<(String, LiveCell)>,
     ) -> Result<(DeploymentRecipe, Vec<TransactionView>)> {
-        let cells: Vec<(Cell, Bytes)> = load_deployable_cells_data(&self.config.cells);
+        let cells: Vec<(Cell, Bytes)> = load_deployable_cells_data(&self.config.cells)?;
         let dep_groups = self.config.dep_groups.clone();
         Ok(self.build_recipe(cells, dep_groups, pre_inputs_cells))
     }
@@ -327,20 +327,23 @@ fn build_type_id_script(input: &packed::CellInput, output_index: u64) -> packed:
         .build()
 }
 
-fn load_deployable_cells_data(cells: &[Cell]) -> Vec<(Cell, Bytes)> {
+fn load_deployable_cells_data(cells: &[Cell]) -> Result<Vec<(Cell, Bytes)>> {
     let mut cells_data: Vec<(Cell, Bytes)> = Vec::new();
     for cell in cells {
         match cell.location.to_owned() {
             CellLocation::OutPoint { .. } => {}
             CellLocation::File { file } => {
                 let mut data = Vec::new();
-                fs::File::open(file)
-                    .expect("open")
-                    .read_to_end(&mut data)
-                    .expect("read");
+                match fs::File::open(&file).and_then(|mut f| f.read_to_end(&mut data)) {
+                    Ok(_) => {}
+                    Err(err) => {
+                        eprintln!("failed to read cell data from '{}', err: {}", file, &err);
+                        return Err(err.into());
+                    }
+                }
                 cells_data.push((cell.to_owned(), data.into()));
             }
         }
     }
-    cells_data
+    Ok(cells_data)
 }

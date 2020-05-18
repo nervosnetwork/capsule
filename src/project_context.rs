@@ -5,25 +5,53 @@ use std::env;
 use std::fs;
 use std::io::ErrorKind as IOErrorKind;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 const CONTRACTS_DIR: &str = "contracts";
 const CONTRACTS_BUILD_DIR: &str = "build";
 const MIGRATIONS_DIR: &str = "migrations";
-const RELEASE_PREFIX: &str = "release";
-const DEV_PREFIX: &str = "dev";
 const CACHE_DIR: &str = ".cache";
 const CARGO_DIR: &str = ".cargo";
 
 #[derive(Debug)]
-pub enum Env {
-    Dev,
+pub enum BuildEnv {
+    Debug,
     Release,
+}
+
+impl FromStr for BuildEnv {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "debug" => Ok(BuildEnv::Debug),
+            "release" => Ok(BuildEnv::Release),
+            _ => Err("no match"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum DeployEnv {
+    Dev,
+    Production,
+}
+
+impl FromStr for DeployEnv {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "dev" => Ok(DeployEnv::Dev),
+            "production" => Ok(DeployEnv::Production),
+            _ => Err("no match"),
+        }
+    }
 }
 
 pub struct Context {
     pub project_path: PathBuf,
     pub config: Config,
-    pub env: Env,
 }
 
 impl Context {
@@ -52,12 +80,15 @@ impl Context {
         path
     }
 
-    pub fn migrations_path(&self) -> PathBuf {
+    pub fn migrations_path(&self, env: DeployEnv) -> PathBuf {
+        const PROD_DIR: &str = "production";
+        const DEV_DIR: &str = "dev";
+
         let mut path = self.project_path.clone();
         path.push(MIGRATIONS_DIR);
-        let prefix = match self.env {
-            Env::Release => RELEASE_PREFIX,
-            Env::Dev => DEV_PREFIX,
+        let prefix = match env {
+            DeployEnv::Production => PROD_DIR,
+            DeployEnv::Dev => DEV_DIR,
         };
         path.push(prefix);
         path
@@ -71,7 +102,7 @@ impl Context {
     }
 }
 
-pub fn load_project_context(env: Env) -> Result<Context> {
+pub fn load_project_context() -> Result<Context> {
     const CONFIG_NAME: &str = "capsule.toml";
 
     let mut project_path = PathBuf::new();
@@ -84,7 +115,6 @@ pub fn load_project_context(env: Env) -> Result<Context> {
             Ok(Context {
                 config,
                 project_path,
-                env,
             })
         }
         Err(err) if err.kind() == IOErrorKind::NotFound => Err(anyhow!(
