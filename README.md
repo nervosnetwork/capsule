@@ -16,7 +16,7 @@ Make sure you installed the dependencies, and their binaries exist in the `PATH`
 ### Install preview version
 
 ``` sh
-cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag v0.0.1-pre.1
+cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag v0.0.1-pre.2
 ```
 
 ## Usage
