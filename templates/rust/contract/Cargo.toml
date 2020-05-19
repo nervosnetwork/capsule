@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 ckb-std = "0.2.1"
+ckb-types = { package = "ckb-standalone-types", version = "0.0.1-pre.1", default-features = false }
 
 [profile.release]
 overflow-checks = true
