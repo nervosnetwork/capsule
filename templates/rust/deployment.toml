@@ -1,7 +1,7 @@
 # [[cells]]
 # name = "my_cell"
 # enable_type_id = false
-# location = { file = "build/my_cell" }
+# location = { file = "build/release/my_cell" }
 
 # # Dep group cells
 # [[dep_groups]]
