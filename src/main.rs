@@ -54,6 +54,12 @@ fn run_cli() -> Result<()> {
                     Arg::with_name("migrate")
                         .long("migrate")
                         .help("Use previously deployed cells as inputs.").possible_values(&["on", "off"]).default_value("on").takes_value(true),
+                    Arg::with_name("api")
+                        .long("api")
+                        .help("CKB RPC url").default_value(DEFAULT_CKB_RPC_URL).takes_value(true),
+                    Arg::with_name("ckb-cli")
+                        .long("ckb-cli")
+                        .help("CKB cli binary").default_value(DEFAULT_CKB_CLI_BIN_NAME).takes_value(true),
                 ]).display_order(4),
         )
         .get_matches();
@@ -104,11 +110,9 @@ fn run_cli() -> Result<()> {
                 Address::from_str(&address_hex).expect("parse address")
             };
             let context = load_project_context()?;
-            let wallet = Wallet::load(
-                DEFAULT_CKB_RPC_URL.to_string(),
-                DEFAULT_CKB_CLI_BIN_NAME.to_string(),
-                address,
-            );
+            let ckb_rpc_url = args.value_of("api").expect("api");
+            let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
+            let wallet = Wallet::load(ckb_rpc_url.to_string(), ckb_cli_bin.to_string(), address);
             let deploy_env: DeployEnv = args
                 .value_of("env")
                 .expect("deploy env")
