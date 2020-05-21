@@ -18,7 +18,7 @@ fn test_basic() {
 
     // prepare scripts
     let lock_script = context
-        .get_script(&contract_out_point)
+        .build_script(&contract_out_point, Default::default())
         .expect("script");
     let lock_script_dep = CellDep::new_builder()
         .out_point(contract_out_point)
