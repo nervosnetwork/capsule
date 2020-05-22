@@ -68,7 +68,12 @@ fn run_cli() -> Result<()> {
             Checker::build()?.print_report();
         }
         ("new", Some(args)) => {
-            let mut name = args.value_of("name").expect("name").to_string();
+            let mut name = args
+                .value_of("name")
+                .expect("name")
+                .trim()
+                .trim_end_matches("/")
+                .to_string();
             let mut path = PathBuf::new();
             if let Some(index) = name.rfind("/") {
                 path.push(&name[..index]);
