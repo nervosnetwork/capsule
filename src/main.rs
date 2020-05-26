@@ -1,5 +1,6 @@
 mod checker;
 mod config;
+mod debugger;
 mod deployment;
 mod generator;
 mod project_context;
@@ -9,6 +10,7 @@ mod util;
 mod wallet;
 
 use std::env;
+use std::fs;
 use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
@@ -61,6 +63,18 @@ fn run_cli() -> Result<()> {
                         .long("ckb-cli")
                         .help("CKB cli binary").default_value(DEFAULT_CKB_CLI_BIN_NAME).takes_value(true),
                 ]).display_order(4),
+        )
+        .subcommand(
+            SubCommand::with_name("debugger")
+                .args(&[
+                    Arg::with_name("bin").long("bin").short("b").help(
+                        "Contract binary path",
+                    ).required(true).takes_value(true),
+                    Arg::with_name("template")
+                        .long("template")
+                        .short("t")
+                        .help("Output template path").required(true).takes_value(true),
+                ]).display_order(5),
         )
         .get_matches();
     match matches.subcommand() {
@@ -131,6 +145,18 @@ fn run_cli() -> Result<()> {
             };
             let opt = DeployOption { migrate, tx_fee };
             DeployManage::new(migration_dir, context.load_deployment()?).deploy(wallet, opt)?;
+        }
+        ("debugger", Some(args)) => {
+            let contract_path = args.value_of("bin").expect("bin");
+            let (script, mock_tx) = debugger::build_template(contract_path)?;
+            let template_path = args.value_of("template").expect("template");
+            let mock_tx: debugger::transaction::ReprMockTransaction = mock_tx.into();
+            fs::write(&template_path, serde_json::to_string(&mock_tx)?)?;
+            println!(
+                "Write debugger template to {} script group hash {}",
+                template_path,
+                script.calc_script_hash()
+            );
         }
         (command, _) => {
             eprintln!("unrecognize command '{}'", command);
