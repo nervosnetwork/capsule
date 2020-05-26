@@ -25,9 +25,9 @@ impl<'a> Rust<'a> {
         let contract_source_path = self.context.contract_path(&self.contract.name);
         // docker cargo build
         let mut bin_path = PathBuf::new();
-        let (bin_dir_prefix, build_cmd_opt) = match build_env {
-            BuildEnv::Debug => ("debug", ""),
-            BuildEnv::Release => ("release", "--release"),
+        let (bin_dir_prefix, build_cmd_opt, rust_flags) = match build_env {
+            BuildEnv::Debug => ("debug", "", ""),
+            BuildEnv::Release => ("release", "--release", RUST_FLAGS),
         };
         bin_path.push(format!(
             "target/{}/{}/{}",
@@ -37,7 +37,7 @@ impl<'a> Rust<'a> {
             "cd /code && \
          RUSTFLAGS='{rust_flags}' cargo build --target {rust_target} {build_env} && \
          ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
-            rust_flags = RUST_FLAGS,
+            rust_flags = rust_flags,
             rust_target = RUST_TARGET,
             contract_bin = bin_path.to_str().expect("bin"),
             build_env = build_cmd_opt
