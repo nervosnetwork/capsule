@@ -8,7 +8,8 @@ use std::path::PathBuf;
 
 pub const DOCKER_IMAGE: &str = "jjy0/ckb-capsule-recipe-rust:2020-5-9";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
-const RUST_FLAGS: &str = "-C link-arg=-s";
+const RUSTFLAGS: &str = "-C link-arg=-s";
+const CARGO_CONFIG_PATH: &str = ".cargo/config";
 
 pub struct Rust<'a> {
     context: &'a Context,
@@ -20,14 +21,30 @@ impl<'a> Rust<'a> {
         Self { context, contract }
     }
 
-    // build contract
+    fn has_cargo_config(&self) -> bool {
+        let mut contract_path = self.context.contract_path(&self.contract.name);
+        contract_path.push(CARGO_CONFIG_PATH);
+        contract_path.exists()
+    }
+
+    /// inject rustflags on release build unless project has cargo config
+    fn injection_rustflags(&self, build_env: BuildEnv) -> &str {
+        let has_cargo_config = self.has_cargo_config();
+        match build_env {
+            BuildEnv::Debug => "",
+            BuildEnv::Release if has_cargo_config => "",
+            BuildEnv::Release => RUSTFLAGS,
+        }
+    }
+
+    /// build contract
     pub fn run_build(&self, build_env: BuildEnv) -> Result<()> {
         let contract_source_path = self.context.contract_path(&self.contract.name);
         // docker cargo build
         let mut bin_path = PathBuf::new();
-        let (bin_dir_prefix, build_cmd_opt, rust_flags) = match build_env {
-            BuildEnv::Debug => ("debug", "", ""),
-            BuildEnv::Release => ("release", "--release", RUST_FLAGS),
+        let (bin_dir_prefix, build_cmd_opt) = match build_env {
+            BuildEnv::Debug => ("debug", ""),
+            BuildEnv::Release => ("release", "--release"),
         };
         bin_path.push(format!(
             "target/{}/{}/{}",
@@ -35,9 +52,9 @@ impl<'a> Rust<'a> {
         ));
         let build_cmd = format!(
             "cd /code && \
-         RUSTFLAGS='{rust_flags}' cargo build --target {rust_target} {build_env} && \
+         RUSTFLAGS='{rustflags}' cargo build --target {rust_target} {build_env} && \
          ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
-            rust_flags = rust_flags,
+            rustflags = self.injection_rustflags(build_env),
             rust_target = RUST_TARGET,
             contract_bin = bin_path.to_str().expect("bin"),
             build_env = build_cmd_opt
