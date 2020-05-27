@@ -1,4 +1,5 @@
 use crate::recipe::rust::DOCKER_IMAGE;
+use crate::signal::Signal;
 use crate::util::DockerCommand;
 use anyhow::{Context as ErrorContext, Result};
 use include_dir::{include_dir, Dir, DirEntry};
@@ -38,13 +39,13 @@ struct CreateContract {
     name: String,
 }
 
-fn new_contract<P: AsRef<Path>>(name: String, path: P) -> Result<()> {
+fn new_contract<P: AsRef<Path>>(name: String, path: P, signal: &Signal) -> Result<()> {
     let context = Context::from_serialize(&CreateContract { name: name.clone() })?;
     // generate contract
     let path = path.as_ref().to_str().expect("path");
     let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), path.to_string(), None)
         .fix_dir_permission(name.clone());
-    cmd.run(format!("cd /code && cargo new {}", name))?;
+    cmd.run(format!("cd /code && cargo new {}", name), signal)?;
     let mut contract_path = PathBuf::new();
     contract_path.push(path);
     contract_path.push(name);
@@ -102,13 +103,16 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
     Ok(())
 }
 
-fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P) -> Result<()> {
+fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P, signal: &Signal) -> Result<()> {
     const DEFAULT_TESTS_DIR: &str = "tests";
 
     let project_path = project_path.as_ref().to_str().expect("path");
     let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), project_path.to_string(), None)
         .fix_dir_permission(DEFAULT_TESTS_DIR.to_string());
-    cmd.run(format!("cd /code && cargo new {} --lib", DEFAULT_TESTS_DIR))?;
+    cmd.run(
+        format!("cd /code && cargo new {} --lib", DEFAULT_TESTS_DIR),
+        signal,
+    )?;
     let project_path = {
         let mut path = PathBuf::new();
         path.push(project_path);
@@ -132,7 +136,7 @@ fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P) -> Result<()>
 }
 
 // create a new project
-pub fn new_project<P: AsRef<Path>>(name: String, path: P) -> Result<()> {
+pub fn new_project<P: AsRef<Path>>(name: String, path: P, signal: &Signal) -> Result<()> {
     let mut project_path: PathBuf = PathBuf::new();
     project_path.push(path);
     project_path.push(&name);
@@ -143,11 +147,11 @@ pub fn new_project<P: AsRef<Path>>(name: String, path: P) -> Result<()> {
     // generate contract
     let mut contracts_path = project_path.clone();
     contracts_path.push("contracts");
-    new_contract(name.clone(), &contracts_path)?;
+    new_contract(name.clone(), &contracts_path, signal)?;
     println!("Created contract {:?}", name);
     // generate contract tests
     println!("Created tests");
-    gen_project_test(name, &project_path)?;
+    gen_project_test(name, &project_path, signal)?;
     println!("Done");
     Ok(())
 }

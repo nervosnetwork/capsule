@@ -5,6 +5,7 @@ mod deployment;
 mod generator;
 mod project_context;
 mod recipe;
+mod signal;
 mod tester;
 mod util;
 mod wallet;
@@ -77,6 +78,7 @@ fn run_cli() -> Result<()> {
                 ]).display_order(5),
         )
         .get_matches();
+    let signal = signal::Signal::setup();
     match matches.subcommand() {
         ("check", _args) => {
             Checker::build()?.print_report();
@@ -95,7 +97,7 @@ fn run_cli() -> Result<()> {
             } else {
                 path.push(env::current_dir()?);
             }
-            new_project(name.to_string(), path)?;
+            new_project(name.to_string(), path, &signal)?;
         }
         ("build", Some(args)) => {
             let context = load_project_context()?;
@@ -106,7 +108,7 @@ fn run_cli() -> Result<()> {
             };
             for c in &context.config.contracts {
                 println!("Building contract {}", c.name);
-                get_recipe(&context, c)?.run_build(build_env)?;
+                get_recipe(&context, c)?.run_build(build_env, &signal)?;
             }
             println!("Done");
         }
@@ -117,7 +119,7 @@ fn run_cli() -> Result<()> {
             } else {
                 BuildEnv::Debug
             };
-            Tester::run(&context, build_env)?;
+            Tester::run(&context, build_env, &signal)?;
         }
         ("deploy", Some(args)) => {
             if !Checker::build()?.ckb_cli {

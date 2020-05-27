@@ -1,5 +1,6 @@
 use crate::config::Contract;
 use crate::project_context::{BuildEnv, Context};
+use crate::signal::Signal;
 use crate::util::DockerCommand;
 use anyhow::Result;
 
@@ -38,7 +39,7 @@ impl<'a> Rust<'a> {
     }
 
     /// build contract
-    pub fn run_build(&self, build_env: BuildEnv) -> Result<()> {
+    pub fn run_build(&self, build_env: BuildEnv, signal: &Signal) -> Result<()> {
         let contract_source_path = self.context.contract_path(&self.contract.name);
         // docker cargo build
         let mut bin_path = PathBuf::new();
@@ -66,7 +67,7 @@ impl<'a> Rust<'a> {
             contract_source_path.to_string(),
         )
         .fix_dir_permission("target".to_string());
-        cmd.run(build_cmd)?;
+        cmd.run(build_cmd, &signal)?;
         // copy to build dir
         let mut target_path = self.context.contracts_build_path(build_env);
         // make sure the dir is exist

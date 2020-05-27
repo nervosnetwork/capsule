@@ -1,7 +1,10 @@
 use crate::project_context::Context;
+use crate::signal::Signal;
 use anyhow::{anyhow, Result};
 use std::io;
 use std::process::Command;
+use std::thread::sleep;
+use std::time::Duration;
 
 pub fn ask_for_confirm(msg: &str) -> Result<bool> {
     println!("{} (Yes/No)", msg);
@@ -61,15 +64,29 @@ impl DockerCommand {
         self
     }
 
-    pub fn run(self, shell_cmd: String) -> Result<()> {
+    pub fn run(self, shell_cmd: String, signal: &Signal) -> Result<()> {
         let mut cmd = self.build(shell_cmd)?;
-        let exit_status = cmd.spawn()?.wait()?;
-        if exit_status.success() {
-            Ok(())
-        } else {
-            let err = anyhow!("docker container exit with code {:?}", exit_status.code());
-            Err(err)
+        let mut child = cmd.spawn()?;
+        while signal.is_running() {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    if status.success() {
+                        return Ok(());
+                    } else {
+                        let err = anyhow!("docker container exit with code {:?}", status.code());
+                        return Err(err);
+                    }
+                }
+                Ok(None) => {
+                    sleep(Duration::from_millis(300));
+                    continue;
+                }
+                Err(e) => panic!("error attempting to wait: {}", e),
+            }
         }
+        println!("Exiting...");
+        child.kill()?;
+        signal.exit()
     }
 
     fn build(self, mut shell_cmd: String) -> Result<Command> {
