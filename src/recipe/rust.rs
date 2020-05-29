@@ -66,7 +66,8 @@ impl<'a> Rust<'a> {
             DOCKER_IMAGE.to_string(),
             contract_source_path.to_string(),
         )
-        .fix_dir_permission("target".to_string());
+        .fix_dir_permission("target".to_string())
+        .fix_dir_permission("Cargo.lock".to_string());
         cmd.run(build_cmd, &signal)?;
         // copy to build dir
         let mut target_path = self.context.contracts_build_path(build_env);

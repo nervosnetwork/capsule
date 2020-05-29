@@ -20,7 +20,8 @@ impl Tester {
             .to_string();
         let cmd =
             DockerCommand::with_context(project_context, DOCKER_IMAGE.to_string(), project_path)
-                .fix_dir_permission("target".to_string());
+                .fix_dir_permission("target".to_string())
+                .fix_dir_permission("Cargo.lock".to_string());
         cmd.run(
             format!(
                 "cd /code && {}={} cargo test -- --nocapture",
