@@ -7,7 +7,7 @@ use ckb_tool::ckb_types::{
     prelude::*,
 };
 
-const MAX_CYCLES: u64 = 100_0000;
+const MAX_CYCLES: u64 = 10_000_000;
 
 #[test]
 fn test_basic() {
