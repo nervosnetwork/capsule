@@ -21,7 +21,7 @@ pub struct DockerCommand {
     docker_image: String,
     code_path: String,
     cargo_dir_path: Option<String>,
-    fix_permission_dirs: Vec<String>,
+    fix_permission_files: Vec<String>,
 }
 
 impl DockerCommand {
@@ -55,12 +55,12 @@ impl DockerCommand {
             docker_image,
             code_path,
             cargo_dir_path,
-            fix_permission_dirs: Vec::new(),
+            fix_permission_files: Vec::new(),
         }
     }
 
     pub fn fix_dir_permission(mut self, dir: String) -> Self {
-        self.fix_permission_dirs.push(dir);
+        self.fix_permission_files.push(dir);
         self
     }
 
@@ -98,7 +98,7 @@ impl DockerCommand {
             docker_image,
             code_path,
             cargo_dir_path,
-            mut fix_permission_dirs,
+            mut fix_permission_files,
         } = self;
 
         let mut cmd = Command::new(bin);
@@ -116,12 +116,12 @@ impl DockerCommand {
                 format!("-v{}/git:/root/.cargo/git", cargo_dir_path).as_str(),
                 format!("-v{}/git:/root/.cargo/registry", cargo_dir_path).as_str(),
             ]);
-            fix_permission_dirs.push("/root/.cargo".to_string());
+            fix_permission_files.push("/root/.cargo".to_string());
         }
         // fix files permission
         shell_cmd.push_str("; EXITCODE=$?");
-        for dir in &fix_permission_dirs {
-            shell_cmd.push_str(format!("; chown -R $UID:$GID {}", dir).as_str());
+        for f in &fix_permission_files {
+            shell_cmd.push_str(format!("; test -f {f} -o -d {f} && chown -R $UID:$GID {f}", f=f).as_str());
         }
         shell_cmd.push_str("; exit $EXITCODE");
         cmd.args(&[docker_image.as_ref(), "bash", "-c", shell_cmd.as_str()]);

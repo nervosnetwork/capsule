@@ -3,14 +3,16 @@ use crate::project_context::{BuildEnv, Context};
 use crate::signal::Signal;
 use crate::util::DockerCommand;
 use anyhow::Result;
+use log::debug;
 
 use std::fs;
 use std::path::PathBuf;
 
-pub const DOCKER_IMAGE: &str = "jjy0/ckb-capsule-recipe-rust:2020-5-9";
+pub const DOCKER_IMAGE: &str = "jjy0/ckb-capsule-recipe-rust:2020-6-2";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
-const RUSTFLAGS: &str = "-C link-arg=-s";
 const CARGO_CONFIG_PATH: &str = ".cargo/config";
+const BASE_RUSTFLAGS: &str = "-Z pre-link-arg=-zseparate-code -Z pre-link-arg=-zseparate-loadable-segments";
+const RELEASE_RUSTFLAGS: &str = "-C link-arg=-s";
 
 pub struct Rust<'a> {
     context: &'a Context,
@@ -29,17 +31,18 @@ impl<'a> Rust<'a> {
     }
 
     /// inject rustflags on release build unless project has cargo config
-    fn injection_rustflags(&self, build_env: BuildEnv) -> &str {
+    fn injection_rustflags(&self, build_env: BuildEnv) -> String {
         let has_cargo_config = self.has_cargo_config();
         match build_env {
-            BuildEnv::Debug => "",
-            BuildEnv::Release if has_cargo_config => "",
-            BuildEnv::Release => RUSTFLAGS,
+            _ if has_cargo_config => "".to_string(),
+            BuildEnv::Debug => BASE_RUSTFLAGS.to_string(),
+            BuildEnv::Release => format!("{} {}", BASE_RUSTFLAGS, RELEASE_RUSTFLAGS),
         }
     }
 
     /// run command in build image
     pub fn run(&self, build_cmd: String, signal: &Signal) -> Result<()> {
+        debug!("Run command in docker: {}", build_cmd);
         let contract_source_path = self.context.contract_path(&self.contract.name);
         let contract_source_path = contract_source_path.to_str().expect("path");
         let cmd = DockerCommand::with_context(
