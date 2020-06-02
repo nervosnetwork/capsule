@@ -1,6 +1,7 @@
 use super::cli_types::{Address, LiveCell, LiveCellInfo, LiveCellInfoVec};
 use super::util::handle_cmd;
 use ckb_tool::ckb_types::{core::Capacity, packed::*};
+use log::{debug, trace};
 use std::collections::HashSet;
 use std::process::Command;
 
@@ -32,6 +33,10 @@ impl Collector {
         const LIMIT: u64 = 2000;
 
         let tip_number = self.get_tip_block_number();
+        debug!(
+            "collect live cells: target {} address {} tip_number {}",
+            capacity, address, tip_number
+        );
         let mut live_cells = HashSet::new();
         let mut collected_capacity = 0;
         for i in 0.. {
@@ -44,6 +49,7 @@ impl Collector {
             }
             let to = (i + 1) * BLOCKS_IN_BATCH;
             let cells = self.get_live_cells_by_lock_hash(address.clone(), from, to, LIMIT);
+            trace!("get cells: from {} to {} cells {:?}", from, to, cells.len());
             if cells.is_empty() {
                 continue;
             }

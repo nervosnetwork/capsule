@@ -30,6 +30,7 @@ use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 use clap::{App, Arg, SubCommand};
 
 fn run_cli() -> Result<()> {
+    env_logger::init();
     let matches = App::new("Capsule")
         .version("0.0.0-pre.1")
         .author("Nervos Developer Tools Team")
@@ -39,9 +40,10 @@ fn run_cli() -> Result<()> {
         .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
                     Arg::with_name("release").long("release").help("Build contracts in release mode.")
         ).display_order(2))
-        .subcommand(SubCommand::with_name("run").about("Run command in contract build image").arg(Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name")).arg(
-                    Arg::with_name("cmd").required(true).multiple(true).help("command to run")
-        ).display_order(3))
+        .subcommand(SubCommand::with_name("run").about("Run command in contract build image")
+        .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
+                Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
+        .display_order(3))
         .subcommand(SubCommand::with_name("test").about("Run tests").arg(
                     Arg::with_name("release").long("release").help("Test release mode contracts.")
         ).display_order(4))
