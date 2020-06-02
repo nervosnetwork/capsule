@@ -11,7 +11,8 @@ use std::path::PathBuf;
 pub const DOCKER_IMAGE: &str = "jjy0/ckb-capsule-recipe-rust:2020-6-2";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
 const CARGO_CONFIG_PATH: &str = ".cargo/config";
-const BASE_RUSTFLAGS: &str = "-Z pre-link-arg=-zseparate-code -Z pre-link-arg=-zseparate-loadable-segments";
+const BASE_RUSTFLAGS: &str =
+    "-Z pre-link-arg=-zseparate-code -Z pre-link-arg=-zseparate-loadable-segments";
 const RELEASE_RUSTFLAGS: &str = "-C link-arg=-s";
 
 pub struct Rust<'a> {

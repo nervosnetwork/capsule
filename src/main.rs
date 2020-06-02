@@ -40,7 +40,7 @@ fn run_cli() -> Result<()> {
         .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
                     Arg::with_name("release").long("release").help("Build contracts in release mode.")
         ).display_order(2))
-        .subcommand(SubCommand::with_name("run").about("Run command in contract build image")
+        .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("capsule run --name <name> 'echo list contract dir: && ls'")
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
         .display_order(3))
@@ -143,7 +143,6 @@ fn run_cli() -> Result<()> {
                 Some(c) => c,
                 None => return Err(anyhow!("can't find contract '{}'", name)),
             };
-            println!("Building contract {}", contract.name);
             get_recipe(&context, contract)?.run(cmd, &signal)?;
         }
         ("test", Some(args)) => {
