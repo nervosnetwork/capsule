@@ -11,3 +11,6 @@ ckb-types = { package = "ckb-standalone-types", version = "0.0.1-pre.1", default
 
 [profile.release]
 overflow-checks = true
+opt-level = 2
+lto = true
+codegen-units = 1
