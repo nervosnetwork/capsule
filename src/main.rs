@@ -36,12 +36,15 @@ fn run_cli() -> Result<()> {
         .about("Capsule CKB contract scaffold")
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
         .subcommand(SubCommand::with_name("new").about("Create a new project").arg(Arg::with_name("name").help("project name").index(1).required(true).takes_value(true)).display_order(1))
-        .subcommand(SubCommand::with_name("build").about("Build contracts").arg(
+        .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
                     Arg::with_name("release").long("release").help("Build contracts in release mode.")
         ).display_order(2))
+        .subcommand(SubCommand::with_name("run").about("Run command in contract build image").arg(Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name")).arg(
+                    Arg::with_name("cmd").required(true).multiple(true).help("command to run")
+        ).display_order(3))
         .subcommand(SubCommand::with_name("test").about("Run tests").arg(
                     Arg::with_name("release").long("release").help("Test release mode contracts.")
-        ).display_order(3))
+        ).display_order(4))
         .subcommand(
             SubCommand::with_name("deploy")
                 .about("Deploy contracts, edit deployment.toml to custodian deployment recipe.")
@@ -63,7 +66,7 @@ fn run_cli() -> Result<()> {
                     Arg::with_name("ckb-cli")
                         .long("ckb-cli")
                         .help("CKB cli binary").default_value(DEFAULT_CKB_CLI_BIN_NAME).takes_value(true),
-                ]).display_order(4),
+                ]).display_order(5),
         )
         .subcommand(
             SubCommand::with_name("debugger")
@@ -75,7 +78,7 @@ fn run_cli() -> Result<()> {
                         .long("template")
                         .short("t")
                         .help("Output template path").required(true).takes_value(true),
-                ]).display_order(5),
+                ]).display_order(6),
         )
         .get_matches();
     let signal = signal::Signal::setup();
@@ -101,16 +104,45 @@ fn run_cli() -> Result<()> {
         }
         ("build", Some(args)) => {
             let context = load_project_context()?;
+            let build_names: Vec<&str> = args
+                .values_of("name")
+                .map(|values| values.collect())
+                .unwrap_or_default();
             let build_env: BuildEnv = if args.is_present("release") {
                 BuildEnv::Release
             } else {
                 BuildEnv::Debug
             };
-            for c in &context.config.contracts {
-                println!("Building contract {}", c.name);
-                get_recipe(&context, c)?.run_build(build_env, &signal)?;
+            let contracts: Vec<_> = context
+                .config
+                .contracts
+                .iter()
+                .filter(|c| build_names.is_empty() || build_names.contains(&c.name.as_str()))
+                .collect();
+            if contracts.is_empty() {
+                println!("Nothing to do");
+            } else {
+                for c in contracts {
+                    println!("Building contract {}", c.name);
+                    get_recipe(&context, c)?.run_build(build_env, &signal)?;
+                }
+                println!("Done");
             }
-            println!("Done");
+        }
+        ("run", Some(args)) => {
+            let context = load_project_context()?;
+            let name = args.value_of("name").expect("name");
+            let cmd = args
+                .values_of("cmd")
+                .expect("cmd")
+                .collect::<Vec<&str>>()
+                .join(" ");
+            let contract = match context.config.contracts.iter().find(|c| name == c.name) {
+                Some(c) => c,
+                None => return Err(anyhow!("can't find contract '{}'", name)),
+            };
+            println!("Building contract {}", contract.name);
+            get_recipe(&context, contract)?.run(cmd, &signal)?;
         }
         ("test", Some(args)) => {
             let context = load_project_context()?;

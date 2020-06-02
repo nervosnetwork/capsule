@@ -109,6 +109,7 @@ impl DockerCommand {
             format!("-eUSER={}", user).as_str(),
             "--rm",
             format!("-v{}:/code", code_path).as_str(),
+            "-w/code",
         ]);
         if let Some(cargo_dir_path) = cargo_dir_path {
             cmd.args(&[

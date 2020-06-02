@@ -38,9 +38,25 @@ impl<'a> Rust<'a> {
         }
     }
 
+    /// run command in build image
+    pub fn run(&self, build_cmd: String, signal: &Signal) -> Result<()> {
+        let contract_source_path = self.context.contract_path(&self.contract.name);
+        let contract_source_path = contract_source_path.to_str().expect("path");
+        let cmd = DockerCommand::with_context(
+            self.context,
+            DOCKER_IMAGE.to_string(),
+            contract_source_path.to_string(),
+        )
+        .fix_dir_permission("target".to_string())
+        .fix_dir_permission("Cargo.lock".to_string());
+        cmd.run(build_cmd, &signal)?;
+        Ok(())
+    }
+
     /// build contract
     pub fn run_build(&self, build_env: BuildEnv, signal: &Signal) -> Result<()> {
         let contract_source_path = self.context.contract_path(&self.contract.name);
+
         // docker cargo build
         let mut bin_path = PathBuf::new();
         let (bin_dir_prefix, build_cmd_opt) = match build_env {
@@ -51,25 +67,20 @@ impl<'a> Rust<'a> {
             "target/{}/{}/{}",
             RUST_TARGET, bin_dir_prefix, &self.contract.name
         ));
+
+        // run build command
         let build_cmd = format!(
-            "cd /code && \
-         RUSTFLAGS='{rustflags}' cargo build --target {rust_target} {build_env} && \
+            "RUSTFLAGS='{rustflags}' cargo build --target {rust_target} {build_env} && \
          ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
             rustflags = self.injection_rustflags(build_env),
             rust_target = RUST_TARGET,
             contract_bin = bin_path.to_str().expect("bin"),
             build_env = build_cmd_opt
         );
-        let contract_source_path = contract_source_path.to_str().expect("path");
-        let cmd = DockerCommand::with_context(
-            self.context,
-            DOCKER_IMAGE.to_string(),
-            contract_source_path.to_string(),
-        )
-        .fix_dir_permission("target".to_string())
-        .fix_dir_permission("Cargo.lock".to_string());
-        cmd.run(build_cmd, &signal)?;
+        self.run(build_cmd, signal)?;
+
         // copy to build dir
+        let contract_source_path = contract_source_path.to_str().expect("path");
         let mut target_path = self.context.contracts_build_path(build_env);
         // make sure the dir is exist
         fs::create_dir_all(&target_path)?;

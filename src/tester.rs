@@ -23,10 +23,7 @@ impl Tester {
                 .fix_dir_permission("target".to_string())
                 .fix_dir_permission("Cargo.lock".to_string());
         cmd.run(
-            format!(
-                "cd /code && {}={} cargo test -- --nocapture",
-                TEST_ENV_VAR, env_arg
-            ),
+            format!("{}={} cargo test -- --nocapture", TEST_ENV_VAR, env_arg),
             signal,
         )?;
         Ok(())
