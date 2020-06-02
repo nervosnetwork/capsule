@@ -2,7 +2,7 @@ use super::recipe::*;
 use crate::config::{Cell, CellLocation, DepGroup, Deployment};
 use crate::wallet::{cli_types::LiveCell, *};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use ckb_tool::ckb_chain_spec::consensus::TYPE_ID_CODE_HASH;
 use ckb_tool::ckb_hash::new_blake2b;
 use ckb_tool::ckb_types::{
@@ -37,7 +37,7 @@ impl DeploymentProcess {
     ) -> Result<(DeploymentRecipe, Vec<TransactionView>)> {
         let cells: Vec<(Cell, Bytes)> = load_deployable_cells_data(&self.config.cells)?;
         let dep_groups = self.config.dep_groups.clone();
-        Ok(self.build_recipe(cells, dep_groups, pre_inputs_cells))
+        self.build_recipe(cells, dep_groups, pre_inputs_cells)
     }
 
     fn build_cell_tx(
@@ -112,7 +112,7 @@ impl DeploymentProcess {
         cell_recipes: &[CellRecipe],
         dep_group: DepGroup,
         pre_input_cell: Option<LiveCell>,
-    ) -> TransactionView {
+    ) -> Result<TransactionView> {
         fn find_cell(name: &str, cell_recipes: &[CellRecipe]) -> Option<(H256, CellRecipe)> {
             cell_recipes
                 .into_iter()
@@ -124,13 +124,18 @@ impl DeploymentProcess {
         let out_points: packed::OutPointVec = dep_group
             .cells
             .iter()
-            .map(|name| {
+            .map(|name| -> Result<packed::OutPoint> {
                 let cell = self
                     .config
                     .cells
                     .iter()
                     .find(|c| &c.name == name)
-                    .expect("find cell");
+                    .ok_or(anyhow!(
+                        "Can't find Cell {} which referenced by DepGroup {}",
+                        name,
+                        dep_group.name
+                    ))?;
+
                 let (tx_hash, index) = match cell.location.clone() {
                     CellLocation::File { .. } => {
                         let (tx_hash, cell) = find_cell(name, cell_recipes).expect("must exists");
@@ -138,11 +143,13 @@ impl DeploymentProcess {
                     }
                     CellLocation::OutPoint { tx_hash, index } => (tx_hash.into(), index),
                 };
-                packed::OutPoint::new_builder()
+                let out_point = packed::OutPoint::new_builder()
                     .tx_hash(tx_hash.pack())
                     .index(index.pack())
-                    .build()
+                    .build();
+                Ok(out_point)
             })
+            .collect::<Result<Vec<packed::OutPoint>>>()?
             .pack();
         let data = out_points.as_bytes();
         let data_len = data.len();
@@ -164,7 +171,7 @@ impl DeploymentProcess {
             self.wallet
                 .complete_tx_inputs(tx, Capacity::shannons(inputs_capacity), self.tx_fee);
         self.wallet.lock_tx_inputs(&tx);
-        tx
+        Ok(tx)
     }
 
     fn build_recipe(
@@ -172,7 +179,7 @@ impl DeploymentProcess {
         cells: Vec<(Cell, Bytes)>,
         dep_groups: Vec<DepGroup>,
         pre_inputs_cells: Vec<(String, LiveCell)>,
-    ) -> (DeploymentRecipe, Vec<TransactionView>) {
+    ) -> Result<(DeploymentRecipe, Vec<TransactionView>)> {
         let mut txs = Vec::new();
         let mut cell_recipes = Vec::new();
         let mut dep_group_recipes = Vec::new();
@@ -195,7 +202,7 @@ impl DeploymentProcess {
                 .iter()
                 .find(|(name, _cell)| name == &dep_group.name)
                 .map(|(_name, input_cell)| input_cell.clone());
-            let tx = self.build_dep_group_tx(&cell_recipes, dep_group.clone(), input_cell);
+            let tx = self.build_dep_group_tx(&cell_recipes, dep_group.clone(), input_cell)?;
             let dep_group_recipe = build_dep_group_recipe(&tx, dep_group);
             txs.push(tx);
             dep_group_recipes.push(dep_group_recipe)
@@ -205,7 +212,7 @@ impl DeploymentProcess {
             cell_recipes,
             dep_group_recipes,
         };
-        (recipe, txs)
+        Ok((recipe, txs))
     }
 
     pub fn sign_txs(&self, txs: Vec<TransactionView>) -> Result<Vec<TransactionView>> {
