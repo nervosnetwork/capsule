@@ -28,22 +28,23 @@ impl Collector {
     }
 
     pub fn collect_live_cells(&self, address: Address, capacity: Capacity) -> HashSet<LiveCell> {
-        const BLOCKS_IN_BATCH: u64 = 10000u64;
-        const LIMIT: u64 = 20;
-        const MAX_RETRIES: usize = 50;
+        const BLOCKS_IN_BATCH: u64 = 1000;
+        const LIMIT: u64 = 2000;
 
+        let tip_number = self.get_tip_block_number();
         let mut live_cells = HashSet::new();
         let mut collected_capacity = 0;
-        let mut retry_count = 0;
         for i in 0.. {
             let from = i * BLOCKS_IN_BATCH;
+            if from > tip_number {
+                panic!(
+                    "can't find enough live cells, found {} CKB expected {} CKB",
+                    collected_capacity, capacity
+                );
+            }
             let to = (i + 1) * BLOCKS_IN_BATCH;
             let cells = self.get_live_cells_by_lock_hash(address.clone(), from, to, LIMIT);
             if cells.is_empty() {
-                retry_count += 1;
-                if retry_count > MAX_RETRIES {
-                    panic!("can't find enough live cells");
-                }
                 continue;
             }
             let iter = cells
@@ -70,6 +71,24 @@ impl Collector {
             }
         }
         live_cells
+    }
+
+    fn get_tip_block_number(&self) -> u64 {
+        let output = handle_cmd(
+            Command::new(&self.ckb_cli_bin)
+                .arg("--url")
+                .arg(&self.api_uri)
+                .arg("rpc")
+                .arg("--wait-for-sync")
+                .arg("get_tip_block_number")
+                .arg("--output-format")
+                .arg("json")
+                .output()
+                .expect("run cmd"),
+        )
+        .expect("run cmd error");
+        let tip_block_number: u64 = serde_json::from_slice(&output).expect("parse resp");
+        tip_block_number
     }
 
     fn get_live_cells_by_lock_hash(
