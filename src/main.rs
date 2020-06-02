@@ -72,15 +72,42 @@ fn run_cli() -> Result<()> {
         )
         .subcommand(
             SubCommand::with_name("debugger")
+            .about("GDB debugger server")
+            .subcommand(
+                SubCommand::with_name("gen-template")
+                .about("Generate transaction debugging template")
                 .args(&[
-                    Arg::with_name("bin").long("bin").short("b").help(
-                        "Contract binary path",
+                    Arg::with_name("contract-path").long("contract-path").short("p").help(
+                        "Binary contract path",
                     ).required(true).takes_value(true),
-                    Arg::with_name("template")
-                        .long("template")
-                        .short("t")
-                        .help("Output template path").required(true).takes_value(true),
-                ]).display_order(6),
+                    Arg::with_name("output-file")
+                        .long("output-file")
+                        .short("o")
+                        .help("Output file path").required(true).takes_value(true),
+                ])
+            )
+            .subcommand(
+                SubCommand::with_name("serve")
+                .about("Start GDB server")
+                .args(&[
+                    Arg::with_name("template-file")
+                        .long("template-file")
+                        .short("f")
+                        .help("Transaction debugging template file").required(true).takes_value(true),
+                    Arg::with_name("script-group-type")
+                        .long("script-group-type")
+                        .possible_values(&["type", "lock"]).required(true).takes_value(true),
+                    Arg::with_name("script-hash")
+                        .long("script-hash")
+                        .required(true).takes_value(true),
+                    Arg::with_name("listen")
+                        .long("listen")
+                        .short("l")
+                        .help("GDB server listening port")
+                        .default_value("8000").required(true).takes_value(true),
+                ])
+            )
+                .display_order(6),
         )
         .get_matches();
     let signal = signal::Signal::setup();
@@ -181,18 +208,42 @@ fn run_cli() -> Result<()> {
             let opt = DeployOption { migrate, tx_fee };
             DeployManage::new(migration_dir, context.load_deployment()?).deploy(wallet, opt)?;
         }
-        ("debugger", Some(args)) => {
-            let contract_path = args.value_of("bin").expect("bin");
-            let (script, mock_tx) = debugger::build_template(contract_path)?;
-            let template_path = args.value_of("template").expect("template");
-            let mock_tx: debugger::transaction::ReprMockTransaction = mock_tx.into();
-            fs::write(&template_path, serde_json::to_string(&mock_tx)?)?;
-            println!(
-                "Write debugger template to {} script group hash {}",
-                template_path,
-                script.calc_script_hash()
-            );
-        }
+        ("debugger", Some(sub_matches)) => match sub_matches.subcommand() {
+            ("gen-template", Some(args)) => {
+                let contract_path = args.value_of("contract-path").expect("contract path");
+                let (script, mock_tx) = debugger::build_template(contract_path)?;
+                let template_path = args.value_of("output-file").expect("output file");
+                let mock_tx: debugger::transaction::ReprMockTransaction = mock_tx.into();
+                fs::write(&template_path, serde_json::to_string(&mock_tx)?)?;
+                println!(
+                    "Write transaction debugging template to {} script group hash {}",
+                    template_path,
+                    script.calc_script_hash()
+                );
+            }
+            ("serve", Some(args)) => {
+                let context = load_project_context()?;
+                let template_path = args.value_of("template-file").expect("template file");
+                let script_group_type = args.value_of("script-group-type").unwrap();
+                let script_hash = args.value_of("script-hash").unwrap();
+                let listen_port: usize = args
+                    .value_of("listen")
+                    .unwrap()
+                    .parse()
+                    .expect("listen port");
+                debugger::start_server(
+                    &context,
+                    template_path,
+                    script_group_type.to_string(),
+                    script_hash.to_string(),
+                    listen_port,
+                    &signal,
+                )?;
+            }
+            (command, _) => {
+                panic!("unknown debugger subcommand '{}'", command);
+            }
+        },
         (command, _) => {
             eprintln!("unrecognize command '{}'", command);
             exit(1);

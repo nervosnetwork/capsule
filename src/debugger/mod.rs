@@ -1,7 +1,11 @@
 pub mod transaction;
 
+use crate::project_context::Context;
+use crate::recipe::rust::DOCKER_IMAGE;
+use crate::signal::Signal;
+use crate::util::DockerCommand;
 use anyhow::Result;
-use ckb_testtool::context::Context;
+use ckb_testtool::context::Context as TestContext;
 use ckb_tool::ckb_types::{
     bytes::Bytes,
     core::{HeaderView, TransactionBuilder},
@@ -12,9 +16,36 @@ use std::fs;
 use std::path::Path;
 use transaction::*;
 
+pub fn start_server<P: AsRef<Path>>(
+    context: &Context,
+    template_path: P,
+    script_group_type: String,
+    script_hash: String,
+    listen_port: usize,
+    signal: &Signal,
+) -> Result<()> {
+    const CONTAINER_NAME: &str = "capsule-debugger-server";
+
+    let project_path = context
+        .project_path
+        .to_str()
+        .expect("project path")
+        .to_string();
+    let template_path = template_path.as_ref().to_str().expect("template path");
+    let cmd = format!(
+        "ckb-debugger --script-group-type {} --script-hash {} --tx-file {} --listen 127.0.0.1:{}",
+        script_group_type, script_hash, template_path, listen_port
+    );
+    println!("GDB server is started!\nhint: use rust-gdb connect to the remote server");
+    DockerCommand::with_context(context, DOCKER_IMAGE.to_string(), project_path)
+        .host_network(true)
+        .name(CONTAINER_NAME.to_string())
+        .run(cmd, signal)
+}
+
 pub fn build_template<P: AsRef<Path>>(contract_path: P) -> Result<(Script, MockTransaction)> {
     // deploy contract
-    let mut context = Context::default();
+    let mut context = TestContext::default();
     let contract_bin: Bytes = fs::read(contract_path)?.into();
     let contract_out_point = context.deploy_contract(contract_bin);
 

@@ -3,7 +3,6 @@ use crate::project_context::{BuildEnv, Context};
 use crate::signal::Signal;
 use crate::util::DockerCommand;
 use anyhow::Result;
-use log::debug;
 
 use std::fs;
 use std::path::PathBuf;
@@ -43,7 +42,6 @@ impl<'a> Rust<'a> {
 
     /// run command in build image
     pub fn run(&self, build_cmd: String, signal: &Signal) -> Result<()> {
-        debug!("Run command in docker: {}", build_cmd);
         let contract_source_path = self.context.contract_path(&self.contract.name);
         let contract_source_path = contract_source_path.to_str().expect("path");
         let cmd = DockerCommand::with_context(
