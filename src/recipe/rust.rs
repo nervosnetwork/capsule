@@ -35,8 +35,8 @@ impl<'a> Rust<'a> {
         let has_cargo_config = self.has_cargo_config();
         match build_env {
             _ if has_cargo_config => "".to_string(),
-            BuildEnv::Debug => BASE_RUSTFLAGS.to_string(),
-            BuildEnv::Release => format!("{} {}", BASE_RUSTFLAGS, RELEASE_RUSTFLAGS),
+            BuildEnv::Debug => format!("RUSTFLAGS=\"{}\"", BASE_RUSTFLAGS.to_string()),
+            BuildEnv::Release => format!("RUSTFLAGS=\"{} {}\"", BASE_RUSTFLAGS, RELEASE_RUSTFLAGS),
         }
     }
 
@@ -72,7 +72,7 @@ impl<'a> Rust<'a> {
 
         // run build command
         let build_cmd = format!(
-            "RUSTFLAGS='{rustflags}' cargo build --target {rust_target} {build_env} && \
+            "{rustflags} cargo build --target {rust_target} {build_env} && \
          ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
             rustflags = self.injection_rustflags(build_env),
             rust_target = RUST_TARGET,

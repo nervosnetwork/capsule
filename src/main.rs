@@ -87,19 +87,38 @@ fn run_cli() -> Result<()> {
                 ])
             )
             .subcommand(
-                SubCommand::with_name("serve")
-                .about("Start GDB server")
+                SubCommand::with_name("start")
+                .about("Start GDB")
                 .args(&[
                     Arg::with_name("template-file")
                         .long("template-file")
                         .short("f")
-                        .help("Transaction debugging template file").required(true).takes_value(true),
+                        .help("Transaction debugging template file")
+                        .required(true)
+                        .takes_value(true),
+                    Arg::with_name("name")
+                        .short("n")
+                        .long("name")
+                        .required(true)
+                        .takes_value(true)
+                        .help("contract name"),
                     Arg::with_name("script-group-type")
                         .long("script-group-type")
-                        .possible_values(&["type", "lock"]).required(true).takes_value(true),
-                    Arg::with_name("script-hash")
-                        .long("script-hash")
-                        .required(true).takes_value(true),
+                        .possible_values(&["type", "lock"])
+                        .help("Script type")
+                        .required(true)
+                        .takes_value(true),
+                    Arg::with_name("cell-index")
+                        .long("cell-index")
+                        .required(true)
+                        .help("index of the cell")
+                        .takes_value(true),
+                    Arg::with_name("cell-type")
+                        .long("cell-type")
+                        .required(true)
+                        .possible_values(&["input", "output"])
+                        .help("cell type")
+                        .takes_value(true),
                     Arg::with_name("listen")
                         .long("listen")
                         .short("l")
@@ -211,32 +230,33 @@ fn run_cli() -> Result<()> {
         ("debugger", Some(sub_matches)) => match sub_matches.subcommand() {
             ("gen-template", Some(args)) => {
                 let contract_path = args.value_of("contract-path").expect("contract path");
-                let (script, mock_tx) = debugger::build_template(contract_path)?;
+                let mock_tx = debugger::build_template(contract_path)?;
                 let template_path = args.value_of("output-file").expect("output file");
                 let mock_tx: debugger::transaction::ReprMockTransaction = mock_tx.into();
                 fs::write(&template_path, serde_json::to_string(&mock_tx)?)?;
-                println!(
-                    "Write transaction debugging template to {} script group hash {}",
-                    template_path,
-                    script.calc_script_hash()
-                );
+                println!("Write transaction debugging template to {}", template_path,);
             }
-            ("serve", Some(args)) => {
+            ("start", Some(args)) => {
                 let context = load_project_context()?;
                 let template_path = args.value_of("template-file").expect("template file");
+                let contract_name = args.value_of("name").expect("contract name");
                 let script_group_type = args.value_of("script-group-type").unwrap();
-                let script_hash = args.value_of("script-hash").unwrap();
+                let cell_index: usize = args.value_of("cell-index").unwrap().parse()?;
+                let cell_type = args.value_of("cell-type").unwrap();
                 let listen_port: usize = args
                     .value_of("listen")
                     .unwrap()
                     .parse()
                     .expect("listen port");
-                debugger::start_server(
+                debugger::start_debugger(
                     &context,
                     template_path,
-                    script_group_type.to_string(),
-                    script_hash.to_string(),
+                    contract_name,
+                    script_group_type,
+                    cell_index,
+                    cell_type,
                     listen_port,
+                    true,
                     &signal,
                 )?;
             }

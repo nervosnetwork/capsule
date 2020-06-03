@@ -16,15 +16,18 @@ use std::fs;
 use std::path::Path;
 use transaction::*;
 
-pub fn start_server<P: AsRef<Path>>(
+pub fn start_debugger<P: AsRef<Path>>(
     context: &Context,
     template_path: P,
-    script_group_type: String,
-    script_hash: String,
+    contract_name: &str,
+    script_group_type: &str,
+    cell_index: usize,
+    cell_type: &str,
     listen_port: usize,
+    tty: bool,
     signal: &Signal,
 ) -> Result<()> {
-    const CONTAINER_NAME: &str = "capsule-debugger-server";
+    const DEBUG_SERVER_NAME: &str = "capsule-debugger-server";
 
     let project_path = context
         .project_path
@@ -32,21 +35,46 @@ pub fn start_server<P: AsRef<Path>>(
         .expect("project path")
         .to_string();
     let template_path = template_path.as_ref().to_str().expect("template path");
+
+    // start GDB server container
     let cmd = format!(
-        "ckb-debugger --script-group-type {} --script-hash {} --tx-file {} --listen 127.0.0.1:{}",
-        script_group_type, script_hash, template_path, listen_port
+        "ckb-debugger --script-group-type {} --cell-index {} --cell-type {} --tx-file {} --listen 127.0.0.1:{}",
+        script_group_type, cell_index, cell_type, template_path, listen_port
     );
-    println!(
-        "GDB server is started!\nhint: use rust-gdb to connect the remote server :{}",
-        listen_port
-    );
-    DockerCommand::with_context(context, DOCKER_IMAGE.to_string(), project_path)
+    println!("GDB server is started!");
+    DockerCommand::with_context(context, DOCKER_IMAGE.to_string(), project_path.clone())
         .host_network(true)
-        .name(CONTAINER_NAME.to_string())
-        .run(cmd, signal)
+        .name(DEBUG_SERVER_NAME.to_string())
+        .daemon(tty)
+        .run(cmd, signal)?;
+    if tty {
+        // start gdb client
+        let cmd = format!(
+            "RUST_GDB=riscv64-unknown-elf-gdb rust-gdb -ex 'target remote :{port}' -ex 'file build/debug/{contract}' -ex 'cd contracts/{contract}'",
+            port=listen_port,
+            contract=contract_name
+        );
+        let docker_cmd =
+            DockerCommand::with_context(context, DOCKER_IMAGE.to_string(), project_path)
+                .host_network(true)
+                .tty(true);
+
+        // Prepare a specific docker environment for GDB client then enable this
+        //
+        // if let Some(mut home_dir) = dirs::home_dir() {
+        //     home_dir.push(".gdbinit");
+        //     if home_dir.exists() {
+        //         let host = home_dir.to_str().expect("path").to_string();
+        //         docker_cmd = docker_cmd.map_volume(host, "/root/.gdbinit".to_string());
+        //     }
+        // }
+
+        docker_cmd.run(cmd, signal)?;
+    }
+    DockerCommand::stop(DEBUG_SERVER_NAME)
 }
 
-pub fn build_template<P: AsRef<Path>>(contract_path: P) -> Result<(Script, MockTransaction)> {
+pub fn build_template<P: AsRef<Path>>(contract_path: P) -> Result<MockTransaction> {
     // deploy contract
     let mut context = TestContext::default();
     let contract_bin: Bytes = fs::read(contract_path)?.into();
@@ -76,7 +104,7 @@ pub fn build_template<P: AsRef<Path>>(contract_path: P) -> Result<(Script, MockT
             .build(),
         CellOutput::new_builder()
             .capacity(500u64.pack())
-            .lock(lock_script.clone())
+            .lock(lock_script)
             .build(),
     ];
 
@@ -140,5 +168,5 @@ pub fn build_template<P: AsRef<Path>>(contract_path: P) -> Result<(Script, MockT
         tx: tx.data(),
         mock_info,
     };
-    Ok((lock_script, mock_tx))
+    Ok(mock_tx)
 }
