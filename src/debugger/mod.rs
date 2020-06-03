@@ -37,7 +37,7 @@ pub fn start_server<P: AsRef<Path>>(
         script_group_type, script_hash, template_path, listen_port
     );
     println!(
-        "GDB server is started!\nhint: use rust-gdb connect to the remote server :{}",
+        "GDB server is started!\nhint: use rust-gdb to connect the remote server :{}",
         listen_port
     );
     DockerCommand::with_context(context, DOCKER_IMAGE.to_string(), project_path)
