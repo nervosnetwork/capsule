@@ -34,7 +34,7 @@ impl Manage {
     /// create a snapshot in migration dir
     fn snapshot_recipe(&self, recipe: &DeploymentRecipe) -> Result<()> {
         let now: DateTime<Utc> = Utc::now();
-        let snapshot_name = now.format("%Y-%m-%d-%H%M%S.toml").to_string();
+        let snapshot_name = now.format("%Y-%m-%d-%H%M%S.json").to_string();
         let mut path = self.migration_dir.clone();
         path.push(snapshot_name);
         let content = serde_json::to_vec(recipe)?;
