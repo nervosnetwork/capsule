@@ -36,7 +36,10 @@ pub fn start_server<P: AsRef<Path>>(
         "ckb-debugger --script-group-type {} --script-hash {} --tx-file {} --listen 127.0.0.1:{}",
         script_group_type, script_hash, template_path, listen_port
     );
-    println!("GDB server is started!\nhint: use rust-gdb connect to the remote server");
+    println!(
+        "GDB server is started!\nhint: use rust-gdb connect to the remote server :{}",
+        listen_port
+    );
     DockerCommand::with_context(context, DOCKER_IMAGE.to_string(), project_path)
         .host_network(true)
         .name(CONTAINER_NAME.to_string())
