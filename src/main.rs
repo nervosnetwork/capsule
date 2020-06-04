@@ -72,7 +72,7 @@ fn run_cli() -> Result<()> {
         )
         .subcommand(
             SubCommand::with_name("debugger")
-            .about("GDB debugger server")
+            .about("CKB debugger")
             .subcommand(
                 SubCommand::with_name("gen-template")
                 .about("Generate transaction debugging template")

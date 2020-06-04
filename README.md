@@ -22,17 +22,22 @@ cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag v
 ## Usage
 
 ``` sh
+USAGE:
+capsule [SUBCOMMAND]
+
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    check     Check environment and dependencies
-    new       Create a new project
-    build     Build contracts
-    test      Run tests
-    deploy    Deploy contracts
-    help      Prints this message or the help of the given subcommand(s)
+    check       Check environment and dependencies
+    new         Create a new project
+    build       Build contracts
+    run         Run command in contract build image
+    test        Run tests
+    deploy      Deploy contracts, edit deployment.toml to custodian deployment recipe.
+    debugger    CKB debugger
+    help        Prints this message or the help of the given subcommand(s)
 ```
 
 ### Quick start
