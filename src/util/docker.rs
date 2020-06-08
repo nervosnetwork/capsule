@@ -5,6 +5,7 @@ use log::debug;
 use std::process::Command;
 use std::thread::sleep;
 use std::time::Duration;
+use std::env;
 
 const DOCKER_BIN: &str = "docker";
 
@@ -32,6 +33,8 @@ pub struct DockerCommand {
     name: Option<String>,
     daemon: bool,
     tty: bool,
+    workdir: String,
+    inherited_env: Vec<&'static str>,
 }
 
 impl DockerCommand {
@@ -72,6 +75,8 @@ impl DockerCommand {
             name: None,
             daemon: false,
             tty: false,
+            workdir: "/code".to_string(),
+            inherited_env: vec!["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"],
         }
     }
 
@@ -92,6 +97,11 @@ impl DockerCommand {
 
     pub fn tty(mut self, tty: bool) -> Self {
         self.tty = tty;
+        self
+    }
+
+    pub fn workdir(mut self, dir: String) -> Self {
+        self.workdir = dir;
         self
     }
 
@@ -162,6 +172,8 @@ impl DockerCommand {
             name,
             daemon,
             tty,
+            workdir,
+            inherited_env
         } = self;
 
         let mut cmd = Command::new(bin);
@@ -172,7 +184,7 @@ impl DockerCommand {
             format!("-eUSER={}", user).as_str(),
             "--rm",
             format!("-v{}:/code", code_path).as_str(),
-            "-w/code",
+            format!("-w{}", workdir).as_str(),
         ]);
         // mapping volumes
         if let Some(cargo_dir_path) = cargo_dir_path {
@@ -194,6 +206,14 @@ impl DockerCommand {
         // mapping ports
         for port in mapping_ports {
             cmd.arg(format!("-p{}:{}", port.host, port.container).as_str());
+        }
+
+        // inject env
+        for key in inherited_env {
+            if  let Ok(value) = env::var(key) {
+                debug!("inherited env {}={}", key, value);
+                cmd.arg(format!("-e{}:{}", key, value));
+            }
         }
 
         if host_network {
