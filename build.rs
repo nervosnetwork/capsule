@@ -4,7 +4,7 @@ fn main() {
         .output()
         .ok()
         .and_then(|r| String::from_utf8(r.stdout).ok())
-        .expect("commit id");;
+        .expect("commit id");
     println!(
         "cargo:rustc-env=COMMIT_ID={}",
         commit_id
