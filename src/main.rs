@@ -29,10 +29,32 @@ use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 
 use clap::{App, Arg, SubCommand};
 
+fn version_string() -> String {
+    let major = env!("CARGO_PKG_VERSION_MAJOR")
+        .parse::<u8>()
+        .expect("CARGO_PKG_VERSION_MAJOR parse success");
+    let minor = env!("CARGO_PKG_VERSION_MINOR")
+        .parse::<u8>()
+        .expect("CARGO_PKG_VERSION_MINOR parse success");
+    let patch = env!("CARGO_PKG_VERSION_PATCH")
+        .parse::<u16>()
+        .expect("CARGO_PKG_VERSION_PATCH parse success");
+    let mut version = format!("{}.{}.{}", major, minor, patch);
+    let pre = env!("CARGO_PKG_VERSION_PRE");
+    if !pre.is_empty() {
+        version.push_str("-");
+        version.push_str(pre);
+    }
+    let commit_id = env!("COMMIT_ID");
+    version.push_str(" ");
+    version.push_str(commit_id);
+    version
+}
+
 fn run_cli() -> Result<()> {
     env_logger::init();
     let matches = App::new("Capsule")
-        .version("0.0.0-pre.1")
+        .version(version_string().as_str())
         .author("Nervos Developer Tools Team")
         .about("Capsule CKB contract scaffold")
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
