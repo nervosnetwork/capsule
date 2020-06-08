@@ -42,13 +42,14 @@ impl<'a> Rust<'a> {
 
     /// run command in build image
     pub fn run(&self, build_cmd: String, signal: &Signal) -> Result<()> {
-        let contract_source_path = self.context.contract_path(&self.contract.name);
-        let contract_source_path = contract_source_path.to_str().expect("path");
+        let project_path = self.context.project_path.to_str().expect("path");
+        let contract_relative_path = self.context.contract_relative_path(&self.contract.name);
         let cmd = DockerCommand::with_context(
             self.context,
             DOCKER_IMAGE.to_string(),
-            contract_source_path.to_string(),
+            project_path.to_string(),
         )
+        .workdir(format!("/code/{}", contract_relative_path.to_str().expect("path")))
         .fix_dir_permission("target".to_string())
         .fix_dir_permission("Cargo.lock".to_string());
         cmd.run(build_cmd, &signal)?;

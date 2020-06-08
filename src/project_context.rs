@@ -67,6 +67,13 @@ impl Context {
         path
     }
 
+    pub fn contract_relative_path<P: AsRef<Path>>(&self, contract_name: P) -> PathBuf {
+        let mut path = PathBuf::new();
+        path.push(CONTRACTS_DIR);
+        path.push(contract_name);
+        path
+    }
+
     pub fn cargo_cache_path(&self) -> PathBuf {
         let mut path = self.project_path.clone();
         path.push(CACHE_DIR);
