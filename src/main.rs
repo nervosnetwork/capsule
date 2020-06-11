@@ -53,8 +53,11 @@ fn version_string() -> String {
 
 fn run_cli() -> Result<()> {
     env_logger::init();
-    let matches = App::new("Capsule")
-        .version(version_string().as_str())
+
+    let version = version_string();
+
+    let mut app = App::new("Capsule")
+        .version(version.as_str())
         .author("Nervos Developer Tools Team")
         .about("Capsule CKB contract scaffold")
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
@@ -149,9 +152,17 @@ fn run_cli() -> Result<()> {
                 ])
             )
                 .display_order(6),
-        )
-        .get_matches();
+        );
+
     let signal = signal::Signal::setup();
+
+    let help_str = {
+        let mut buf = Vec::new();
+        app.write_long_help(&mut buf)?;
+        String::from_utf8(buf)?
+    };
+
+    let matches = app.get_matches();
     match matches.subcommand() {
         ("check", _args) => {
             Checker::build()?.print_report();
@@ -283,11 +294,14 @@ fn run_cli() -> Result<()> {
                 )?;
             }
             (command, _) => {
-                panic!("unknown debugger subcommand '{}'", command);
+                eprintln!("unknown debugger subcommand '{}'", command);
+                eprintln!("{}", help_str);
+                exit(1);
             }
         },
         (command, _) => {
             eprintln!("unrecognize command '{}'", command);
+            eprintln!("{}", help_str);
             exit(1);
         }
     }
