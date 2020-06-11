@@ -2,10 +2,10 @@ use crate::project_context::Context;
 use crate::signal::Signal;
 use anyhow::{anyhow, Result};
 use log::debug;
+use std::env;
 use std::process::Command;
 use std::thread::sleep;
 use std::time::Duration;
-use std::env;
 
 const DOCKER_BIN: &str = "docker";
 
@@ -110,10 +110,10 @@ impl DockerCommand {
         self
     }
 
-    // pub fn map_volume(mut self, host: String, container: String) -> Self {
-    //     self.mapping_volumes.push(Volume { host, container });
-    //     self
-    // }
+    pub fn map_volume(mut self, host: String, container: String) -> Self {
+        self.mapping_volumes.push(Volume { host, container });
+        self
+    }
 
     pub fn run(self, shell_cmd: String, signal: &Signal) -> Result<()> {
         debug!("Run command in docker: {}", shell_cmd);
@@ -173,7 +173,7 @@ impl DockerCommand {
             daemon,
             tty,
             workdir,
-            inherited_env
+            inherited_env,
         } = self;
 
         let mut cmd = Command::new(bin);
@@ -210,7 +210,7 @@ impl DockerCommand {
 
         // inject env
         for key in inherited_env {
-            if  let Ok(value) = env::var(key) {
+            if let Ok(value) = env::var(key) {
                 debug!("inherited env {}={}", key, value);
                 cmd.arg(format!("-e{}:{}", key, value));
             }

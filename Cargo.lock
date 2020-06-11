@@ -214,11 +214,11 @@ dependencies = [
  "anyhow",
  "bech32",
  "chrono",
- "ckb-testtool",
  "ckb-tool",
  "clap",
  "ctrlc",
  "env_logger 0.7.1",
+ "faster-hex 0.4.1",
  "include_dir",
  "lazy_static",
  "log",
@@ -266,12 +266,6 @@ dependencies = [
  "chrono",
  "parse-zoneinfo",
 ]
-
-[[package]]
-name = "ckb-always-success-script"
-version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b3b72a38c9920a29990df12002c4d069a147c8782f0c211f8a01b2df8f42bfd"
 
 [[package]]
 name = "ckb-chain-spec"
@@ -501,17 +495,6 @@ dependencies = [
  "includedir",
  "includedir_codegen",
  "phf",
-]
-
-[[package]]
-name = "ckb-testtool"
-version = "0.1.0"
-source = "git+https://github.com/jjyr/ckb-tool.git?tag=v0.0.1#b47adfdc4cbc2db48bf67b1f85391182ff7d1f8d"
-dependencies = [
- "ckb-always-success-script",
- "ckb-tool",
- "lazy_static",
- "rand 0.7.3",
 ]
 
 [[package]]

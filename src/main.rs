@@ -51,10 +51,13 @@ fn version_string() -> String {
     version
 }
 
+const DEBUGGER_MAX_CYCLES: u64 = 70_000_000u64;
+
 fn run_cli() -> Result<()> {
     env_logger::init();
 
     let version = version_string();
+    let default_max_cycles_str = format!("{}", DEBUGGER_MAX_CYCLES);
 
     let mut app = App::new("Capsule")
         .version(version.as_str())
@@ -102,8 +105,8 @@ fn run_cli() -> Result<()> {
                 SubCommand::with_name("gen-template")
                 .about("Generate transaction debugging template")
                 .args(&[
-                    Arg::with_name("contract-path").long("contract-path").short("p").help(
-                        "Binary contract path",
+                    Arg::with_name("name").long("name").short("n").help(
+                        "contract name",
                     ).required(true).takes_value(true),
                     Arg::with_name("output-file")
                         .long("output-file")
@@ -127,6 +130,7 @@ fn run_cli() -> Result<()> {
                         .required(true)
                         .takes_value(true)
                         .help("contract name"),
+                    Arg::with_name("release").long("release").help("Debugging release contract"),
                     Arg::with_name("script-group-type")
                         .long("script-group-type")
                         .possible_values(&["type", "lock"])
@@ -144,11 +148,17 @@ fn run_cli() -> Result<()> {
                         .possible_values(&["input", "output"])
                         .help("cell type")
                         .takes_value(true),
+                    Arg::with_name("max-cycles")
+                        .long("max-cycles")
+                        .default_value(&default_max_cycles_str)
+                        .help("Max cycles")
+                        .takes_value(true),
                     Arg::with_name("listen")
                         .long("listen")
                         .short("l")
                         .help("GDB server listening port")
                         .default_value("8000").required(true).takes_value(true),
+                    Arg::with_name("only-server").long("only-server").help("Only start debugger server"),
                 ])
             )
                 .display_order(6),
@@ -262,34 +272,42 @@ fn run_cli() -> Result<()> {
         }
         ("debugger", Some(sub_matches)) => match sub_matches.subcommand() {
             ("gen-template", Some(args)) => {
-                let contract_path = args.value_of("contract-path").expect("contract path");
-                let mock_tx = debugger::build_template(contract_path)?;
+                let contract = args.value_of("name").expect("contract name");
+                let template_content = debugger::build_template(contract.to_string())?;
                 let template_path = args.value_of("output-file").expect("output file");
-                let mock_tx: debugger::transaction::ReprMockTransaction = mock_tx.into();
-                fs::write(&template_path, serde_json::to_string(&mock_tx)?)?;
+                fs::write(&template_path, template_content)?;
                 println!("Write transaction debugging template to {}", template_path,);
             }
             ("start", Some(args)) => {
                 let context = load_project_context()?;
                 let template_path = args.value_of("template-file").expect("template file");
+                let build_env: BuildEnv = if args.is_present("release") {
+                    BuildEnv::Release
+                } else {
+                    BuildEnv::Debug
+                };
                 let contract_name = args.value_of("name").expect("contract name");
                 let script_group_type = args.value_of("script-group-type").unwrap();
                 let cell_index: usize = args.value_of("cell-index").unwrap().parse()?;
                 let cell_type = args.value_of("cell-type").unwrap();
+                let max_cycles: u64 = args.value_of("max-cycles").unwrap().parse()?;
                 let listen_port: usize = args
                     .value_of("listen")
                     .unwrap()
                     .parse()
                     .expect("listen port");
+                let tty = !args.is_present("only-server");
                 debugger::start_debugger(
                     &context,
                     template_path,
                     contract_name,
+                    build_env,
                     script_group_type,
                     cell_index,
                     cell_type,
+                    max_cycles,
                     listen_port,
-                    true,
+                    tty,
                     &signal,
                 )?;
             }

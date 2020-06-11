@@ -49,7 +49,10 @@ impl<'a> Rust<'a> {
             DOCKER_IMAGE.to_string(),
             project_path.to_string(),
         )
-        .workdir(format!("/code/{}", contract_relative_path.to_str().expect("path")))
+        .workdir(format!(
+            "/code/{}",
+            contract_relative_path.to_str().expect("path")
+        ))
         .fix_dir_permission("target".to_string())
         .fix_dir_permission("Cargo.lock".to_string());
         cmd.run(build_cmd, &signal)?;

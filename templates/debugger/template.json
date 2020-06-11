@@ -1,0 +1,98 @@
+{% set contract_data = "{{" ~ name ~ ".data}}" -%}
+{% set contract_code_hash = "{{" ~ name ~ ".code_hash}}" -%}
+{
+    "mock_info": {
+        "inputs": [
+            {
+                "input": {
+                    "since": "0x0",
+                    "previous_output": {
+                        "tx_hash": "0xf29cf2ce5d66a1abe5e8627ca7fcdd252dda18f54d6f4a9ef74af2117d2a52bd",
+                        "index": "0x0"
+                    }
+                },
+                "output": {
+                    "capacity": "0x3e8",
+                    "lock": {
+                        "code_hash": "{{contract_code_hash}}",
+                        "hash_type": "data",
+                        "args": "0x"
+                    },
+                    "type": null
+                },
+                "data": "0x",
+                "header": null
+            }
+        ],
+        "cell_deps": [
+            {
+                "cell_dep": {
+                    "out_point": {
+                        "tx_hash": "0xa10c4a9e1ac7003630e07204c39c45ee6da07feeb4f7c8d489f16bdf437c76eb",
+                        "index": "0x0"
+                    },
+                    "dep_type": "code"
+                },
+                "output": {
+                    "capacity": "0xc89b5ca800",
+                    "lock": {
+                        "code_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "hash_type": "data",
+                        "args": "0x"
+                    },
+                    "type": null
+                },
+                "data": "{{contract_data}}",
+                "header": null
+            }
+        ],
+        "header_deps": []
+    },
+    "tx": {
+        "version": "0x0",
+        "cell_deps": [
+            {
+                "out_point": {
+                    "tx_hash": "0xa10c4a9e1ac7003630e07204c39c45ee6da07feeb4f7c8d489f16bdf437c76eb",
+                    "index": "0x0"
+                },
+                "dep_type": "code"
+            }
+        ],
+        "header_deps": [],
+        "inputs": [
+            {
+                "since": "0x0",
+                "previous_output": {
+                    "tx_hash": "0xf29cf2ce5d66a1abe5e8627ca7fcdd252dda18f54d6f4a9ef74af2117d2a52bd",
+                    "index": "0x0"
+                }
+            }
+        ],
+        "outputs": [
+            {
+                "capacity": "0x1f4",
+                "lock": {
+                    "code_hash": "{{contract_code_hash}}",
+                    "hash_type": "data",
+                    "args": "0x"
+                },
+                "type": null
+            },
+            {
+                "capacity": "0x1f4",
+                "lock": {
+                    "code_hash": "{{contract_code_hash}}",
+                    "hash_type": "data",
+                    "args": "0x"
+                },
+                "type": null
+            }
+        ],
+        "outputs_data": [
+            "0x",
+            "0x"
+        ],
+        "witnesses": []
+    }
+}
