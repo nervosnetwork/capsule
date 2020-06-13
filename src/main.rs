@@ -27,7 +27,7 @@ use tester::Tester;
 use wallet::cli_types::HumanCapacity;
 use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 
-use clap::{App, Arg, SubCommand};
+use clap::{App, AppSettings, Arg, SubCommand};
 
 fn version_string() -> String {
     let major = env!("CARGO_PKG_VERSION_MAJOR")
@@ -60,6 +60,7 @@ fn run_cli() -> Result<()> {
     let default_max_cycles_str = format!("{}", DEBUGGER_MAX_CYCLES);
 
     let mut app = App::new("Capsule")
+        .setting(AppSettings::ArgRequiredElseHelp)
         .version(version.as_str())
         .author("Nervos Developer Tools Team")
         .about("Capsule CKB contract scaffold")
