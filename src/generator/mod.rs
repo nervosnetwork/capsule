@@ -39,7 +39,7 @@ struct CreateContract {
     name: String,
 }
 
-fn new_contract<P: AsRef<Path>>(name: String, path: P, signal: &Signal) -> Result<()> {
+pub fn new_contract<P: AsRef<Path>>(name: String, path: P, signal: &Signal) -> Result<()> {
     let context = Context::from_serialize(&CreateContract { name: name.clone() })?;
     // generate contract
     let path = path.as_ref().to_str().expect("path");

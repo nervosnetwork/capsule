@@ -1,5 +1,6 @@
 mod checker;
 mod config;
+mod config_manipulate;
 mod debugger;
 mod deployment;
 mod generator;
@@ -19,9 +20,13 @@ use std::str::FromStr;
 use anyhow::{anyhow, Result};
 use checker::Checker;
 use ckb_tool::ckb_types::core::Capacity;
+use config::TemplateType;
+use config_manipulate::{append_contract, Document};
 use deployment::manage::{DeployOption, Manage as DeployManage};
-use generator::new_project;
-use project_context::{load_project_context, BuildEnv, DeployEnv};
+use generator::{new_contract, new_project};
+use project_context::{
+    load_project_context, read_config_file, write_config_file, BuildEnv, DeployEnv,
+};
 use recipe::get_recipe;
 use tester::Tester;
 use wallet::cli_types::HumanCapacity;
@@ -66,16 +71,17 @@ fn run_cli() -> Result<()> {
         .about("Capsule CKB contract scaffold")
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
         .subcommand(SubCommand::with_name("new").about("Create a new project").arg(Arg::with_name("name").help("project name").index(1).required(true).takes_value(true)).display_order(1))
+        .subcommand(SubCommand::with_name("new-contract").about("Create a new contract").arg(Arg::with_name("name").help("contract name").index(1).required(true).takes_value(true)).display_order(2))
         .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
                     Arg::with_name("release").long("release").help("Build contracts in release mode.")
-        ).display_order(2))
+        ).display_order(3))
         .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("capsule run --name <name> 'echo list contract dir: && ls'")
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
-        .display_order(3))
+        .display_order(4))
         .subcommand(SubCommand::with_name("test").about("Run tests").arg(
                     Arg::with_name("release").long("release").help("Test release mode contracts.")
-        ).display_order(4))
+        ).display_order(5))
         .subcommand(
             SubCommand::with_name("deploy")
                 .about("Deploy contracts, edit deployment.toml to custodian deployment recipe.")
@@ -97,7 +103,7 @@ fn run_cli() -> Result<()> {
                     Arg::with_name("ckb-cli")
                         .long("ckb-cli")
                         .help("CKB cli binary").default_value(DEFAULT_CKB_CLI_BIN_NAME).takes_value(true),
-                ]).display_order(5),
+                ]).display_order(6),
         )
         .subcommand(
             SubCommand::with_name("debugger")
@@ -162,7 +168,7 @@ fn run_cli() -> Result<()> {
                     Arg::with_name("only-server").long("only-server").help("Only start debugger server"),
                 ])
             )
-                .display_order(6),
+                .display_order(7),
         );
 
     let signal = signal::Signal::setup();
@@ -193,6 +199,22 @@ fn run_cli() -> Result<()> {
                 path.push(env::current_dir()?);
             }
             new_project(name.to_string(), path, &signal)?;
+        }
+        ("new-contract", Some(args)) => {
+            let context = load_project_context()?;
+            let name = args.value_of("name").expect("name").trim().to_string();
+            if context.contract_path(&name).exists() {
+                return Err(anyhow!("contract '{}' is already exists"));
+            }
+            let contracts_path = context.contracts_path();
+            new_contract(name.to_string(), contracts_path, &signal)?;
+
+            // rewrite config
+            println!("Rewrite capsule.toml");
+            let config_content = read_config_file()?;
+            let mut doc = config_content.parse::<Document>()?;
+            append_contract(&mut doc, name, TemplateType::Rust)?;
+            write_config_file(doc.to_string())?;
         }
         ("build", Some(args)) => {
             let context = load_project_context()?;
@@ -329,9 +351,10 @@ fn run_cli() -> Result<()> {
 
 fn main() {
     let backtrace_level = env::var("RUST_BACKTRACE").unwrap_or("".to_string());
-    let enable_backtrace = !backtrace_level.is_empty() && backtrace_level.as_str() != "0".to_string();
+    let enable_backtrace =
+        !backtrace_level.is_empty() && backtrace_level.as_str() != "0".to_string();
     match run_cli() {
-        Ok(_) =>{}
+        Ok(_) => {}
         Err(err) if enable_backtrace => {
             panic!(err);
         }

@@ -12,6 +12,7 @@ const CONTRACTS_BUILD_DIR: &str = "build";
 const MIGRATIONS_DIR: &str = "migrations";
 const CACHE_DIR: &str = ".cache";
 const CARGO_DIR: &str = ".cargo";
+const CONFIG_NAME: &str = "capsule.toml";
 
 #[derive(Debug, Copy, Clone)]
 pub enum BuildEnv {
@@ -111,25 +112,37 @@ impl Context {
     }
 }
 
-pub fn load_project_context() -> Result<Context> {
-    const CONFIG_NAME: &str = "capsule.toml";
-
+pub fn read_config_file() -> Result<String> {
     let mut project_path = PathBuf::new();
     project_path.push(env::current_dir()?);
     let mut path = project_path.clone();
     path.push(CONFIG_NAME);
-    match fs::read(path) {
-        Ok(content) => {
-            let config: Config = toml::from_slice(&content)?;
-            Ok(Context {
-                config,
-                project_path,
-            })
-        }
+    match fs::read_to_string(path) {
+        Ok(content) => Ok(content),
         Err(err) if err.kind() == IOErrorKind::NotFound => Err(anyhow!(
             "Can't found {}, current directory is not a project",
             CONFIG_NAME
         )),
         Err(err) => Err(err.into()),
     }
+}
+
+pub fn write_config_file(content: String) -> Result<()> {
+    let mut project_path = PathBuf::new();
+    project_path.push(env::current_dir()?);
+    let mut path = project_path.clone();
+    path.push(CONFIG_NAME);
+    fs::write(path, content)?;
+    Ok(())
+}
+
+pub fn load_project_context() -> Result<Context> {
+    let content = read_config_file()?;
+    let config: Config = toml::from_slice(content.as_bytes())?;
+    let mut project_path = PathBuf::new();
+    project_path.push(env::current_dir()?);
+    Ok(Context {
+        config,
+        project_path,
+    })
 }
