@@ -16,25 +16,14 @@ Capsule provides the following functionality:
 
 ### Supported Environments
 
+- Linux
 - MacOS
-- Ubuntu Linux 18.04 LTS
-- Ubuntu Linux 20.04 LTS
+- Windows (Experiment)
 
 ### Prerequisites
 
-The following must be installed and available to build and use Capsule.
+The following must be installed and available to use Capsule.
 
-#### MacOS Specific
-- Xcode Command Line Tools https://developer.apple.com/library/archive/technotes/tn2339/
-
-#### Ubuntu Specific
-- Build Tools `sudo apt install -y build-essential`
-- OpenSSL Toolkit `sudo apt install -y libssl-dev`
-- Pkg-config `sudo apt install -y pkg-config`
-
-#### All Platforms
-
-- Rust - Used to build and install Capsule. https://rustup.rs/
 - Docker - Capsule uses `docker` to build contracts and run tests. https://docs.docker.com/get-docker/
 - ckb-cli (optional) - Capsule requires `ckb-cli` to enable the smart contract deployment feature. https://github.com/nervosnetwork/ckb-cli/releases
 
@@ -48,12 +37,6 @@ Note: The current user must have permission to manage Docker instances. [How to 
 cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag v0.0.1-pre.2
 ```
 
-### Install the Unstable Version
-
-``` sh
-cargo install capsule --git https://github.com/nervosnetwork/capsule.git
-```
-
 ## Usage
 
 ```
@@ -65,14 +48,15 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    check       Check environment and dependencies
-    new         Create a new project
-    build       Build contracts
-    run         Run command in contract build image
-    test        Run tests
-    deploy      Deploy contracts, edit deployment.toml to custodian deployment recipe.
-    debugger    CKB debugger
-    help        Prints this message or the help of the given subcommand(s)
+    check           Check environment and dependencies
+    new             Create a new project
+    new-contract    Create a new contract
+    build           Build contracts
+    run             Run command in contract build image
+    test            Run tests
+    deploy          Deploy contracts, edit deployment.toml to custodian deployment recipe.
+    debugger        CKB debugger
+    help            Prints this message or the help of the given subcommand(s)
 ```
 
 ### Quick Start
