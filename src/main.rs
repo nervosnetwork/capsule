@@ -328,5 +328,16 @@ fn run_cli() -> Result<()> {
 }
 
 fn main() {
-    run_cli().expect("error");
+    let backtrace_level = env::var("RUST_BACKTRACE").unwrap_or("".to_string());
+    let enable_backtrace = !backtrace_level.is_empty() && backtrace_level.as_str() != "0".to_string();
+    match run_cli() {
+        Ok(_) =>{}
+        Err(err) if enable_backtrace => {
+            panic!(err);
+        }
+        Err(err) => {
+            eprintln!("error: {}", err);
+            exit(-1);
+        }
+    }
 }

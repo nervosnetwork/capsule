@@ -127,7 +127,7 @@ pub fn load_project_context() -> Result<Context> {
             })
         }
         Err(err) if err.kind() == IOErrorKind::NotFound => Err(anyhow!(
-            "Can't found {}, not in the project directory",
+            "Can't found {}, current directory is not a project",
             CONFIG_NAME
         )),
         Err(err) => Err(err.into()),
