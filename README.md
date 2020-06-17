@@ -18,7 +18,7 @@ Capsule provides the following functionality:
 
 - Linux
 - MacOS
-- Windows (Experiment)
+- Windows (WSL)
 
 ### Prerequisites
 
