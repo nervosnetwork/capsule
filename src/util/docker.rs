@@ -10,7 +10,7 @@ use std::time::Duration;
 const DOCKER_BIN: &str = "docker";
 
 struct Volume {
-    host: String,
+    volume: String,
     container: String,
 }
 struct Port {
@@ -25,7 +25,7 @@ pub struct DockerCommand {
     user: String,
     docker_image: String,
     code_path: String,
-    cargo_dir_path: Option<String>,
+    patch_cargo_cache: bool,
     fix_permission_files: Vec<String>,
     mapping_ports: Vec<Port>,
     mapping_volumes: Vec<Volume>,
@@ -38,20 +38,11 @@ pub struct DockerCommand {
 }
 
 impl DockerCommand {
-    pub fn with_context(context: &Context, docker_image: String, code_path: String) -> Self {
-        let cargo_dir_path = context
-            .cargo_cache_path()
-            .to_str()
-            .expect("path")
-            .to_string();
-        Self::with_config(docker_image, code_path, Some(cargo_dir_path))
+    pub fn with_context(_context: &Context, docker_image: String, code_path: String) -> Self {
+        Self::with_config(docker_image, code_path)
     }
 
-    pub fn with_config(
-        docker_image: String,
-        code_path: String,
-        cargo_dir_path: Option<String>,
-    ) -> Self {
+    pub fn with_config(docker_image: String, code_path: String) -> Self {
         let bin = DOCKER_BIN.to_string();
         let uid = users::get_current_uid();
         let gid = users::get_current_gid();
@@ -67,7 +58,7 @@ impl DockerCommand {
             user,
             docker_image,
             code_path,
-            cargo_dir_path,
+            patch_cargo_cache: true,
             fix_permission_files: Vec::new(),
             mapping_ports: Vec::new(),
             mapping_volumes: Vec::new(),
@@ -110,8 +101,8 @@ impl DockerCommand {
         self
     }
 
-    pub fn map_volume(mut self, host: String, container: String) -> Self {
-        self.mapping_volumes.push(Volume { host, container });
+    pub fn map_volume(mut self, volume: String, container: String) -> Self {
+        self.mapping_volumes.push(Volume { volume, container });
         self
     }
 
@@ -164,8 +155,8 @@ impl DockerCommand {
             user,
             docker_image,
             code_path,
-            cargo_dir_path,
-            mut fix_permission_files,
+            patch_cargo_cache,
+            fix_permission_files,
             mapping_ports,
             mut mapping_volumes,
             host_network,
@@ -186,21 +177,19 @@ impl DockerCommand {
             format!("-v{}:/code", code_path).as_str(),
             format!("-w{}", workdir).as_str(),
         ]);
-        // mapping volumes
-        if let Some(cargo_dir_path) = cargo_dir_path {
+
+        // reusing cargo cache
+        // mapping local volume `capsule-cache` to reusing cargo cache
+        if patch_cargo_cache {
             mapping_volumes.push(Volume {
-                host: format!("{}/git", cargo_dir_path),
-                container: "/root/.cargo/git".to_string(),
+                volume: "capsule-cache".to_string(),
+                container: "/root/.cargo".to_string(),
             });
-            mapping_volumes.push(Volume {
-                host: format!("{}/registry", cargo_dir_path),
-                container: "/root/.cargo/registry".to_string(),
-            });
-            fix_permission_files.push("/root/.cargo".to_string());
         }
 
+        // mapping volumes
         for volumn in mapping_volumes {
-            cmd.arg(format!("-v{}:{}", volumn.host, volumn.container).as_str());
+            cmd.arg(format!("-v{}:{}", volumn.volume, volumn.container).as_str());
         }
 
         // mapping ports

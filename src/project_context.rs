@@ -10,8 +10,6 @@ use std::str::FromStr;
 const CONTRACTS_DIR: &str = "contracts";
 const CONTRACTS_BUILD_DIR: &str = "build";
 const MIGRATIONS_DIR: &str = "migrations";
-const CACHE_DIR: &str = ".cache";
-const CARGO_DIR: &str = ".cargo";
 const CONFIG_NAME: &str = "capsule.toml";
 
 #[derive(Debug, Copy, Clone)]
@@ -72,13 +70,6 @@ impl Context {
         let mut path = PathBuf::new();
         path.push(CONTRACTS_DIR);
         path.push(contract_name);
-        path
-    }
-
-    pub fn cargo_cache_path(&self) -> PathBuf {
-        let mut path = self.project_path.clone();
-        path.push(CACHE_DIR);
-        path.push(CARGO_DIR);
         path
     }
 
