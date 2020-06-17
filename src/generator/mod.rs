@@ -43,7 +43,7 @@ pub fn new_contract<P: AsRef<Path>>(name: String, path: P, signal: &Signal) -> R
     let context = Context::from_serialize(&CreateContract { name: name.clone() })?;
     // generate contract
     let path = path.as_ref().to_str().expect("path");
-    let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), path.to_string(), None)
+    let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), path.to_string())
         .fix_dir_permission(name.clone());
     cmd.run(format!("cargo new {}", name), signal)?;
     let mut contract_path = PathBuf::new();
@@ -68,13 +68,7 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
     };
     fs::create_dir(&project_path)
         .with_context(|| format!("directory exists {:?}", &project_path))?;
-    for f in &[
-        "contracts",
-        "build",
-        "migrations",
-        ".cache",
-        ".cache/.cargo",
-    ] {
+    for f in &["contracts", "build", "migrations"] {
         let mut dir_path = PathBuf::new();
         dir_path.push(&project_path);
         dir_path.push(f);
@@ -107,7 +101,7 @@ fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P, signal: &Sign
     const DEFAULT_TESTS_DIR: &str = "tests";
 
     let project_path = project_path.as_ref().to_str().expect("path");
-    let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), project_path.to_string(), None)
+    let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), project_path.to_string())
         .fix_dir_permission(DEFAULT_TESTS_DIR.to_string());
     cmd.run(format!("cargo new {} --lib", DEFAULT_TESTS_DIR), signal)?;
     let project_path = {
