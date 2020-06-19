@@ -11,7 +11,8 @@ use core::result::Result;
 // https://doc.rust-lang.org/alloc/index.html
 use alloc::{vec, vec::Vec};
 
-// Import CKB syscalls / structures
+// Import CKB syscalls and structures
+// https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
 use ckb_std::{
     entry,
     default_alloc,
