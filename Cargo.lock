@@ -215,7 +215,7 @@ dependencies = [
 
 [[package]]
 name = "capsule"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "anyhow",
  "bech32",
