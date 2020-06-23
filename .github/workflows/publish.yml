@@ -1,0 +1,47 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Publish for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: capsule
+            suffix: x86_64-linux
+          - os: macos-latest
+            artifact_name: capsule
+            suffix: x86_64-darwin
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set RELEASE_VERSION
+      run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF#refs/*/}
+    - name: Set PKG_NAME
+      run: echo ::set-env name=PKG_NAME::capsule_${{ env.RELEASE_VERSION }}_${{ matrix.suffix }}
+    - name: Build
+      run: cargo build --release --locked
+    - name: Extract signing key
+      working-directory: dev-tools
+      run: openssl aes-256-cbc -d -K ${{ secrets.SIGNING_SECRET_KEY }} -iv ${{ secrets.SIGNING_SECRET_IV }} -in signing-secret.asc.enc -out signing-secret.asc
+    - name: Import signing key
+      working-directory: dev-tools
+      run: gpg --import signing-secret.asc
+    - name: Sign
+      env:
+        GPG_SIGNER: Developer Tools
+      run: dev-tools/package.sh target/release/${{ matrix.artifact_name }}
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: releases/*
+        tag: ${{ github.ref }}
+        file_glob: true
+
