@@ -31,10 +31,14 @@ Note: Docker and ckb-cli must be accessible in the `PATH` in order for them to b
 
 Note: The current user must have permission to manage Docker instances. [How to manage Docker as a non-root user.](https://docs.docker.com/engine/install/linux-postinstall/)
 
-### Install the Preview Version
+### Install binary
+
+[Download the latest release](https://github.com/nervosnetwork/capsule/releases/latest)
+
+### Install from source code
 
 ``` sh
-cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag v0.0.1-pre.2
+cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag v0.1.0
 ```
 
 ## Usage
