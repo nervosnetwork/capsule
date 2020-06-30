@@ -58,7 +58,8 @@ fn test_basic() {
     let tx = context.complete_tx(tx);
 
     // run
-    context
-    .verify_tx(&tx, MAX_CYCLES)
-    .expect("pass verification");
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
 }
