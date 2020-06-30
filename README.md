@@ -1,5 +1,7 @@
 # Capsule
 
+![Capsule](./capsule.jpg)
+
 > Capsule is still under active development and considered to be a work in progress.
 
 Capsule is a development framework for creating smart contract scripts in Rust for Nervos' CKB layer 1 blockchain. Capsule is designed to provide an out-of-the-box solution that helps Nervos developers accomplish common tasks quick and painlessly.
