@@ -19,8 +19,8 @@ Capsule provides the following functionality:
 ### Supported Environments
 
 - Linux
-- MacOS
-- Windows (WSL)
+- macOS
+- Windows (WSL2)
 
 ### Prerequisites
 
