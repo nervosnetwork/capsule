@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
-use tera::{self, Context, Tera};
+pub use tera::{self, Context as TeraContext, Tera};
 
 const TEMPLATES_DIR: Dir = include_dir!("templates/rust");
 
@@ -39,8 +39,12 @@ struct CreateContract {
     name: String,
 }
 
+#[derive(Serialize)]
+pub struct EmptyContext {
+}
+
 pub fn new_contract<P: AsRef<Path>>(name: String, path: P, signal: &Signal) -> Result<()> {
-    let context = Context::from_serialize(&CreateContract { name: name.clone() })?;
+    let context = TeraContext::from_serialize(&CreateContract { name: name.clone() })?;
     // generate contract
     let path = path.as_ref().to_str().expect("path");
     let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), path.to_string())
@@ -77,7 +81,7 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
         fs::File::create(&dir_path)?;
     }
     // generate files
-    let context = Context::from_serialize(&CreateProject {
+    let context = TeraContext::from_serialize(&CreateProject {
         name: name.clone(),
         path: project_path.clone(),
     })?;
@@ -113,7 +117,7 @@ fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P, signal: &Sign
         path
     };
     // initialize tests code
-    let context = Context::from_serialize(&CreateProject {
+    let context = TeraContext::from_serialize(&CreateProject {
         name: name.clone(),
         path: project_path.clone(),
     })?;

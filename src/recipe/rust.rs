@@ -2,6 +2,7 @@ use crate::config::Contract;
 use crate::project_context::{BuildEnv, Context};
 use crate::signal::Signal;
 use crate::util::DockerCommand;
+use crate::generator::{TEMPLATES, EmptyContext, TeraContext};
 use anyhow::Result;
 
 use std::fs;
@@ -10,8 +11,13 @@ use std::path::PathBuf;
 pub const DOCKER_IMAGE: &str = "jjy0/ckb-capsule-recipe-rust:2020-6-2";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
 const CARGO_CONFIG_PATH: &str = ".cargo/config";
+
+const BUILD_ASSETS_DIR: &str = ".tmp/build-assets";
+const LINKER_SCRIPT: &str = "capsule_rust_linker.ld";
+
+// injection flags
 const BASE_RUSTFLAGS: &str =
-    "-Z pre-link-arg=-zseparate-code -Z pre-link-arg=-zseparate-loadable-segments";
+    "-C link-arg=-T../../.tmp/build-assets/capsule_rust_linker.ld -Z pre-link-arg=-zseparate-code -Z pre-link-arg=-zseparate-loadable-segments";
 const RELEASE_RUSTFLAGS: &str = "-C link-arg=-s";
 
 pub struct Rust<'a> {
@@ -59,8 +65,26 @@ impl<'a> Rust<'a> {
         Ok(())
     }
 
+    /// prepare build assets
+    fn prepare_build_assets(&self) -> Result<()> {
+        let mut path = self.context.project_path.clone();
+        path.push(BUILD_ASSETS_DIR);
+        if !path.exists() {
+            fs::create_dir_all(&path)?;
+        }
+        path.push(LINKER_SCRIPT);
+        if !path.exists() {
+        let context = TeraContext::from_serialize(&EmptyContext {
+        })?;
+            let content = TEMPLATES.render("linker.ld", &context)?;
+            fs::write(&path, content)?;
+        }
+        Ok(())
+    }
+
     /// build contract
     pub fn run_build(&self, build_env: BuildEnv, signal: &Signal) -> Result<()> {
+        self.prepare_build_assets()?;
         let contract_source_path = self.context.contract_path(&self.contract.name);
 
         // docker cargo build
