@@ -355,8 +355,8 @@ fn main() {
         !backtrace_level.is_empty() && backtrace_level.as_str() != "0".to_string();
     match run_cli() {
         Ok(_) => {}
-        Err(err) if enable_backtrace => {
-            panic!(err);
+        err if enable_backtrace => {
+            err.unwrap();
         }
         Err(err) => {
             eprintln!("error: {}", err);
