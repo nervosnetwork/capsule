@@ -16,7 +16,7 @@ pub struct LiveCellInfoVec {
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct LiveCellInfo {
     pub tx_hash: H256,
-    pub tx_index: u32,
+    pub output_index: u32,
     pub data_bytes: u64,
     pub lock_hash: H256,
     // Type script's code_hash and script_hash

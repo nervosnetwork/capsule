@@ -267,10 +267,7 @@ fn run_cli() -> Result<()> {
             Tester::run(&context, build_env, &signal)?;
         }
         ("deploy", Some(args)) => {
-            if !Checker::build()?.ckb_cli {
-                eprintln!("Can't find ckb-cli, install it to enable deployment");
-                exit(1);
-            }
+            Checker::build()?.check_ckb_cli()?;
             let address = {
                 let address_hex = args.value_of("address").expect("address");
                 Address::from_str(&address_hex).expect("parse address")
