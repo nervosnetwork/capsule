@@ -1,6 +1,7 @@
 /// Project Context
 use crate::config::{Config, Deployment};
 use anyhow::{anyhow, Result};
+use log::error;
 use std::env;
 use std::fs;
 use std::io::ErrorKind as IOErrorKind;
@@ -98,8 +99,13 @@ impl Context {
     pub fn load_deployment(&self) -> Result<Deployment> {
         let mut path = self.project_path.clone();
         path.push(&self.config.deployment);
-        let deployment: Deployment = toml::from_slice(&fs::read(path)?)?;
-        Ok(deployment)
+        match toml::from_slice(&fs::read(&path)?) {
+            Ok(deployment) => Ok(deployment),
+            Err(err) => {
+                error!("failed to parse {:?}", path);
+                Err(err.into())
+            }
+        }
     }
 }
 
