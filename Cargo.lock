@@ -215,7 +215,7 @@ dependencies = [
 
 [[package]]
 name = "capsule"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "bech32",
@@ -507,7 +507,7 @@ dependencies = [
 [[package]]
 name = "ckb-tool"
 version = "0.1.0"
-source = "git+https://github.com/jjyr/ckb-tool.git?tag=v0.0.1#b47adfdc4cbc2db48bf67b1f85391182ff7d1f8d"
+source = "git+https://github.com/jjyr/ckb-tool.git?tag=v0.0.2#def39c08a629f81054192fad1e53b8d6f27f93ca"
 dependencies = [
  "ckb-chain-spec",
  "ckb-crypto",
