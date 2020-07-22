@@ -1,6 +1,6 @@
 [package]
 name = "capsule"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Nervos Network", "jjy <jjyruby@gmail.com>"]
 edition = "2018"
 

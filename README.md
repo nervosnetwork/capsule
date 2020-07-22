@@ -40,7 +40,7 @@ Note: The current user must have permission to manage Docker instances. [How to 
 ### Install from source code
 
 ``` sh
-cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag v0.1.2
+cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag v0.1.3
 ```
 
 ## Usage
