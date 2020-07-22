@@ -93,6 +93,10 @@ impl Collector {
                 .expect("run cmd"),
         )
         .expect("run cmd error");
+        trace!(
+            "parse ckb-cli output: {}",
+            String::from_utf8(output.clone()).unwrap()
+        );
         let tip_block_number: u64 = serde_json::from_slice(&output).expect("parse resp");
         tip_block_number
     }
@@ -125,6 +129,10 @@ impl Collector {
                 .expect("run cmd"),
         )
         .expect("run cmd error");
+        trace!(
+            "parse ckb-cli output: {}",
+            String::from_utf8(output.clone()).unwrap()
+        );
         let resp: LiveCellInfoVec = serde_json::from_slice(&output).expect("parse resp");
         resp.live_cells
     }
