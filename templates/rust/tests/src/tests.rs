@@ -14,14 +14,14 @@ fn test_basic() {
     // deploy contract
     let mut context = Context::default();
     let contract_bin: Bytes = Loader::default().load_binary("{{ name }}");
-    let contract_out_point = context.deploy_contract(contract_bin);
+    let out_point = context.deploy_cell(contract_bin);
 
     // prepare scripts
     let lock_script = context
-        .build_script(&contract_out_point, Default::default())
+        .build_script(&out_point, Default::default())
         .expect("script");
     let lock_script_dep = CellDep::new_builder()
-        .out_point(contract_out_point)
+        .out_point(out_point)
         .build();
 
     // prepare cells
