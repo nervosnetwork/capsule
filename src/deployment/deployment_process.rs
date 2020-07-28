@@ -13,6 +13,7 @@ use ckb_tool::ckb_types::{
     prelude::*,
     H256,
 };
+use log::{debug, log_enabled, Level::Debug};
 use std::fs;
 use std::io::Read;
 
@@ -251,6 +252,15 @@ impl DeploymentProcess {
                 .expect("missing recipe tx");
             let tx_hash: H256 = tx.hash().unpack();
             println!("send cell_tx {}", tx_hash);
+
+            if log_enabled!(Debug) {
+                let tx_without_data = tx
+                    .as_advanced_builder()
+                    .set_outputs_data(Vec::new())
+                    .build();
+                debug!("send transaction error: {}", tx_without_data);
+            }
+
             self.wallet.send_transaction(tx.to_owned())?;
         }
         for dep_group_recipe in recipe.dep_group_recipes {
@@ -270,6 +280,15 @@ impl DeploymentProcess {
                 .expect("missing recipe tx");
             let tx_hash: H256 = tx.hash().unpack();
             println!("send dep_group_tx {}", tx_hash);
+
+            if log_enabled!(Debug) {
+                let tx_without_data = tx
+                    .as_advanced_builder()
+                    .set_outputs_data(Vec::new())
+                    .build();
+                debug!("send transaction error: {}", tx_without_data);
+            }
+
             self.wallet.send_transaction(tx.to_owned())?;
         }
         Ok(())
