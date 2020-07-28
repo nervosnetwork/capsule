@@ -37,6 +37,7 @@ impl DeploymentProcess {
         &mut self,
         pre_inputs_cells: Vec<(String, LiveCell)>,
     ) -> Result<(DeploymentRecipe, Vec<TransactionView>)> {
+        self.check_pre_inputs_unlockable(&pre_inputs_cells)?;
         let cells: Vec<(Cell, Bytes)> = load_deployable_cells_data(&self.config.cells)?;
         let dep_groups = self.config.dep_groups.clone();
         let (recipe, txs) = self.build_recipe(cells, dep_groups, pre_inputs_cells)?;
@@ -44,6 +45,22 @@ impl DeploymentProcess {
             tx_check(&self.wallet, tx)?;
         }
         Ok((recipe, txs))
+    }
+
+    fn check_pre_inputs_unlockable(&self, pre_inputs_cell: &[(String, LiveCell)]) -> Result<()> {
+        for (name, live_cell) in pre_inputs_cell {
+            let cell_output: packed::CellOutput =
+                self.wallet.get_cell_output(live_cell.out_point());
+            let wallet_lock: packed::Script = self.wallet.lock_script();
+            if cell_output.lock() != wallet_lock {
+                let address = self
+                    .wallet
+                    .address()
+                    .display_with_network(self.wallet.address().network());
+                return Err(anyhow!("Can't unlock previously deployed cells with address '{}'\ncell '{}' uses lock:\n{}\naddress's lock:\n{}\n\nhint: update the lock field in `deployment.toml` or turn off migration with option `--migrate=off`", address, name, cell_output.lock(), wallet_lock));
+            }
+        }
+        Ok(())
     }
 
     fn build_cell_tx(

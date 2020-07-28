@@ -223,12 +223,7 @@ impl Wallet {
         {
             let code_hash = self.default_lock_code_hash();
             for c in &cells {
-                let cell = self
-                    .rpc_client()
-                    .inner()
-                    .get_live_cell(c.out_point().into(), false)
-                    .expect("get cell");
-                let cell_output: packed::CellOutput = cell.cell.expect("cell info").output.into();
+                let cell_output: packed::CellOutput = self.get_cell_output(c.out_point());
                 assert_eq!(
                     cell_output.lock().code_hash(),
                     code_hash,
@@ -240,11 +235,20 @@ impl Wallet {
         cells
     }
 
-    fn lock_script(&self) -> packed::Script {
+    pub fn get_cell_output(&self, out_point: packed::OutPoint) -> packed::CellOutput {
+        let cell_resp = self
+            .rpc_client()
+            .inner()
+            .get_live_cell(out_point.into(), false)
+            .expect("rpc get_live_cell");
+        cell_resp.cell.expect("cell info").output.into()
+    }
+
+    pub fn lock_script(&self) -> packed::Script {
         self.address().payload().into()
     }
 
-    fn address(&self) -> &Address {
+    pub fn address(&self) -> &Address {
         &self.address
     }
 
