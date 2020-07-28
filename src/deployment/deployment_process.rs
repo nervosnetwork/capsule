@@ -110,7 +110,6 @@ impl DeploymentProcess {
             self.wallet
                 .complete_tx_inputs(tx, Capacity::shannons(inputs_capacity), self.tx_fee);
         self.wallet.lock_tx_inputs(&tx);
-        tx_check(&self.wallet, &tx)?;
         Ok(tx)
     }
 
@@ -178,7 +177,6 @@ impl DeploymentProcess {
             self.wallet
                 .complete_tx_inputs(tx, Capacity::shannons(inputs_capacity), self.tx_fee);
         self.wallet.lock_tx_inputs(&tx);
-        tx_check(&self.wallet, &tx)?;
         Ok(tx)
     }
 
