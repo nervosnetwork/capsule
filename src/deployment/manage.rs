@@ -9,6 +9,8 @@ use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
+const CURRENT_SNAPSHOT: &str = "current.json";
+
 #[derive(Clone, Copy, Debug)]
 pub struct DeployOption {
     pub migrate: bool,
@@ -31,18 +33,37 @@ impl Manage {
         }
     }
 
-    /// create a snapshot in migration dir
-    fn snapshot_recipe(&self, recipe: &DeploymentRecipe) -> Result<()> {
-        let now: DateTime<Utc> = Utc::now();
-        let snapshot_name = now.format("%Y-%m-%d-%H%M%S.json").to_string();
+    /// check current snapshot
+    fn check_incomplete_snapshot(&self) -> Result<()> {
         let mut path = self.migration_dir.clone();
-        path.push(snapshot_name);
+        path.push(CURRENT_SNAPSHOT);
+        if path.exists() {
+            return Err(anyhow!("Find a incomplete deployment record {:?}. Please take look at the deployment record file and manualy fix the incomplete deployment.", path));
+        }
+        Ok(())
+    }
+
+    /// create a snapshot in migration dir
+    fn snapshot_recipe(&self, recipe: &DeploymentRecipe) -> Result<PathBuf> {
+        let mut path = self.migration_dir.clone();
+        path.push(CURRENT_SNAPSHOT);
         let content = serde_json::to_vec(recipe)?;
         fs::OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(path)?
+            .open(&path)?
             .write_all(&content)?;
+        Ok(path)
+    }
+
+    /// complete a snapshot
+    fn complete_snapshot(&self, src: PathBuf) -> Result<()> {
+        let now: DateTime<Utc> = Utc::now();
+        let snapshot_name = now.format("%Y-%m-%d-%H%M%S.json").to_string();
+        let mut path = self.migration_dir.clone();
+        path.push(snapshot_name);
+        fs::copy(&src, &path)?;
+        fs::remove_file(src)?;
         Ok(())
     }
 
@@ -104,6 +125,8 @@ impl Manage {
             fs::create_dir_all(&self.migration_dir)?;
             println!("Create directory {:?}", self.migration_dir);
         }
+        // check incomplete snapshot
+        self.check_incomplete_snapshot()?;
         let mut pre_inputs = Vec::new();
         let deployment = self.deployment.clone();
         if opt.migrate {
@@ -116,9 +139,10 @@ impl Manage {
         }
         self.output_deployment_plan(&recipe, &txs, &pre_inputs, &opt);
         if ask_for_confirm("Confirm deployment?")? {
-            self.snapshot_recipe(&recipe)?;
             let txs = process.sign_txs(txs)?;
+            let snapshot_path = self.snapshot_recipe(&recipe)?;
             process.execute_recipe(recipe, txs)?;
+            self.complete_snapshot(snapshot_path)?;
             println!("Deployment complete");
         } else {
             println!("Cancelled");
