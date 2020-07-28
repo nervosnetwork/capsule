@@ -1,4 +1,5 @@
 use super::recipe::*;
+use super::tx_check::tx_check;
 use crate::config::{Cell, CellLocation, DepGroup, Deployment};
 use crate::wallet::{cli_types::LiveCell, *};
 
@@ -37,7 +38,11 @@ impl DeploymentProcess {
     ) -> Result<(DeploymentRecipe, Vec<TransactionView>)> {
         let cells: Vec<(Cell, Bytes)> = load_deployable_cells_data(&self.config.cells)?;
         let dep_groups = self.config.dep_groups.clone();
-        self.build_recipe(cells, dep_groups, pre_inputs_cells)
+        let (recipe, txs) = self.build_recipe(cells, dep_groups, pre_inputs_cells)?;
+        for tx in &txs {
+            tx_check(&self.wallet, tx)?;
+        }
+        Ok((recipe, txs))
     }
 
     fn build_cell_tx(
@@ -104,6 +109,7 @@ impl DeploymentProcess {
             self.wallet
                 .complete_tx_inputs(tx, Capacity::shannons(inputs_capacity), self.tx_fee);
         self.wallet.lock_tx_inputs(&tx);
+        tx_check(&self.wallet, &tx)?;
         Ok(tx)
     }
 
@@ -171,6 +177,7 @@ impl DeploymentProcess {
             self.wallet
                 .complete_tx_inputs(tx, Capacity::shannons(inputs_capacity), self.tx_fee);
         self.wallet.lock_tx_inputs(&tx);
+        tx_check(&self.wallet, &tx)?;
         Ok(tx)
     }
 
@@ -242,8 +249,9 @@ impl DeploymentProcess {
                     cell_recipe.tx_hash == tx_hash
                 })
                 .expect("missing recipe tx");
-            let tx_hash = self.wallet.send_transaction(tx.to_owned())?;
+            let tx_hash: H256 = tx.hash().unpack();
             println!("send cell_tx {}", tx_hash);
+            self.wallet.send_transaction(tx.to_owned())?;
         }
         for dep_group_recipe in recipe.dep_group_recipes {
             if self
@@ -260,8 +268,9 @@ impl DeploymentProcess {
                     dep_group_recipe.tx_hash == tx_hash
                 })
                 .expect("missing recipe tx");
-            let tx_hash = self.wallet.send_transaction(tx.to_owned())?;
+            let tx_hash: H256 = tx.hash().unpack();
             println!("send dep_group_tx {}", tx_hash);
+            self.wallet.send_transaction(tx.to_owned())?;
         }
         Ok(())
     }

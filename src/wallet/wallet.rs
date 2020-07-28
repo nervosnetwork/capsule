@@ -93,8 +93,9 @@ impl Wallet {
         let mut inputs: Vec<_> = tx.inputs().into_iter().collect();
         inputs.extend(live_cells.into_iter().map(|cell| cell.input()));
         // calculate change capacity
-        let change_capacity =
-            original_inputs_capacity.as_u64() + inputs_capacity - required_capacity.as_u64();
+        let change_capacity = original_inputs_capacity.as_u64() + inputs_capacity
+            - required_capacity.as_u64()
+            + change_occupied_capacity.as_u64();
         let change_output = change_output
             .as_builder()
             .capacity(change_capacity.pack())
@@ -160,7 +161,7 @@ impl Wallet {
                 .expect("Failed to write to stdin");
         }
 
-        let output = util::handle_cmd(child.wait_with_output()?).expect("sign tx");
+        let output = util::handle_cmd(child.wait_with_output()?)?;
         let output = String::from_utf8(output).expect("parse utf8");
         let output = output.trim_start_matches("Password:").trim();
         let output: SignatureOutput = serde_json::from_str(output).expect("parse json");
@@ -206,6 +207,10 @@ impl Wallet {
 
     fn address(&self) -> &Address {
         &self.address
+    }
+
+    pub fn genesis(&self) -> &BlockView {
+        &self.genesis
     }
 
     fn rpc_client(&self) -> &RpcClient {
