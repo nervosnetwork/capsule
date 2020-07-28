@@ -107,4 +107,26 @@ impl<'a> Rust<'a> {
         fs::copy(contract_bin_path, target_path)?;
         Ok(())
     }
+
+    /// clean contract
+    pub fn clean(&self, signal: &Signal) -> Result<()> {
+        // cargo clean
+        let clean_cmd = format!(
+            "cargo clean --target {rust_target}",
+            rust_target = RUST_TARGET,
+        );
+        self.run(clean_cmd, signal)?;
+
+        // remove binary
+        for build_env in &[BuildEnv::Debug, BuildEnv::Release] {
+            let mut target_path = self.context.contracts_build_path(*build_env);
+            // make sure the dir is exist
+            fs::create_dir_all(&target_path)?;
+            target_path.push(&self.contract.name);
+            if target_path.exists() {
+                fs::remove_file(&target_path)?;
+            }
+        }
+        Ok(())
+    }
 }

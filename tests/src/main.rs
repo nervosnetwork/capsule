@@ -59,6 +59,15 @@ fn test_build<P: AsRef<Path>>(dir: P, bin_path: &str) -> Result<(), Error> {
     if !exit_code.success() {
         panic!("command crash, exit_code {:?}", exit_code.code());
     }
+    println!("Clean contract ...");
+    let exit_code = Command::new("bash")
+        .arg("-c")
+        .arg(format!("{} clean", bin_path))
+        .spawn()?
+        .wait()?;
+    if !exit_code.success() {
+        panic!("command crash, exit_code {:?}", exit_code.code());
+    }
     println!("Success!");
     Ok(())
 }

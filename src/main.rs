@@ -105,6 +105,8 @@ fn run_cli() -> Result<()> {
                         .help("CKB cli binary").default_value(DEFAULT_CKB_CLI_BIN_NAME).takes_value(true),
                 ]).display_order(6),
         )
+        .subcommand(SubCommand::with_name("clean").about("Remove contracts targets and binaries").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name"))
+        .display_order(7))
         .subcommand(
             SubCommand::with_name("debugger")
             .about("CKB debugger")
@@ -168,7 +170,7 @@ fn run_cli() -> Result<()> {
                     Arg::with_name("only-server").long("only-server").help("Only start debugger server"),
                 ])
             )
-                .display_order(7),
+                .display_order(8),
         );
 
     let signal = signal::Signal::setup();
@@ -244,6 +246,28 @@ fn run_cli() -> Result<()> {
                 for c in contracts {
                     println!("Building contract {}", c.name);
                     get_recipe(&context, c)?.run_build(build_config, &signal)?;
+                }
+                println!("Done");
+            }
+        }
+        ("clean", Some(args)) => {
+            let context = load_project_context()?;
+            let build_names: Vec<&str> = args
+                .values_of("name")
+                .map(|values| values.collect())
+                .unwrap_or_default();
+            let contracts: Vec<_> = context
+                .config
+                .contracts
+                .iter()
+                .filter(|c| build_names.is_empty() || build_names.contains(&c.name.as_str()))
+                .collect();
+            if contracts.is_empty() {
+                println!("Nothing to do");
+            } else {
+                for c in contracts {
+                    println!("Cleaning contract {}", c.name);
+                    get_recipe(&context, c)?.clean(&signal)?;
                 }
                 println!("Done");
             }
