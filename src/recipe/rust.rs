@@ -1,5 +1,5 @@
 use crate::config::Contract;
-use crate::project_context::{BuildEnv, Context};
+use crate::project_context::{BuildConfig, BuildEnv, Context};
 use crate::signal::Signal;
 use crate::util::DockerCommand;
 use anyhow::Result;
@@ -13,6 +13,7 @@ const CARGO_CONFIG_PATH: &str = ".cargo/config";
 const BASE_RUSTFLAGS: &str =
     "-Z pre-link-arg=-zseparate-code -Z pre-link-arg=-zseparate-loadable-segments";
 const RELEASE_RUSTFLAGS: &str = "-C link-arg=-s";
+const ALWAYS_DEBUG_RUSTFLAGS: &str = "--cfg=debug_assertions";
 
 pub struct Rust<'a> {
     context: &'a Context,
@@ -31,12 +32,21 @@ impl<'a> Rust<'a> {
     }
 
     /// inject rustflags on release build unless project has cargo config
-    fn injection_rustflags(&self, build_env: BuildEnv) -> String {
+    fn injection_rustflags(&self, config: BuildConfig) -> String {
         let has_cargo_config = self.has_cargo_config();
-        match build_env {
+        match config.build_env {
             _ if has_cargo_config => "".to_string(),
             BuildEnv::Debug => format!("RUSTFLAGS=\"{}\"", BASE_RUSTFLAGS.to_string()),
-            BuildEnv::Release => format!("RUSTFLAGS=\"{} {}\"", BASE_RUSTFLAGS, RELEASE_RUSTFLAGS),
+            BuildEnv::Release => {
+                if config.always_debug {
+                    format!(
+                        "RUSTFLAGS=\"{} {} {}\"",
+                        BASE_RUSTFLAGS, RELEASE_RUSTFLAGS, ALWAYS_DEBUG_RUSTFLAGS
+                    )
+                } else {
+                    format!("RUSTFLAGS=\"{} {}\"", BASE_RUSTFLAGS, RELEASE_RUSTFLAGS)
+                }
+            }
         }
     }
 
@@ -60,12 +70,12 @@ impl<'a> Rust<'a> {
     }
 
     /// build contract
-    pub fn run_build(&self, build_env: BuildEnv, signal: &Signal) -> Result<()> {
+    pub fn run_build(&self, config: BuildConfig, signal: &Signal) -> Result<()> {
         let contract_source_path = self.context.contract_path(&self.contract.name);
 
         // docker cargo build
         let mut bin_path = PathBuf::new();
-        let (bin_dir_prefix, build_cmd_opt) = match build_env {
+        let (bin_dir_prefix, build_cmd_opt) = match config.build_env {
             BuildEnv::Debug => ("debug", ""),
             BuildEnv::Release => ("release", "--release"),
         };
@@ -78,7 +88,7 @@ impl<'a> Rust<'a> {
         let build_cmd = format!(
             "{rustflags} cargo build --target {rust_target} {build_env} && \
          ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
-            rustflags = self.injection_rustflags(build_env),
+            rustflags = self.injection_rustflags(config),
             rust_target = RUST_TARGET,
             contract_bin = bin_path.to_str().expect("bin"),
             build_env = build_cmd_opt
@@ -87,7 +97,7 @@ impl<'a> Rust<'a> {
 
         // copy to build dir
         let contract_source_path = contract_source_path.to_str().expect("path");
-        let mut target_path = self.context.contracts_build_path(build_env);
+        let mut target_path = self.context.contracts_build_path(config.build_env);
         // make sure the dir is exist
         fs::create_dir_all(&target_path)?;
         target_path.push(&self.contract.name);

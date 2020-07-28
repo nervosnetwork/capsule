@@ -32,6 +32,12 @@ impl FromStr for BuildEnv {
 }
 
 #[derive(Debug, Copy, Clone)]
+pub struct BuildConfig {
+    pub build_env: BuildEnv,
+    pub always_debug: bool,
+}
+
+#[derive(Debug, Copy, Clone)]
 pub enum DeployEnv {
     Dev,
     Production,

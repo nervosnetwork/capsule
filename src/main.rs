@@ -25,7 +25,7 @@ use config_manipulate::{append_contract, Document};
 use deployment::manage::{DeployOption, Manage as DeployManage};
 use generator::{new_contract, new_project};
 use project_context::{
-    load_project_context, read_config_file, write_config_file, BuildEnv, DeployEnv,
+    load_project_context, read_config_file, write_config_file, BuildConfig, BuildEnv, DeployEnv,
 };
 use recipe::get_recipe;
 use tester::Tester;
@@ -74,7 +74,7 @@ fn run_cli() -> Result<()> {
         .subcommand(SubCommand::with_name("new-contract").about("Create a new contract").arg(Arg::with_name("name").help("contract name").index(1).required(true).takes_value(true)).display_order(2))
         .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
                     Arg::with_name("release").long("release").help("Build contracts in release mode.")
-        ).display_order(3))
+        ).arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output")).display_order(3))
         .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("capsule run --name <name> 'echo list contract dir: && ls'")
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
@@ -227,6 +227,11 @@ fn run_cli() -> Result<()> {
             } else {
                 BuildEnv::Debug
             };
+            let always_debug = args.is_present("debug-output");
+            let build_config = BuildConfig {
+                build_env,
+                always_debug,
+            };
             let contracts: Vec<_> = context
                 .config
                 .contracts
@@ -238,7 +243,7 @@ fn run_cli() -> Result<()> {
             } else {
                 for c in contracts {
                     println!("Building contract {}", c.name);
-                    get_recipe(&context, c)?.run_build(build_env, &signal)?;
+                    get_recipe(&context, c)?.run_build(build_config, &signal)?;
                 }
                 println!("Done");
             }
