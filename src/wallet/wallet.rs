@@ -48,8 +48,24 @@ impl Wallet {
         }
     }
 
+    fn default_lock_code_hash(&self) -> packed::Byte32 {
+        let tx = self
+            .genesis
+            .transactions()
+            .get(0)
+            .expect("genesis tx")
+            .to_owned();
+        let output = tx.outputs().get(1).unwrap();
+        output.type_().to_opt().unwrap().calc_script_hash()
+    }
+
     pub fn complete_tx_lock_deps(&self, tx: TransactionView) -> TransactionView {
-        let tx_hash = self.genesis.transactions().get(1).unwrap().hash();
+        let tx_hash = self
+            .genesis
+            .transactions()
+            .get(1)
+            .expect("dep groups tx")
+            .hash();
         let out_point = packed::OutPoint::new_builder()
             .tx_hash(tx_hash)
             .index(0u32.pack())
@@ -197,8 +213,27 @@ impl Wallet {
     }
 
     pub fn collect_live_cells(&self, capacity: Capacity) -> HashSet<LiveCell> {
-        self.collector
-            .collect_live_cells(self.address().to_owned(), capacity)
+        let cells = self
+            .collector
+            .collect_live_cells(self.address().to_owned(), capacity);
+        // check cells lock code_hash
+        // This is a double check to prevent ckb-cli returns unexpected cells
+        let code_hash = self.default_lock_code_hash();
+        for c in &cells {
+            let cell = self
+                .rpc_client()
+                .inner()
+                .get_live_cell(c.out_point().into(), false)
+                .expect("get cell");
+            let cell_output: packed::CellOutput = cell.cell.expect("cell info").output.into();
+            assert_eq!(
+                cell_output.lock().code_hash(),
+                code_hash,
+                "collected cells must be secp256k1 lock"
+            );
+        }
+
+        cells
     }
 
     fn lock_script(&self) -> packed::Script {
