@@ -39,8 +39,16 @@ Note: The current user must have permission to manage Docker instances. [How to 
 
 ### Install from source code
 
+Install the develop branch
+
 ``` sh
-cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag v0.1.3
+cargo install capsule --git https://github.com/nervosnetwork/capsule.git --branch develop
+```
+
+Install a specific version
+
+``` sh
+cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag <tag>
 ```
 
 ## Usage
