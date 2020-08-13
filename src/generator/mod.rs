@@ -50,7 +50,7 @@ pub fn new_contract<P: AsRef<Path>>(name: String, path: P, signal: &Signal) -> R
     contract_path.push(path);
     contract_path.push(name);
     // initialize contract code
-    for f in &["src/main.rs", "Cargo.toml"] {
+    for f in &["src/main.rs", "src/error.rs", "src/entry.rs", "Cargo.toml"] {
         let template_path = format!("contract/{}", f);
         let content = TEMPLATES.render(&template_path, &context)?;
         let mut file_path = contract_path.clone();
