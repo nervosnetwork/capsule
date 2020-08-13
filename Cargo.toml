@@ -1,6 +1,6 @@
 [package]
 name = "capsule"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Nervos Network", "jjy <jjyruby@gmail.com>"]
 edition = "2018"
 
@@ -18,7 +18,7 @@ serde = { version = "1.0", features = [ "derive" ] }
 include_dir = "0.5"
 toml = "0.5"
 toml_edit = "0.1.5"
-ckb-tool = { git = "https://github.com/jjyr/ckb-tool.git", tag = "v0.1.1" }
+ckb-tool = { git = "https://github.com/jjyr/ckb-tool.git", tag = "v0.1.2" }
 simple-jsonrpc-client = "0.1"
 bech32 = "0.6"
 secp256k1 = "0.17"
