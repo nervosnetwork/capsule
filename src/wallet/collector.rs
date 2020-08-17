@@ -1,4 +1,4 @@
-use super::cli_types::{Address, LiveCell, LiveCellInfo, LiveCellInfoVec};
+use super::cli_types::{Address, HumanCapacity, LiveCell, LiveCellInfo, LiveCellInfoVec};
 use super::util::handle_cmd;
 use ckb_tool::ckb_types::{core::Capacity, packed::*};
 use log::{debug, trace};
@@ -43,8 +43,9 @@ impl Collector {
             let from = i * BLOCKS_IN_BATCH;
             if from > tip_number {
                 panic!(
-                    "can't find enough live cells, found {} CKB expected {} CKB",
-                    collected_capacity, capacity
+                    "can't find enough live cells, found {} expected {}",
+                    HumanCapacity::from(collected_capacity),
+                    HumanCapacity::from(capacity.as_u64())
                 );
             }
             let to = (i + 1) * BLOCKS_IN_BATCH;
