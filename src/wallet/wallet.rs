@@ -104,11 +104,16 @@ impl Wallet {
             .expect("capacity")
             .safe_add(change_occupied_capacity)
             .expect("capacity");
-        // collect inputs
-        let live_cells = self.collect_live_cells(required_capacity);
-        let inputs_capacity = live_cells.iter().map(|c| c.capacity).sum::<u64>();
+        // collect inputs if needed
+        let mut inputs_capacity = 0;
         let mut inputs: Vec<_> = tx.inputs().into_iter().collect();
-        inputs.extend(live_cells.into_iter().map(|cell| cell.input()));
+        if original_inputs_capacity.as_u64() < required_capacity.as_u64() {
+            let live_cells = self.collect_live_cells(Capacity::shannons(
+                required_capacity.as_u64() - original_inputs_capacity.as_u64(),
+            ));
+            inputs_capacity = live_cells.iter().map(|c| c.capacity).sum::<u64>();
+            inputs.extend(live_cells.into_iter().map(|cell| cell.input()));
+        }
         // calculate change capacity
         let change_capacity = original_inputs_capacity.as_u64() + inputs_capacity
             - required_capacity.as_u64()
@@ -241,7 +246,11 @@ impl Wallet {
             .inner()
             .get_live_cell(out_point.into(), false)
             .expect("rpc get_live_cell");
-        cell_resp.cell.expect("cell info").output.into()
+        cell_resp
+            .cell
+            .expect("can't fetch live cell info from ckb-cli, please wait a while and retry")
+            .output
+            .into()
     }
 
     pub fn lock_script(&self) -> packed::Script {

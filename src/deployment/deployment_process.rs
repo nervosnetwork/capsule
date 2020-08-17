@@ -13,7 +13,7 @@ use ckb_tool::ckb_types::{
     prelude::*,
     H256,
 };
-use log::{debug, log_enabled, Level::Debug};
+use log::{debug, log_enabled, trace, Level::Debug};
 use std::fs;
 use std::io::Read;
 
@@ -67,11 +67,12 @@ impl DeploymentProcess {
         &mut self,
         cell: Cell,
         data: Bytes,
-        pre_input_cell: Option<LiveCell>,
+        input_cells: Vec<LiveCell>,
     ) -> Result<TransactionView> {
+        trace!("build cell tx with inputs: {:?}", input_cells);
         let lock: packed::Script = self.config.lock.to_owned().into();
         let mut inputs_cells = Vec::new();
-        if let Some(live_cell) = pre_input_cell {
+        for live_cell in input_cells {
             self.wallet
                 .lock_out_points(vec![live_cell.out_point()].into_iter());
             inputs_cells.push(live_cell);
@@ -134,7 +135,7 @@ impl DeploymentProcess {
         &mut self,
         cell_recipes: &[CellRecipe],
         dep_group: DepGroup,
-        pre_input_cell: Option<LiveCell>,
+        input_cells: Vec<LiveCell>,
     ) -> Result<TransactionView> {
         fn find_cell(name: &str, cell_recipes: &[CellRecipe]) -> Option<(H256, CellRecipe)> {
             cell_recipes
@@ -143,6 +144,7 @@ impl DeploymentProcess {
                 .map(|cell_recipe| (cell_recipe.tx_hash.to_owned(), cell_recipe.clone()))
         }
 
+        trace!("build dep group tx with inputs: {:?}", input_cells);
         let lock: packed::Script = self.config.lock.to_owned().into();
         let out_points: packed::OutPointVec = dep_group
             .cells
@@ -180,10 +182,8 @@ impl DeploymentProcess {
             .lock(lock.clone())
             .build_exact_capacity(Capacity::bytes(data_len).expect("bytes"))
             .expect("build");
-        let (inputs, inputs_capacity) = match pre_input_cell {
-            Some(cell) => (vec![cell.input()], cell.capacity),
-            None => (vec![], 0),
-        };
+        let inputs: Vec<_> = input_cells.iter().map(|cell| cell.input()).collect();
+        let inputs_capacity = input_cells.iter().map(|cell| cell.capacity).sum::<u64>();
         let tx = TransactionBuilder::default()
             .inputs(inputs)
             .output(output)
@@ -208,12 +208,25 @@ impl DeploymentProcess {
         let mut dep_group_recipes = Vec::new();
         // build cells tx
         for (cell, data) in cells {
-            let input_cell = pre_inputs_cells
+            let mut input_cells = Vec::new();
+            if let Some(input_cell) = pre_inputs_cells
                 .iter()
                 .find(|(name, _cell)| name == &cell.name)
-                .map(|(_name, input_cell)| input_cell.clone());
+                .map(|(_name, input_cell)| input_cell.clone())
+            {
+                input_cells.push(input_cell);
+            }
+            // search change cells from previous tx
+            if let Some(tx) = txs.last() {
+                let change_outputs = self.search_changes(tx);
+                trace!(
+                    "found change outputs from previous tx: {:?}",
+                    change_outputs
+                );
+                input_cells.extend(change_outputs);
+            }
             let tx = self
-                .build_cell_tx(cell.clone(), data, input_cell)
+                .build_cell_tx(cell.clone(), data, input_cells)
                 .expect("cell deployment tx");
             let cell_recipe = build_cell_recipe(&tx, cell);
             txs.push(tx);
@@ -221,11 +234,24 @@ impl DeploymentProcess {
         }
         // build dep_groups tx
         for dep_group in dep_groups {
-            let input_cell = pre_inputs_cells
+            let mut input_cells = Vec::new();
+            if let Some(input_cell) = pre_inputs_cells
                 .iter()
                 .find(|(name, _cell)| name == &dep_group.name)
-                .map(|(_name, input_cell)| input_cell.clone());
-            let tx = self.build_dep_group_tx(&cell_recipes, dep_group.clone(), input_cell)?;
+                .map(|(_name, input_cell)| input_cell.clone())
+            {
+                input_cells.push(input_cell);
+            }
+            // search change cells from previous tx
+            if let Some(tx) = txs.last() {
+                let change_outputs = self.search_changes(tx);
+                trace!(
+                    "found change outputs from previous tx: {:?}",
+                    change_outputs
+                );
+                input_cells.extend(change_outputs);
+            }
+            let tx = self.build_dep_group_tx(&cell_recipes, dep_group.clone(), input_cells)?;
             let dep_group_recipe = build_dep_group_recipe(&tx, dep_group);
             txs.push(tx);
             dep_group_recipes.push(dep_group_recipe)
@@ -236,6 +262,25 @@ impl DeploymentProcess {
             dep_group_recipes,
         };
         Ok((recipe, txs))
+    }
+
+    // search change outputs from a tx
+    fn search_changes(&self, tx: &TransactionView) -> Vec<LiveCell> {
+        let tx_hash = tx.hash();
+        tx.outputs_with_data_iter()
+            .enumerate()
+            .filter(|(_i, (cell_output, data))| {
+                cell_output.lock() == self.wallet.lock_script()
+                    && data.is_empty()
+                    && cell_output.type_().is_none()
+            })
+            .map(|(i, (cell_output, _data))| LiveCell {
+                tx_hash: tx_hash.unpack(),
+                index: i as u32,
+                capacity: cell_output.capacity().unpack(),
+                mature: true,
+            })
+            .collect()
     }
 
     pub fn sign_txs(&self, txs: Vec<TransactionView>) -> Result<Vec<TransactionView>> {
