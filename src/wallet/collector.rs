@@ -29,8 +29,8 @@ impl Collector {
     }
 
     pub fn collect_live_cells(&self, address: Address, capacity: Capacity) -> HashSet<LiveCell> {
-        const BLOCKS_IN_BATCH: u64 = 1000;
-        const LIMIT: u64 = 2000;
+        const BLOCKS_IN_BATCH: u64 = 1000000;
+        const LIMIT: u64 = 50000;
 
         let tip_number = self.get_tip_block_number();
         debug!(
