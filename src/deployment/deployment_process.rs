@@ -295,6 +295,7 @@ impl DeploymentProcess {
         recipe: DeploymentRecipe,
         txs: Vec<TransactionView>,
     ) -> Result<()> {
+        let mut i = 0;
         for cell_recipe in recipe.cell_recipes {
             if self
                 .wallet
@@ -311,7 +312,8 @@ impl DeploymentProcess {
                 })
                 .expect("missing recipe tx");
             let tx_hash: H256 = tx.hash().unpack();
-            println!("send cell_tx {}", tx_hash);
+            i += 1;
+            println!("({}/{}) Sending tx {}", i, txs.len(), tx_hash);
 
             if log_enabled!(Debug) {
                 let tx_without_data = tx
@@ -339,7 +341,8 @@ impl DeploymentProcess {
                 })
                 .expect("missing recipe tx");
             let tx_hash: H256 = tx.hash().unpack();
-            println!("send dep_group_tx {}", tx_hash);
+            i += 1;
+            println!("({}/{}) Sending tx {}", i, txs.len(), tx_hash);
 
             if log_enabled!(Debug) {
                 let tx_without_data = tx
