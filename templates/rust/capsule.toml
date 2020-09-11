@@ -3,3 +3,7 @@ deployment = "deployment.toml"
 [[contracts]]
 name = "{{name}}"
 template_type = "Rust"
+
+# # Mapping dir into build container
+# [mapping_dirs]
+# "../my-crate-dir" = "/code/my-crate-dir"
