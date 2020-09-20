@@ -63,26 +63,27 @@ impl<'a> Rust<'a> {
             "/code/{}",
             contract_relative_path.to_str().expect("path")
         ))
-        .fix_dir_permission("target".to_string())
-        .fix_dir_permission("Cargo.lock".to_string());
+        .fix_dir_permission("/code/target".to_string())
+        .fix_dir_permission("/code/Cargo.lock".to_string());
         cmd.run(build_cmd, &signal)?;
         Ok(())
     }
 
     /// build contract
     pub fn run_build(&self, config: BuildConfig, signal: &Signal) -> Result<()> {
-        let contract_source_path = self.context.contract_path(&self.contract.name);
-
         // docker cargo build
-        let mut bin_path = PathBuf::new();
+        let mut rel_bin_path = PathBuf::new();
         let (bin_dir_prefix, build_cmd_opt) = match config.build_env {
             BuildEnv::Debug => ("debug", ""),
             BuildEnv::Release => ("release", "--release"),
         };
-        bin_path.push(format!(
+        rel_bin_path.push(format!(
             "target/{}/{}/{}",
             RUST_TARGET, bin_dir_prefix, &self.contract.name
         ));
+        let mut container_bin_path = PathBuf::new();
+        container_bin_path.push("/code");
+        container_bin_path.push(&rel_bin_path);
 
         // run build command
         let build_cmd = format!(
@@ -90,21 +91,19 @@ impl<'a> Rust<'a> {
          ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
             rustflags = self.injection_rustflags(config),
             rust_target = RUST_TARGET,
-            contract_bin = bin_path.to_str().expect("bin"),
+            contract_bin = container_bin_path.to_str().expect("bin"),
             build_env = build_cmd_opt
         );
         self.run(build_cmd, signal)?;
 
         // copy to build dir
-        let contract_source_path = contract_source_path.to_str().expect("path");
+        let mut project_bin_path = self.context.project_path.clone();
+        project_bin_path.push(&rel_bin_path);
         let mut target_path = self.context.contracts_build_path(config.build_env);
         // make sure the dir is exist
         fs::create_dir_all(&target_path)?;
         target_path.push(&self.contract.name);
-        let mut contract_bin_path = PathBuf::new();
-        contract_bin_path.push(contract_source_path);
-        contract_bin_path.push(bin_path);
-        fs::copy(contract_bin_path, target_path)?;
+        fs::copy(project_bin_path, target_path)?;
         Ok(())
     }
 

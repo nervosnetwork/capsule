@@ -17,3 +17,14 @@ pub fn append_contract(
     contract["template_type"] = value(toml::to_string(&template_type)?);
     Ok(())
 }
+
+pub fn append_workspace_member(doc: &mut Document, name: String) -> Result<()> {
+    let workspace = doc["workspace"]
+        .as_table_mut()
+        .ok_or(anyhow!("no 'workspace' section"))?;
+    let members = workspace["members"]
+        .as_array_mut()
+        .ok_or(anyhow!("no 'members' section"))?;
+    members.push(name);
+    Ok(())
+}

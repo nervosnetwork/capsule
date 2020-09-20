@@ -21,11 +21,12 @@ use anyhow::{anyhow, Result};
 use checker::Checker;
 use ckb_tool::ckb_types::core::Capacity;
 use config::TemplateType;
-use config_manipulate::{append_contract, Document};
+use config_manipulate::{append_contract, append_workspace_member, Document};
 use deployment::manage::{DeployOption, Manage as DeployManage};
 use generator::{new_contract, new_project};
 use project_context::{
     load_project_context, read_config_file, write_config_file, BuildConfig, BuildEnv, DeployEnv,
+    CARGO_CONFIG_FILE, CONFIG_FILE, CONTRACTS_DIR,
 };
 use recipe::get_recipe;
 use tester::Tester;
@@ -212,11 +213,24 @@ fn run_cli() -> Result<()> {
             new_contract(name.to_string(), contracts_path, &signal)?;
 
             // rewrite config
-            println!("Rewrite capsule.toml");
-            let config_content = read_config_file()?;
-            let mut doc = config_content.parse::<Document>()?;
-            append_contract(&mut doc, name, TemplateType::Rust)?;
-            write_config_file(doc.to_string())?;
+            {
+                println!("Rewrite Cargo.toml");
+                let mut cargo_path = context.project_path.clone();
+                cargo_path.push(CARGO_CONFIG_FILE);
+                let config_content = read_config_file(&cargo_path)?;
+                let mut doc = config_content.parse::<Document>()?;
+                append_workspace_member(&mut doc, format!("{}/{}", CONTRACTS_DIR, name))?;
+                write_config_file(&cargo_path, doc.to_string())?;
+            }
+            {
+                println!("Rewrite capsule.toml");
+                let mut config_path = context.project_path.clone();
+                config_path.push(CONFIG_FILE);
+                let config_content = read_config_file(&config_path)?;
+                let mut doc = config_content.parse::<Document>()?;
+                append_contract(&mut doc, name, TemplateType::Rust)?;
+                write_config_file(&config_path, doc.to_string())?;
+            }
         }
         ("build", Some(args)) => {
             let context = load_project_context()?;

@@ -4,14 +4,14 @@ use anyhow::{anyhow, Result};
 use log::error;
 use std::env;
 use std::fs;
-use std::io::ErrorKind as IOErrorKind;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-const CONTRACTS_DIR: &str = "contracts";
+pub const CONTRACTS_DIR: &str = "contracts";
 const CONTRACTS_BUILD_DIR: &str = "build";
 const MIGRATIONS_DIR: &str = "migrations";
-const CONFIG_NAME: &str = "capsule.toml";
+pub const CONFIG_FILE: &str = "capsule.toml";
+pub const CARGO_CONFIG_FILE: &str = "Cargo.toml";
 
 #[derive(Debug, Copy, Clone)]
 pub enum BuildEnv {
@@ -115,35 +115,31 @@ impl Context {
     }
 }
 
-pub fn read_config_file() -> Result<String> {
-    let mut project_path = PathBuf::new();
-    project_path.push(env::current_dir()?);
-    let mut path = project_path.clone();
-    path.push(CONFIG_NAME);
-    match fs::read_to_string(path) {
+pub fn read_config_file<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<String> {
+    match fs::read_to_string(&path) {
         Ok(content) => Ok(content),
-        Err(err) if err.kind() == IOErrorKind::NotFound => Err(anyhow!(
-            "Can't found {}, current directory is not a project",
-            CONFIG_NAME
+        Err(err) => Err(anyhow!(
+            "Can't found {:?}, current directory is not a project. error: {:?}",
+            path,
+            err
         )),
-        Err(err) => Err(err.into()),
     }
 }
 
-pub fn write_config_file(content: String) -> Result<()> {
-    let mut project_path = PathBuf::new();
-    project_path.push(env::current_dir()?);
-    let mut path = project_path.clone();
-    path.push(CONFIG_NAME);
+pub fn write_config_file<P: AsRef<Path>>(path: P, content: String) -> Result<()> {
     fs::write(path, content)?;
     Ok(())
 }
 
 pub fn load_project_context() -> Result<Context> {
-    let content = read_config_file()?;
-    let config: Config = toml::from_slice(content.as_bytes())?;
     let mut project_path = PathBuf::new();
     project_path.push(env::current_dir()?);
+    let content = {
+        let mut config_path = project_path.clone();
+        config_path.push(CONFIG_FILE);
+        read_config_file(config_path)?
+    };
+    let config: Config = toml::from_slice(content.as_bytes())?;
     Ok(Context {
         config,
         project_path,
