@@ -1,6 +1,5 @@
 use ckb_tool::{ckb_jsonrpc_types::Script, ckb_types::H256};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 // contracts config
@@ -18,8 +17,6 @@ pub struct Contract {
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     pub contracts: Vec<Contract>,
-    #[serde(default)]
-    pub mapping_dirs: HashMap<String, String>,
     pub deployment: PathBuf,
 }
 

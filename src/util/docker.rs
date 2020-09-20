@@ -3,7 +3,6 @@ use crate::signal::Signal;
 use anyhow::{anyhow, Result};
 use log::debug;
 use std::env;
-use std::path::Path;
 use std::process::Command;
 use std::thread::sleep;
 use std::time::Duration;
@@ -38,29 +37,9 @@ pub struct DockerCommand {
     inherited_env: Vec<&'static str>,
 }
 
-fn path_to_absolute(context: &Context, src: &str) -> String {
-    let path = Path::new(src);
-    if path.is_absolute() {
-        return src.to_string();
-    }
-    let mut pb = context.project_path.clone();
-    pb.push(src);
-    let path = if path.exists() {
-        pb.canonicalize().expect("path")
-    } else {
-        pb
-    };
-    path.to_str().expect("str").to_string()
-}
-
 impl DockerCommand {
-    pub fn with_context(context: &Context, docker_image: String, code_path: String) -> Self {
-        let mut docker = Self::with_config(docker_image, code_path);
-        for (src, dst) in &context.config.mapping_dirs {
-            let src_path = path_to_absolute(context, src);
-            docker = docker.map_volume(src_path, dst.to_string());
-        }
-        docker
+    pub fn with_context(_context: &Context, docker_image: String, code_path: String) -> Self {
+        Self::with_config(docker_image, code_path)
     }
 
     pub fn with_config(docker_image: String, code_path: String) -> Self {
