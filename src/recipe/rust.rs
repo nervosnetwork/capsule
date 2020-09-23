@@ -2,7 +2,7 @@ use crate::config::Contract;
 use crate::project_context::{BuildConfig, BuildEnv, Context};
 use crate::signal::Signal;
 use crate::util::DockerCommand;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
 use std::fs;
 use std::path::PathBuf;
@@ -83,6 +83,9 @@ impl<'a> Rust<'a> {
         ));
         let mut container_bin_path = PathBuf::new();
         container_bin_path.push("/code");
+        if let Some(workspace_dir) = self.context.config.workspace_dir.as_ref() {
+            container_bin_path.push(workspace_dir);
+        }
         container_bin_path.push(&rel_bin_path);
 
         // run build command
@@ -98,7 +101,13 @@ impl<'a> Rust<'a> {
 
         // copy to build dir
         let mut project_bin_path = self.context.project_path.clone();
+        if let Some(workspace_dir) = self.context.config.workspace_dir.as_ref() {
+            project_bin_path.push(workspace_dir);
+        }
         project_bin_path.push(&rel_bin_path);
+        if !project_bin_path.exists() {
+            return Err(anyhow!("can't find contract binary from path {:?}, please set `workspace_dir` in capsule.toml", project_bin_path));
+        }
         let mut target_path = self.context.contracts_build_path(config.build_env);
         // make sure the dir is exist
         fs::create_dir_all(&target_path)?;

@@ -17,7 +17,9 @@ pub struct Contract {
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     pub contracts: Vec<Contract>,
-    pub deployment: PathBuf,
+    pub deployment: PathBuf, // path of deployment config file
+    #[serde(default)]
+    pub workspace_dir: Option<PathBuf>, // relative path of workspace dir, default is the project dir
 }
 
 // Deployment
