@@ -18,7 +18,7 @@ pub fn append_contract(
     Ok(())
 }
 
-pub fn append_workspace_member(doc: &mut Document, name: String) -> Result<()> {
+pub fn append_cargo_workspace_member(doc: &mut Document, name: String) -> Result<()> {
     let workspace = doc["workspace"]
         .as_table_mut()
         .ok_or(anyhow!("no 'workspace' section"))?;

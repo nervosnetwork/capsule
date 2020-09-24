@@ -1,11 +1,28 @@
+use anyhow::{anyhow, Error};
 use ckb_tool::{ckb_jsonrpc_types::Script, ckb_types::H256};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 // contracts config
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub enum TemplateType {
     Rust,
+}
+
+impl FromStr for TemplateType {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let template_type = match s.to_lowercase().as_str() {
+            "rust" => TemplateType::Rust,
+            _ => {
+                return Err(anyhow!("Unexpected template type '{}'", s));
+            }
+        };
+
+        Ok(template_type)
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]

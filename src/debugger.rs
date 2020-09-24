@@ -1,35 +1,15 @@
+use crate::generator::TEMPLATES;
 use crate::project_context::{BuildEnv, Context};
 use crate::recipe::rust::DOCKER_IMAGE;
 use crate::signal::Signal;
 use crate::util::DockerCommand;
 use anyhow::{anyhow, Result};
 use ckb_tool::ckb_hash::new_blake2b;
-use include_dir::{include_dir, Dir, DirEntry};
-use lazy_static::lazy_static;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
-use tera::{self, Context as TeraContext, Tera};
-
-const TEMPLATES_DIR: Dir = include_dir!("templates/debugger");
-
-lazy_static! {
-    pub static ref TEMPLATES: Tera = {
-        let mut tera = Tera::default();
-        for entry in TEMPLATES_DIR.find("**/*").expect("find templates") {
-            let f = match entry {
-                DirEntry::File(f) => f,
-                _ => continue,
-            };
-            let path = f.path().to_str().expect("template path");
-            let contents = String::from_utf8(f.contents().to_vec()).expect("template contents");
-            tera.add_raw_template(path, &contents)
-                .expect("failed to add template");
-        }
-        tera
-    };
-}
+use tera::{self, Context as TeraContext};
 
 pub fn start_debugger<P: AsRef<Path>>(
     context: &Context,
@@ -121,7 +101,7 @@ pub fn build_template(contract_name: String) -> Result<String> {
     let context = TeraContext::from_serialize(&TemplateContext {
         name: contract_name,
     })?;
-    let content = TEMPLATES.render("template.json", &context)?;
+    let content = TEMPLATES.render("debugger/template.json", &context)?;
     Ok(content)
 }
 

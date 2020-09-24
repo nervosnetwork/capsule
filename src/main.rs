@@ -20,20 +20,19 @@ use std::str::FromStr;
 use anyhow::{anyhow, Result};
 use checker::Checker;
 use ckb_tool::ckb_types::core::Capacity;
-use config::TemplateType;
-use config_manipulate::{append_contract, append_workspace_member, Document};
+use config::{Contract, TemplateType};
 use deployment::manage::{DeployOption, Manage as DeployManage};
-use generator::{new_contract, new_project};
-use project_context::{
-    load_project_context, read_config_file, write_config_file, BuildConfig, BuildEnv, DeployEnv,
-    CARGO_CONFIG_FILE, CONFIG_FILE, CONTRACTS_DIR,
-};
+use generator::new_project;
+use project_context::{BuildConfig, BuildEnv, Context, DeployEnv};
 use recipe::get_recipe;
 use tester::Tester;
 use wallet::cli_types::HumanCapacity;
 use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 
 use clap::{App, AppSettings, Arg, SubCommand};
+
+const DEBUGGER_MAX_CYCLES: u64 = 70_000_000u64;
+const TEMPLATES_NAMES: &[&str] = &["rust", "c"];
 
 fn version_string() -> String {
     let major = env!("CARGO_PKG_VERSION_MAJOR")
@@ -57,13 +56,25 @@ fn version_string() -> String {
     version
 }
 
-const DEBUGGER_MAX_CYCLES: u64 = 70_000_000u64;
-
 fn run_cli() -> Result<()> {
     env_logger::init();
 
     let version = version_string();
     let default_max_cycles_str = format!("{}", DEBUGGER_MAX_CYCLES);
+
+    let contract_args = [
+        Arg::with_name("name")
+            .help("project name")
+            .index(1)
+            .required(true)
+            .takes_value(true),
+        Arg::with_name("template")
+            .long("template")
+            .help("language template")
+            .possible_values(TEMPLATES_NAMES)
+            .default_value(TEMPLATES_NAMES[0])
+            .takes_value(true),
+    ];
 
     let mut app = App::new("Capsule")
         .setting(AppSettings::ArgRequiredElseHelp)
@@ -71,8 +82,8 @@ fn run_cli() -> Result<()> {
         .author("Nervos Developer Tools Team")
         .about("Capsule CKB contract scaffold")
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
-        .subcommand(SubCommand::with_name("new").about("Create a new project").arg(Arg::with_name("name").help("project name").index(1).required(true).takes_value(true)).display_order(1))
-        .subcommand(SubCommand::with_name("new-contract").about("Create a new contract").arg(Arg::with_name("name").help("contract name").index(1).required(true).takes_value(true)).display_order(2))
+        .subcommand(SubCommand::with_name("new").about("Create a new project").args(&contract_args).display_order(1))
+        .subcommand(SubCommand::with_name("new-contract").about("Create a new contract").args(&contract_args).display_order(2))
         .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
                     Arg::with_name("release").long("release").help("Build contracts in release mode.")
         ).arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output")).display_order(3))
@@ -194,6 +205,8 @@ fn run_cli() -> Result<()> {
                 .trim()
                 .trim_end_matches("/")
                 .to_string();
+            let template_type: TemplateType =
+                args.value_of("template").expect("template").parse()?;
             let mut path = PathBuf::new();
             if let Some(index) = name.rfind("/") {
                 path.push(&name[..index]);
@@ -201,39 +214,31 @@ fn run_cli() -> Result<()> {
             } else {
                 path.push(env::current_dir()?);
             }
-            new_project(name.to_string(), path, &signal)?;
+            let project_path = new_project(name.to_string(), path, &signal)?;
+            let context = Context::load_from_path(&project_path)?;
+            let c = Contract {
+                name,
+                template_type,
+            };
+            get_recipe(&context, &c)?.create_contract(true, &signal)?;
+            println!("Done");
         }
         ("new-contract", Some(args)) => {
-            let context = load_project_context()?;
+            let context = Context::load()?;
             let name = args.value_of("name").expect("name").trim().to_string();
             if context.contract_path(&name).exists() {
                 return Err(anyhow!("contract '{}' is already exists"));
             }
-            let contracts_path = context.contracts_path();
-            new_contract(name.to_string(), contracts_path, &signal)?;
-
-            // rewrite config
-            {
-                println!("Rewrite Cargo.toml");
-                let mut cargo_path = context.project_path.clone();
-                cargo_path.push(CARGO_CONFIG_FILE);
-                let config_content = read_config_file(&cargo_path)?;
-                let mut doc = config_content.parse::<Document>()?;
-                append_workspace_member(&mut doc, format!("{}/{}", CONTRACTS_DIR, name))?;
-                write_config_file(&cargo_path, doc.to_string())?;
-            }
-            {
-                println!("Rewrite capsule.toml");
-                let mut config_path = context.project_path.clone();
-                config_path.push(CONFIG_FILE);
-                let config_content = read_config_file(&config_path)?;
-                let mut doc = config_content.parse::<Document>()?;
-                append_contract(&mut doc, name, TemplateType::Rust)?;
-                write_config_file(&config_path, doc.to_string())?;
-            }
+            let template_type: TemplateType =
+                args.value_of("template").expect("template").parse()?;
+            let c = Contract {
+                name,
+                template_type,
+            };
+            get_recipe(&context, &c)?.create_contract(true, &signal)?;
         }
         ("build", Some(args)) => {
-            let context = load_project_context()?;
+            let context = Context::load()?;
             let build_names: Vec<&str> = args
                 .values_of("name")
                 .map(|values| values.collect())
@@ -265,7 +270,7 @@ fn run_cli() -> Result<()> {
             }
         }
         ("clean", Some(args)) => {
-            let context = load_project_context()?;
+            let context = Context::load()?;
             let build_names: Vec<&str> = args
                 .values_of("name")
                 .map(|values| values.collect())
@@ -287,7 +292,7 @@ fn run_cli() -> Result<()> {
             }
         }
         ("run", Some(args)) => {
-            let context = load_project_context()?;
+            let context = Context::load()?;
             let name = args.value_of("name").expect("name");
             let cmd = args
                 .values_of("cmd")
@@ -301,7 +306,7 @@ fn run_cli() -> Result<()> {
             get_recipe(&context, contract)?.run(cmd, &signal)?;
         }
         ("test", Some(args)) => {
-            let context = load_project_context()?;
+            let context = Context::load()?;
             let build_env: BuildEnv = if args.is_present("release") {
                 BuildEnv::Release
             } else {
@@ -315,7 +320,7 @@ fn run_cli() -> Result<()> {
                 let address_hex = args.value_of("address").expect("address");
                 Address::from_str(&address_hex).expect("parse address")
             };
-            let context = load_project_context()?;
+            let context = Context::load()?;
             let ckb_rpc_url = args.value_of("api").expect("api");
             let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
             let wallet = Wallet::load(ckb_rpc_url.to_string(), ckb_cli_bin.to_string(), address);
@@ -342,7 +347,7 @@ fn run_cli() -> Result<()> {
                 println!("Write transaction debugging template to {}", template_path,);
             }
             ("start", Some(args)) => {
-                let context = load_project_context()?;
+                let context = Context::load()?;
                 let template_path = args.value_of("template-file").expect("template file");
                 let build_env: BuildEnv = if args.is_present("release") {
                     BuildEnv::Release

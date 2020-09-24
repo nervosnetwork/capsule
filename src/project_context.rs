@@ -61,6 +61,25 @@ pub struct Context {
 }
 
 impl Context {
+    pub fn load() -> Result<Context> {
+        Self::load_from_path(env::current_dir()?)
+    }
+
+    pub fn load_from_path<P: AsRef<Path>>(path: P) -> Result<Context> {
+        let mut project_path = PathBuf::new();
+        project_path.push(&path);
+        let content = {
+            let mut config_path = project_path.clone();
+            config_path.push(CONFIG_FILE);
+            read_config_file(config_path)?
+        };
+        let config: Config = toml::from_slice(content.as_bytes())?;
+        Ok(Context {
+            config,
+            project_path,
+        })
+    }
+
     pub fn contracts_path(&self) -> PathBuf {
         let mut path = self.project_path.clone();
         path.push(CONTRACTS_DIR);
@@ -129,19 +148,4 @@ pub fn read_config_file<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<Str
 pub fn write_config_file<P: AsRef<Path>>(path: P, content: String) -> Result<()> {
     fs::write(path, content)?;
     Ok(())
-}
-
-pub fn load_project_context() -> Result<Context> {
-    let mut project_path = PathBuf::new();
-    project_path.push(env::current_dir()?);
-    let content = {
-        let mut config_path = project_path.clone();
-        config_path.push(CONFIG_FILE);
-        read_config_file(config_path)?
-    };
-    let config: Config = toml::from_slice(content.as_bytes())?;
-    Ok(Context {
-        config,
-        project_path,
-    })
 }

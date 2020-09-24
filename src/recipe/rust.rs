@@ -1,8 +1,15 @@
 use crate::config::Contract;
-use crate::project_context::{BuildConfig, BuildEnv, Context};
+use crate::config_manipulate::{append_cargo_workspace_member, append_contract, Document};
+use crate::generator::{CreateContract, TEMPLATES};
+use crate::project_context::{
+    read_config_file, write_config_file, BuildConfig, BuildEnv, Context, CARGO_CONFIG_FILE,
+    CONFIG_FILE, CONTRACTS_DIR,
+};
 use crate::signal::Signal;
 use crate::util::DockerCommand;
+use crate::TemplateType;
 use anyhow::{anyhow, Result};
+use tera;
 
 use std::fs;
 use std::path::PathBuf;
@@ -48,6 +55,60 @@ impl<'a> Rust<'a> {
                 }
             }
         }
+    }
+
+    fn rewrite_config_for_new_contract(&self) -> Result<()> {
+        let name = &self.contract.name;
+        // rewrite config
+        {
+            println!("Rewrite Cargo.toml");
+            let mut cargo_path = self.context.project_path.clone();
+            cargo_path.push(CARGO_CONFIG_FILE);
+            let config_content = read_config_file(&cargo_path)?;
+            let mut doc = config_content.parse::<Document>()?;
+            append_cargo_workspace_member(&mut doc, format!("{}/{}", CONTRACTS_DIR, name))?;
+            write_config_file(&cargo_path, doc.to_string())?;
+        }
+        {
+            println!("Rewrite capsule.toml");
+            let mut config_path = self.context.project_path.clone();
+            config_path.push(CONFIG_FILE);
+            let config_content = read_config_file(&config_path)?;
+            let mut doc = config_content.parse::<Document>()?;
+            append_contract(&mut doc, name.to_string(), TemplateType::Rust)?;
+            write_config_file(&config_path, doc.to_string())?;
+        }
+        Ok(())
+    }
+
+    pub fn create_contract(&self, rewrite_config: bool, signal: &Signal) -> Result<()> {
+        let name = &self.contract.name;
+        println!("New contract {:?}", &name);
+        let path = self.context.contracts_path();
+        let context = tera::Context::from_serialize(&CreateContract { name: name.clone() })?;
+        // generate contract
+        let cmd = DockerCommand::with_config(
+            DOCKER_IMAGE.to_string(),
+            path.to_str().expect("str").to_string(),
+        )
+        .fix_dir_permission(name.clone());
+        cmd.run(format!("cargo new {} --vcs none", name), signal)?;
+        let mut contract_path = PathBuf::new();
+        contract_path.push(path);
+        contract_path.push(name);
+        // initialize contract code
+        for f in &["src/main.rs", "src/error.rs", "src/entry.rs", "Cargo.toml"] {
+            let template_path = format!("rust/contract/{}", f);
+            let content = TEMPLATES.render(&template_path, &context)?;
+            let mut file_path = contract_path.clone();
+            file_path.push(f);
+            fs::write(file_path, content)?;
+        }
+
+        if rewrite_config {
+            self.rewrite_config_for_new_contract()?;
+        }
+        Ok(())
     }
 
     /// run command in build image
