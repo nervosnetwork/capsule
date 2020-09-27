@@ -24,7 +24,7 @@ use config::{Contract, TemplateType};
 use deployment::manage::{DeployOption, Manage as DeployManage};
 use generator::new_project;
 use project_context::{BuildConfig, BuildEnv, Context, DeployEnv};
-use recipe::get_recipe;
+use recipe::{get_recipe, Recipe};
 use tester::Tester;
 use wallet::cli_types::HumanCapacity;
 use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};

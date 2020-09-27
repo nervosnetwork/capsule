@@ -5,6 +5,7 @@ use crate::project_context::{
     read_config_file, write_config_file, BuildConfig, BuildEnv, Context, CARGO_CONFIG_FILE,
     CONFIG_FILE, CONTRACTS_DIR,
 };
+use crate::recipe::Recipe;
 use crate::signal::Signal;
 use crate::util::DockerCommand;
 use crate::TemplateType;
@@ -28,10 +29,6 @@ pub struct Rust<'a> {
 }
 
 impl<'a> Rust<'a> {
-    pub fn new(context: &'a Context, contract: &'a Contract) -> Self {
-        Self { context, contract }
-    }
-
     fn has_cargo_config(&self) -> bool {
         let mut contract_path = self.context.contract_path(&self.contract.name);
         contract_path.push(CARGO_CONFIG_PATH);
@@ -80,8 +77,14 @@ impl<'a> Rust<'a> {
         }
         Ok(())
     }
+}
 
-    pub fn create_contract(&self, rewrite_config: bool, signal: &Signal) -> Result<()> {
+impl<'a> Recipe<'a> for Rust<'a> {
+    fn new(context: &'a Context, contract: &'a Contract) -> Self {
+        Self { context, contract }
+    }
+
+    fn create_contract(&self, rewrite_config: bool, signal: &Signal) -> Result<()> {
         let name = &self.contract.name;
         println!("New contract {:?}", &name);
         let path = self.context.contracts_path();
@@ -112,7 +115,7 @@ impl<'a> Rust<'a> {
     }
 
     /// run command in build image
-    pub fn run(&self, build_cmd: String, signal: &Signal) -> Result<()> {
+    fn run(&self, build_cmd: String, signal: &Signal) -> Result<()> {
         let project_path = self.context.project_path.to_str().expect("path");
         let contract_relative_path = self.context.contract_relative_path(&self.contract.name);
         let cmd = DockerCommand::with_context(
@@ -131,7 +134,7 @@ impl<'a> Rust<'a> {
     }
 
     /// build contract
-    pub fn run_build(&self, config: BuildConfig, signal: &Signal) -> Result<()> {
+    fn run_build(&self, config: BuildConfig, signal: &Signal) -> Result<()> {
         // docker cargo build
         let mut rel_bin_path = PathBuf::new();
         let (bin_dir_prefix, build_cmd_opt) = match config.build_env {
@@ -178,7 +181,7 @@ impl<'a> Rust<'a> {
     }
 
     /// clean contract
-    pub fn clean(&self, signal: &Signal) -> Result<()> {
+    fn clean(&self, signal: &Signal) -> Result<()> {
         // cargo clean
         let clean_cmd = format!(
             "cargo clean --target {rust_target}",
