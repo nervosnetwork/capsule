@@ -35,13 +35,19 @@ pub struct Contract {
     pub template_type: TemplateType,
 }
 
+#[derive(Default, Clone, Serialize, Deserialize)]
+pub struct RustConfig {
+    #[serde(default)]
+    pub workspace_dir: Option<PathBuf>, // relative path of workspace dir, default is the project dir
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub contracts: Vec<Contract>,
     pub deployment: PathBuf, // path of deployment config file
     #[serde(default)]
-    pub workspace_dir: Option<PathBuf>, // relative path of workspace dir, default is the project dir
+    pub rust: RustConfig,
 }
 
 // Deployment

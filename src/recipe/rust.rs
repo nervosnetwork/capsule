@@ -157,7 +157,7 @@ impl Recipe for Rust {
         ));
         let mut container_bin_path = PathBuf::new();
         container_bin_path.push("/code");
-        if let Some(workspace_dir) = self.context.config.workspace_dir.as_ref() {
+        if let Some(workspace_dir) = self.context.config.rust.workspace_dir.as_ref() {
             container_bin_path.push(workspace_dir);
         }
         container_bin_path.push(&rel_bin_path);
@@ -175,7 +175,7 @@ impl Recipe for Rust {
 
         // copy to build dir
         let mut project_bin_path = self.context.project_path.clone();
-        if let Some(workspace_dir) = self.context.config.workspace_dir.as_ref() {
+        if let Some(workspace_dir) = self.context.config.rust.workspace_dir.as_ref() {
             project_bin_path.push(workspace_dir);
         }
         project_bin_path.push(&rel_bin_path);
