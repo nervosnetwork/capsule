@@ -11,6 +11,7 @@ mod tester;
 mod util;
 mod wallet;
 
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -21,10 +22,13 @@ use anyhow::{anyhow, Result};
 use checker::Checker;
 use ckb_tool::ckb_types::core::Capacity;
 use config::{Contract, TemplateType};
+use config_manipulate::{append_contract, Document};
 use deployment::manage::{DeployOption, Manage as DeployManage};
 use generator::new_project;
-use project_context::{BuildConfig, BuildEnv, Context, DeployEnv};
-use recipe::{get_recipe, Recipe};
+use project_context::{
+    read_config_file, write_config_file, BuildConfig, BuildEnv, Context, DeployEnv, CONFIG_FILE,
+};
+use recipe::get_recipe;
 use tester::Tester;
 use wallet::cli_types::HumanCapacity;
 use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
@@ -32,7 +36,7 @@ use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 use clap::{App, AppSettings, Arg, SubCommand};
 
 const DEBUGGER_MAX_CYCLES: u64 = 70_000_000u64;
-const TEMPLATES_NAMES: &[&str] = &["rust", "c"];
+const TEMPLATES_NAMES: &[&str] = &["rust", "c", "c-sharedlib"];
 
 fn version_string() -> String {
     let major = env!("CARGO_PKG_VERSION_MAJOR")
@@ -54,6 +58,38 @@ fn version_string() -> String {
     version.push_str(" ");
     version.push_str(commit_id);
     version
+}
+
+fn append_contract_to_config(context: &Context, contract: &Contract) -> Result<()> {
+    println!("Rewrite capsule.toml");
+    let mut config_path = context.project_path.clone();
+    config_path.push(CONFIG_FILE);
+    let config_content = read_config_file(&config_path)?;
+    let mut doc = config_content.parse::<Document>()?;
+    append_contract(&mut doc, contract.name.to_string(), contract.template_type)?;
+    write_config_file(&config_path, doc.to_string())?;
+    Ok(())
+}
+
+fn select_contracts(context: &Context, names: &[&str]) -> Vec<Contract> {
+    context
+        .config
+        .contracts
+        .iter()
+        .filter(|c| names.is_empty() || names.contains(&c.name.as_str()))
+        .cloned()
+        .collect()
+}
+
+fn group_contracts_by_type(contracts: Vec<Contract>) -> HashMap<TemplateType, Vec<Contract>> {
+    let mut contracts_by_type = HashMap::default();
+    for c in contracts {
+        contracts_by_type
+            .entry(c.template_type)
+            .or_insert(Vec::new())
+            .push(c.clone());
+    }
+    contracts_by_type
 }
 
 fn run_cli() -> Result<()> {
@@ -220,22 +256,26 @@ fn run_cli() -> Result<()> {
                 name,
                 template_type,
             };
-            get_recipe(&context, &c)?.create_contract(true, &signal)?;
+            get_recipe(context.clone(), c.template_type)?.create_contract(&c, true, &signal)?;
+            append_contract_to_config(&context, &c)?;
             println!("Done");
         }
         ("new-contract", Some(args)) => {
             let context = Context::load()?;
             let name = args.value_of("name").expect("name").trim().to_string();
-            if context.contract_path(&name).exists() {
-                return Err(anyhow!("contract '{}' is already exists"));
-            }
             let template_type: TemplateType =
                 args.value_of("template").expect("template").parse()?;
-            let c = Contract {
+            let contract = Contract {
                 name,
                 template_type,
             };
-            get_recipe(&context, &c)?.create_contract(true, &signal)?;
+            let recipe = get_recipe(context.clone(), contract.template_type)?;
+            if recipe.exists(&contract.name) {
+                return Err(anyhow!("contract '{}' is already exists", contract.name));
+            }
+            recipe.create_contract(&contract, true, &signal)?;
+            append_contract_to_config(&context, &contract)?;
+            println!("Done");
         }
         ("build", Some(args)) => {
             let context = Context::load()?;
@@ -253,18 +293,15 @@ fn run_cli() -> Result<()> {
                 build_env,
                 always_debug,
             };
-            let contracts: Vec<_> = context
-                .config
-                .contracts
-                .iter()
-                .filter(|c| build_names.is_empty() || build_names.contains(&c.name.as_str()))
-                .collect();
+
+            let contracts: Vec<_> = select_contracts(&context, &build_names);
             if contracts.is_empty() {
                 println!("Nothing to do");
             } else {
-                for c in contracts {
-                    println!("Building contract {}", c.name);
-                    get_recipe(&context, c)?.run_build(build_config, &signal)?;
+                for contract in contracts {
+                    println!("Building contract {}", contract.name);
+                    let recipe = get_recipe(context.clone(), contract.template_type)?;
+                    recipe.run_build(&contract, build_config, &signal)?;
                 }
                 println!("Done");
             }
@@ -275,18 +312,13 @@ fn run_cli() -> Result<()> {
                 .values_of("name")
                 .map(|values| values.collect())
                 .unwrap_or_default();
-            let contracts: Vec<_> = context
-                .config
-                .contracts
-                .iter()
-                .filter(|c| build_names.is_empty() || build_names.contains(&c.name.as_str()))
-                .collect();
+            let contracts: Vec<_> = select_contracts(&context, &build_names);
             if contracts.is_empty() {
                 println!("Nothing to do");
             } else {
-                for c in contracts {
-                    println!("Cleaning contract {}", c.name);
-                    get_recipe(&context, c)?.clean(&signal)?;
+                let contracts_by_types = group_contracts_by_type(contracts);
+                for (template_type, contracts) in contracts_by_types {
+                    get_recipe(context.clone(), template_type)?.clean(&contracts, &signal)?;
                 }
                 println!("Done");
             }
@@ -300,10 +332,10 @@ fn run_cli() -> Result<()> {
                 .collect::<Vec<&str>>()
                 .join(" ");
             let contract = match context.config.contracts.iter().find(|c| name == c.name) {
-                Some(c) => c,
+                Some(c) => c.clone(),
                 None => return Err(anyhow!("can't find contract '{}'", name)),
             };
-            get_recipe(&context, contract)?.run(cmd, &signal)?;
+            get_recipe(context, contract.template_type)?.run(&contract, cmd, &signal)?;
         }
         ("test", Some(args)) => {
             let context = Context::load()?;

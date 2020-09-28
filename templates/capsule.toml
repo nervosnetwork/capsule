@@ -1,8 +1,4 @@
-# path of deployment config file
-deployment = "deployment.toml"
 # path of contracts workspace dir, default is the project dir
 # workspace_dir = "."
-
-[[contracts]]
-name = "{{name}}"
-template_type = "Rust"
+# path of deployment config file
+deployment = "deployment.toml"

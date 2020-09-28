@@ -1,7 +1,7 @@
 use crate::project_context::{BuildEnv, Context};
 use crate::recipe::rust::DOCKER_IMAGE;
 use crate::signal::Signal;
-use crate::util::DockerCommand;
+use crate::util::docker::DockerCommand;
 use anyhow::Result;
 
 const TEST_ENV_VAR: &str = "CAPSULE_TEST_ENV";

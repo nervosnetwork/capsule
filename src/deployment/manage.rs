@@ -1,6 +1,6 @@
 use super::{deployment_process::DeploymentProcess, plan::Plan, recipe::DeploymentRecipe};
 use crate::config::Deployment;
-use crate::util::ask_for_confirm;
+use crate::util::cli::ask_for_confirm;
 use crate::wallet::{cli_types::LiveCell, Wallet};
 use anyhow::{anyhow, Result};
 use chrono::prelude::*;
