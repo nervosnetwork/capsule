@@ -2,7 +2,7 @@ use crate::generator::TEMPLATES;
 use crate::project_context::{BuildEnv, Context};
 use crate::recipe::rust::DOCKER_IMAGE;
 use crate::signal::Signal;
-use crate::util::DockerCommand;
+use crate::util::docker::DockerCommand;
 use anyhow::{anyhow, Result};
 use ckb_tool::ckb_hash::new_blake2b;
 use serde::Serialize;

@@ -5,9 +5,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 // contracts config
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Serialize, Deserialize, Clone, Copy)]
 pub enum TemplateType {
     Rust,
+    C,
+    CSharedLib,
 }
 
 impl FromStr for TemplateType {
@@ -16,6 +18,8 @@ impl FromStr for TemplateType {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let template_type = match s.to_lowercase().as_str() {
             "rust" => TemplateType::Rust,
+            "c" => TemplateType::C,
+            "c-sharedlib" => TemplateType::CSharedLib,
             _ => {
                 return Err(anyhow!("Unexpected template type '{}'", s));
             }
@@ -31,12 +35,19 @@ pub struct Contract {
     pub template_type: TemplateType,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
+pub struct RustConfig {
+    #[serde(default)]
+    pub workspace_dir: Option<PathBuf>, // relative path of workspace dir, default is the project dir
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Config {
+    #[serde(default)]
     pub contracts: Vec<Contract>,
     pub deployment: PathBuf, // path of deployment config file
     #[serde(default)]
-    pub workspace_dir: Option<PathBuf>, // relative path of workspace dir, default is the project dir
+    pub rust: RustConfig,
 }
 
 // Deployment

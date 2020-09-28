@@ -1,5 +1,3 @@
-mod cli;
-mod docker;
-
-pub use cli::ask_for_confirm;
-pub use docker::DockerCommand;
+pub mod cli;
+pub mod docker;
+pub mod git;

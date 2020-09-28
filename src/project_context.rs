@@ -55,6 +55,7 @@ impl FromStr for DeployEnv {
     }
 }
 
+#[derive(Clone)]
 pub struct Context {
     pub project_path: PathBuf,
     pub config: Config,
@@ -73,7 +74,7 @@ impl Context {
             config_path.push(CONFIG_FILE);
             read_config_file(config_path)?
         };
-        let config: Config = toml::from_slice(content.as_bytes())?;
+        let config: Config = toml::from_slice(content.as_bytes()).expect("parse config");
         Ok(Context {
             config,
             project_path,
@@ -83,19 +84,6 @@ impl Context {
     pub fn contracts_path(&self) -> PathBuf {
         let mut path = self.project_path.clone();
         path.push(CONTRACTS_DIR);
-        path
-    }
-
-    pub fn contract_path<P: AsRef<Path>>(&self, contract_name: P) -> PathBuf {
-        let mut path = self.contracts_path();
-        path.push(contract_name);
-        path
-    }
-
-    pub fn contract_relative_path<P: AsRef<Path>>(&self, contract_name: P) -> PathBuf {
-        let mut path = PathBuf::new();
-        path.push(CONTRACTS_DIR);
-        path.push(contract_name);
         path
     }
 

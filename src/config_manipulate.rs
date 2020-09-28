@@ -2,7 +2,7 @@
 
 use crate::config::TemplateType;
 use anyhow::{anyhow, Result};
-pub use toml_edit::{value, Document, Table};
+pub use toml_edit::{array, value, Document, Table};
 
 pub fn append_contract(
     doc: &mut Document,
@@ -10,6 +10,7 @@ pub fn append_contract(
     template_type: TemplateType,
 ) -> Result<()> {
     let contracts = doc["contracts"]
+        .or_insert(array())
         .as_array_of_tables_mut()
         .ok_or(anyhow!("no 'contracts' section"))?;
     let contract = contracts.append(Table::new());

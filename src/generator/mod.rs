@@ -1,6 +1,7 @@
 use crate::recipe::rust::DOCKER_IMAGE;
 use crate::signal::Signal;
-use crate::util::DockerCommand;
+use crate::util::docker::DockerCommand;
+use crate::util::git;
 use anyhow::{Context as ErrorContext, Result};
 use include_dir::{include_dir, Dir, DirEntry};
 use lazy_static::lazy_static;
@@ -73,6 +74,7 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
         fs::write(file_path, content)?;
         println!("Created file {:?}", f);
     }
+    git::init(&project_path)?;
     Ok(())
 }
 
