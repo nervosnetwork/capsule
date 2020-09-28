@@ -15,7 +15,7 @@ use tera;
 use std::fs;
 use std::path::PathBuf;
 
-pub const DOCKER_IMAGE: &str = "jjy0/ckb-capsule-recipe-rust:2020-6-2";
+pub const DOCKER_IMAGE: &str = "jjy0/ckb-capsule-recipe-rust:2020-9-28";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
 const CARGO_CONFIG_PATH: &str = ".cargo/config";
 const BASE_RUSTFLAGS: &str =
