@@ -4,7 +4,7 @@ LD := $(TARGET)-gcc
 OBJCOPY := $(TARGET)-objcopy
 DEBUG_DIR := build/debug
 RELEASE_DIR := build/release
-CFLAGS := -fPIC -O3 -fno-builtin-printf -nostdinc -nostdlib -nostartfiles -fvisibility=hidden -I deps/ckb-c-stdlib -I deps/ckb-c-stdlib/libc -I deps -I deps/ckb-c-stdlib/molecule -I c -I src -Wall -Werror -Wno-nonnull -Wno-nonnull-compare -Wno-unused-function -g
+CFLAGS := -fPIC -O3 -fno-builtin-memcmp -fno-builtin-printf -nostdinc -nostdlib -nostartfiles -fvisibility=hidden -I deps/ckb-c-stdlib -I deps/ckb-c-stdlib/libc -I deps -I deps/ckb-c-stdlib/molecule -I c -I src -Wall -Werror -Wno-nonnull -Wno-nonnull-compare -Wno-unused-function -g
 LDFLAGS := -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections
 DBGFLAGS := -DCKB_C_STDLIB_PRINTF
 MOLC := moleculec
