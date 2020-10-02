@@ -9,6 +9,7 @@ mod recipe;
 mod signal;
 mod tester;
 mod util;
+mod version;
 mod wallet;
 
 use std::collections::HashMap;
@@ -30,6 +31,7 @@ use project_context::{
 };
 use recipe::get_recipe;
 use tester::Tester;
+use version::version_string;
 use wallet::cli_types::HumanCapacity;
 use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 
@@ -37,28 +39,6 @@ use clap::{App, AppSettings, Arg, SubCommand};
 
 const DEBUGGER_MAX_CYCLES: u64 = 70_000_000u64;
 const TEMPLATES_NAMES: &[&str] = &["rust", "c", "c-sharedlib"];
-
-fn version_string() -> String {
-    let major = env!("CARGO_PKG_VERSION_MAJOR")
-        .parse::<u8>()
-        .expect("CARGO_PKG_VERSION_MAJOR parse success");
-    let minor = env!("CARGO_PKG_VERSION_MINOR")
-        .parse::<u8>()
-        .expect("CARGO_PKG_VERSION_MINOR parse success");
-    let patch = env!("CARGO_PKG_VERSION_PATCH")
-        .parse::<u16>()
-        .expect("CARGO_PKG_VERSION_PATCH parse success");
-    let mut version = format!("{}.{}.{}", major, minor, patch);
-    let pre = env!("CARGO_PKG_VERSION_PRE");
-    if !pre.is_empty() {
-        version.push_str("-");
-        version.push_str(pre);
-    }
-    let commit_id = env!("COMMIT_ID");
-    version.push_str(" ");
-    version.push_str(commit_id);
-    version
-}
 
 fn append_contract_to_config(context: &Context, contract: &Contract) -> Result<()> {
     println!("Rewrite capsule.toml");

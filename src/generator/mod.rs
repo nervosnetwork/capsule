@@ -2,6 +2,7 @@ use crate::recipe::rust::DOCKER_IMAGE;
 use crate::signal::Signal;
 use crate::util::docker::DockerCommand;
 use crate::util::git;
+use crate::version::version_string;
 use anyhow::{Context as ErrorContext, Result};
 use include_dir::{include_dir, Dir, DirEntry};
 use lazy_static::lazy_static;
@@ -33,6 +34,7 @@ lazy_static! {
 struct CreateProject {
     name: String,
     path: PathBuf,
+    version: String,
 }
 
 #[derive(Serialize)]
@@ -60,6 +62,7 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
     let context = Context::from_serialize(&CreateProject {
         name: name.clone(),
         path: project_path.clone(),
+        version: version_string(),
     })?;
     for f in &[
         "capsule.toml",
@@ -97,6 +100,7 @@ fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P, signal: &Sign
     let context = Context::from_serialize(&CreateProject {
         name: name.clone(),
         path: project_path.clone(),
+        version: version_string(),
     })?;
     let mut tests_path = project_path;
     tests_path.push(DEFAULT_TESTS_DIR);

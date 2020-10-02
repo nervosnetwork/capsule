@@ -1,5 +1,6 @@
 /// Project Context
 use crate::config::{Config, Deployment};
+use crate::version::version_string;
 use anyhow::{anyhow, Result};
 use log::error;
 use std::env;
@@ -75,6 +76,19 @@ impl Context {
             read_config_file(config_path)?
         };
         let config: Config = toml::from_slice(content.as_bytes()).expect("parse config");
+        let capsule_version = version_string();
+        if config.version != capsule_version {
+            let project_version = if config.version.is_empty() {
+                "(Unknown)".to_string()
+            } else {
+                config.version.to_string()
+            };
+            return Err(anyhow!(
+                "Please use the right capsule version, Capsule version: {}, Project version: {}",
+                capsule_version,
+                project_version
+            ));
+        }
         Ok(Context {
             config,
             project_path,
