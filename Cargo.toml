@@ -6,7 +6,6 @@ edition = "2018"
 license = "MIT"
 description = "Capsule is a development framework for creating smart contract for Nervos' CKB layer 1 blockchain."
 homepage = "https://github.com/nervosnetwork/capsule"
-include = ["src", "build.rs", "templates"]
 
 [features]
 default = []
