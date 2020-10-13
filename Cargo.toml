@@ -1,19 +1,12 @@
 [package]
-name = "capsule"
+name = "ckb-capsule"
 version = "0.4.0"
 authors = ["Nervos Network", "jjy <jjyruby@gmail.com>"]
 edition = "2018"
 license = "MIT"
 description = "Capsule is a development framework for creating smart contract for Nervos' CKB layer 1 blockchain."
 homepage = "https://github.com/nervosnetwork/capsule"
-include = ["templates"]
-autobins = false
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[[bin]]
-name = "capsule"
-path = "src/main.rs"
+include = ["src/**/*", "build.rs", "templates/**/*"]
 
 [features]
 default = []
@@ -24,7 +17,6 @@ anyhow = "1.0"
 tera = "1.2"
 lazy_static = "1.4"
 serde = { version = "1.0", features = [ "derive" ] }
-include_dir = "0.5"
 toml = "0.5"
 toml_edit = "0.1.5"
 ckb-tool = "0.2"
@@ -41,6 +33,11 @@ ctrlc = "3.1"
 env_logger = "0.7"
 log = "0.4"
 faster-hex = "0.4"
+phf = "0.8"
+includedir = "0.6"
+
+[build-dependencies]
+includedir_codegen = "0.6"
 
 [workspace]
 members = [

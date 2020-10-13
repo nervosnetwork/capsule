@@ -37,18 +37,18 @@ Note: The current user must have permission to manage Docker instances. [How to 
 
 [Download the latest release](https://github.com/nervosnetwork/capsule/releases/latest)
 
-### Install from source code
+### Cargo install
+
+Install the latest version
+
+``` sh
+cargo install ckb-capsule
+```
 
 Install the develop branch
 
 ``` sh
-cargo install capsule --git https://github.com/nervosnetwork/capsule.git --branch develop
-```
-
-Install a specific version
-
-``` sh
-cargo install capsule --git https://github.com/nervosnetwork/capsule.git --tag <tag>
+cargo install ckb-capsule --git https://github.com/nervosnetwork/capsule.git --branch develop
 ```
 
 ## Usage

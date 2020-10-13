@@ -218,33 +218,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "capsule"
-version = "0.4.0"
-dependencies = [
- "anyhow",
- "bech32",
- "chrono",
- "ckb-tool",
- "clap",
- "ctrlc",
- "env_logger 0.7.1",
- "faster-hex 0.4.1",
- "include_dir",
- "lazy_static",
- "log",
- "rpassword",
- "secp256k1",
- "serde",
- "serde_json",
- "serde_yaml",
- "simple-jsonrpc-client",
- "tera",
- "toml",
- "toml_edit",
- "users",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -322,6 +295,35 @@ name = "ckb-build-info"
 version = "0.37.0-pre"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e1433a87c36e7a321ae8326a808d69f093684306f625c2185500d7951751805"
+
+[[package]]
+name = "ckb-capsule"
+version = "0.4.0"
+dependencies = [
+ "anyhow",
+ "bech32",
+ "chrono",
+ "ckb-tool",
+ "clap",
+ "ctrlc",
+ "env_logger 0.7.1",
+ "faster-hex 0.4.1",
+ "includedir 0.6.0",
+ "includedir_codegen 0.6.0",
+ "lazy_static",
+ "log",
+ "phf 0.8.0",
+ "rpassword",
+ "secp256k1",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "simple-jsonrpc-client",
+ "tera",
+ "toml",
+ "toml_edit",
+ "users",
+]
 
 [[package]]
 name = "ckb-chain-spec"
@@ -493,7 +495,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "995341a6dea5f0d8ff4570bebbde3691349842d2c671472e09ea2ee2e3e0b083"
 dependencies = [
  "cc",
- "glob 0.2.11",
+ "glob",
  "libc",
 ]
 
@@ -586,9 +588,9 @@ checksum = "118950d396c74395af0541af63c60edb71b9912808f5ab800ad410367a7ef110"
 dependencies = [
  "ckb-system-scripts",
  "ckb-types",
- "includedir",
- "includedir_codegen",
- "phf",
+ "includedir 0.5.0",
+ "includedir_codegen 0.5.0",
+ "phf 0.7.24",
  "serde",
  "tempfile",
  "walkdir",
@@ -664,9 +666,9 @@ checksum = "261dd95a93c09ea24397c85b4fbca061e1da2d6573189749aeb99fe840aaf0c9"
 dependencies = [
  "blake2b-rs",
  "faster-hex 0.3.1",
- "includedir",
- "includedir_codegen",
- "phf",
+ "includedir 0.5.0",
+ "includedir_codegen 0.5.0",
+ "phf 0.7.24",
 ]
 
 [[package]]
@@ -1306,12 +1308,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8be18de09a56b60ed0edf84bc9df007e30040691af7acd1c41874faac5895bfb"
 
 [[package]]
-name = "glob"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
-
-[[package]]
 name = "globset"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1624,37 +1620,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "include_dir"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25ec8c61b6100ad0fc58ca644c59c0137d526d73cefa7497426369ea0d84d769"
-dependencies = [
- "glob 0.3.0",
- "include_dir_impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "include_dir_impl"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f03b4f7b64011df46794cc221854be5c3084345e260576518b91693866d0afd1"
-dependencies = [
- "failure",
- "proc-macro-hack",
- "proc-macro2 1.0.19",
- "quote 1.0.7",
- "syn 1.0.36",
-]
-
-[[package]]
 name = "includedir"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e97402f770a519ebea51b27131c3b6558cfd2375aff21294bad806bad91bf0b6"
 dependencies = [
  "flate2",
- "phf",
+ "phf 0.7.24",
+]
+
+[[package]]
+name = "includedir"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "afd126bd778c00c43a9dc76d1609a0894bf4222088088b2217ccc0ce9e816db7"
+dependencies = [
+ "flate2",
+ "phf 0.8.0",
 ]
 
 [[package]]
@@ -1664,7 +1646,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af7d542be113fd84855692fb536c16cc4c09527724d1dca8953047d71cccadef"
 dependencies = [
  "flate2",
- "phf_codegen",
+ "phf_codegen 0.7.24",
+ "walkdir",
+]
+
+[[package]]
+name = "includedir_codegen"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ac1500c9780957c9808c4ec3b94002f35aab01483833f5a8bce7dfb243e3148"
+dependencies = [
+ "flate2",
+ "phf_codegen 0.8.0",
  "walkdir",
 ]
 
@@ -2209,7 +2202,16 @@ version = "0.7.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3da44b85f8e8dfaec21adae67f95d93244b2ecf6ad2a692320598dcc8e6dd18"
 dependencies = [
- "phf_shared",
+ "phf_shared 0.7.24",
+]
+
+[[package]]
+name = "phf"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3dfb61232e34fcb633f43d12c58f83c1df82962dcdfa565a4e866ffc17dafe12"
+dependencies = [
+ "phf_shared 0.8.0",
 ]
 
 [[package]]
@@ -2218,8 +2220,18 @@ version = "0.7.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b03e85129e324ad4166b06b2c7491ae27fe3ec353af72e72cd1654c7225d517e"
 dependencies = [
- "phf_generator",
- "phf_shared",
+ "phf_generator 0.7.24",
+ "phf_shared 0.7.24",
+]
+
+[[package]]
+name = "phf_codegen"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cbffee61585b0411840d3ece935cce9cb6321f01c45477d30066498cd5e1a815"
+dependencies = [
+ "phf_generator 0.8.0",
+ "phf_shared 0.8.0",
 ]
 
 [[package]]
@@ -2228,8 +2240,18 @@ version = "0.7.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09364cc93c159b8b06b1f4dd8a4398984503483891b0c26b867cf431fb132662"
 dependencies = [
- "phf_shared",
+ "phf_shared 0.7.24",
  "rand 0.6.5",
+]
+
+[[package]]
+name = "phf_generator"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17367f0cc86f2d25802b2c26ee58a7b23faeccf78a396094c13dced0d0182526"
+dependencies = [
+ "phf_shared 0.8.0",
+ "rand 0.7.3",
 ]
 
 [[package]]
@@ -2238,7 +2260,16 @@ version = "0.7.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "234f71a15de2288bcb7e3b6515828d22af7ec8598ee6d24c3b526fa0a80b67a0"
 dependencies = [
- "siphasher",
+ "siphasher 0.2.3",
+]
+
+[[package]]
+name = "phf_shared"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c00cf8b9eafe68dde5e9eaa2cef8ee84a9336a47d566ec55ca16589633b65af7"
+dependencies = [
+ "siphasher 0.3.3",
 ]
 
 [[package]]
@@ -2391,7 +2422,7 @@ dependencies = [
  "rand_isaac",
  "rand_jitter",
  "rand_os",
- "rand_pcg",
+ "rand_pcg 0.1.2",
  "rand_xorshift",
  "winapi 0.3.9",
 ]
@@ -2407,6 +2438,7 @@ dependencies = [
  "rand_chacha 0.2.2",
  "rand_core 0.5.1",
  "rand_hc 0.2.0",
+ "rand_pcg 0.2.1",
 ]
 
 [[package]]
@@ -2513,6 +2545,15 @@ checksum = "abf9b09b01790cfe0364f52bf32995ea3c39f4d2dd011eac241d2914146d0b44"
 dependencies = [
  "autocfg 0.1.7",
  "rand_core 0.4.2",
+]
+
+[[package]]
+name = "rand_pcg"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16abd0c1b639e9eb4d7c50c0b8100b0d0f849be2349829c740fe8e6eb4816429"
+dependencies = [
+ "rand_core 0.5.1",
 ]
 
 [[package]]
@@ -2972,6 +3013,12 @@ name = "siphasher"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b8de496cf83d4ed58b6be86c3a275b8602f6ffe98d3024a869e124147a9a3ac"
+
+[[package]]
+name = "siphasher"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa8f3741c7372e75519bd9346068370c9cdaabcc1f9599cbcf2a2719352286b7"
 
 [[package]]
 name = "sized-chunks"

@@ -4,26 +4,27 @@ use crate::util::docker::DockerCommand;
 use crate::util::git;
 use crate::version::version_string;
 use anyhow::{Context as ErrorContext, Result};
-use include_dir::{include_dir, Dir, DirEntry};
 use lazy_static::lazy_static;
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tera::{self, Context, Tera};
 
-const TEMPLATES_DIR: Dir = include_dir!("templates");
+extern crate includedir;
+extern crate phf;
+
+include!(concat!(env!("OUT_DIR"), "/templates.rs"));
 
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
         let mut tera = Tera::default();
-        for entry in TEMPLATES_DIR.find("**/*").expect("find templates") {
-            let f = match entry {
-                DirEntry::File(f) => f,
-                _ => continue,
+        for path in FILES.file_names() {
+            let filename = path.strip_prefix("templates/").expect("remove prefix");
+            let content = {
+                let c = FILES.get(path).expect("read template");
+                String::from_utf8(c.to_vec()).expect("template contents")
             };
-            let path = f.path().to_str().expect("template path");
-            let contents = String::from_utf8(f.contents().to_vec()).expect("template contents");
-            tera.add_raw_template(path, &contents)
+            tera.add_raw_template(filename, &content)
                 .expect("failed to add template");
         }
         tera

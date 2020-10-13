@@ -1,4 +1,4 @@
-pub(crate) mod cli_types;
+pub mod cli_types;
 mod collector;
 mod password;
 mod util;

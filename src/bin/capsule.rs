@@ -1,17 +1,3 @@
-mod checker;
-mod config;
-mod config_manipulate;
-mod debugger;
-mod deployment;
-mod generator;
-mod project_context;
-mod recipe;
-mod signal;
-mod tester;
-mod util;
-mod version;
-mod wallet;
-
 use std::collections::HashMap;
 use std::env;
 use std::fs;
@@ -20,20 +6,22 @@ use std::process::exit;
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
-use checker::Checker;
-use ckb_tool::ckb_types::core::Capacity;
-use config::{Contract, TemplateType};
-use config_manipulate::{append_contract, Document};
-use deployment::manage::{DeployOption, Manage as DeployManage};
-use generator::new_project;
-use project_context::{
+use ckb_capsule::checker::Checker;
+use ckb_capsule::config::{Contract, TemplateType};
+use ckb_capsule::config_manipulate::{append_contract, Document};
+use ckb_capsule::debugger;
+use ckb_capsule::deployment::manage::{DeployOption, Manage as DeployManage};
+use ckb_capsule::generator::new_project;
+use ckb_capsule::project_context::{
     read_config_file, write_config_file, BuildConfig, BuildEnv, Context, DeployEnv, CONFIG_FILE,
 };
-use recipe::get_recipe;
-use tester::Tester;
-use version::version_string;
-use wallet::cli_types::HumanCapacity;
-use wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
+use ckb_capsule::recipe::get_recipe;
+use ckb_capsule::signal;
+use ckb_capsule::tester::Tester;
+use ckb_capsule::version::version_string;
+use ckb_capsule::wallet::cli_types::HumanCapacity;
+use ckb_capsule::wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
+use ckb_tool::ckb_types::core::Capacity;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 
@@ -41,7 +29,7 @@ const DEBUGGER_MAX_CYCLES: u64 = 70_000_000u64;
 const TEMPLATES_NAMES: &[&str] = &["rust", "c", "c-sharedlib"];
 
 fn append_contract_to_config(context: &Context, contract: &Contract) -> Result<()> {
-    println!("Rewrite capsule.toml");
+    println!("Rewrite ckb_capsule.toml");
     let mut config_path = context.project_path.clone();
     config_path.push(CONFIG_FILE);
     let config_content = read_config_file(&config_path)?;
@@ -103,7 +91,7 @@ fn run_cli() -> Result<()> {
         .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
                     Arg::with_name("release").long("release").help("Build contracts in release mode.")
         ).arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output")).display_order(3))
-        .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("capsule run --name <name> 'echo list contract dir: && ls'")
+        .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("ckb_capsule run --name <name> 'echo list contract dir: && ls'")
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
         .display_order(4))
