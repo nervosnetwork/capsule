@@ -65,14 +65,14 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
         path: project_path.clone(),
         version: version_string(),
     })?;
-    for f in &[
-        "capsule.toml",
-        "deployment.toml",
-        "README.md",
-        "Cargo.toml",
-        ".gitignore",
+    for (f, template_name) in &[
+        ("capsule.toml", None),
+        ("deployment.toml", None),
+        ("README.md", None),
+        ("Cargo.toml", Some("Cargo-manifest.toml")),
+        (".gitignore", None),
     ] {
-        let content = TEMPLATES.render(f, &context)?;
+        let content = TEMPLATES.render(template_name.unwrap_or(f), &context)?;
         let mut file_path = project_path.clone();
         file_path.push(f);
         fs::write(file_path, content)?;
@@ -105,8 +105,12 @@ fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P, signal: &Sign
     })?;
     let mut tests_path = project_path;
     tests_path.push(DEFAULT_TESTS_DIR);
-    for f in &["src/lib.rs", "src/tests.rs", "Cargo.toml"] {
-        let template_path = format!("rust/tests/{}", f);
+    for (f, template_name) in &[
+        ("src/lib.rs", None),
+        ("src/tests.rs", None),
+        ("Cargo.toml", Some("Cargo-manifest.toml")),
+    ] {
+        let template_path = format!("rust/tests/{}", template_name.unwrap_or(f));
         let content = TEMPLATES.render(&template_path, &context)?;
         let mut file_path = tests_path.clone();
         file_path.push(f);

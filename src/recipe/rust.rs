@@ -110,8 +110,13 @@ impl Recipe for Rust {
         contract_path.push(path);
         contract_path.push(name);
         // initialize contract code
-        for f in &["src/main.rs", "src/error.rs", "src/entry.rs", "Cargo.toml"] {
-            let template_path = format!("rust/contract/{}", f);
+        for (f, template_name) in &[
+            ("src/main.rs", None),
+            ("src/error.rs", None),
+            ("src/entry.rs", None),
+            ("Cargo.toml", Some("Cargo-manifest.toml")),
+        ] {
+            let template_path = format!("rust/contract/{}", template_name.unwrap_or(f));
             let content = TEMPLATES.render(&template_path, &context)?;
             let mut file_path = contract_path.clone();
             file_path.push(f);
