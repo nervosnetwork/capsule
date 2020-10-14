@@ -17,5 +17,5 @@ pub fn version_string() -> String {
     let commit_id = env!("COMMIT_ID");
     version.push_str(" ");
     version.push_str(commit_id);
-    version
+    version.trim().to_string()
 }
