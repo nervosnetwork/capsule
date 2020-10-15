@@ -7,7 +7,7 @@
 # [[cells]]
 # name = "genesis_cell"
 # enable_type_id = false
-# location = { tx_hash = "0x92b197aa1fba0f63633922c61c92375c9c074a93e85963554f5499fe1450d0e5", index = 0 }
+# location = { tx_hash = "0x71a7ba8fc96349fea0ed3a5c47992e3b4084b031a42264a018e0072e8172e46c", index = 0 }
  
 
 # # Dep group cells
