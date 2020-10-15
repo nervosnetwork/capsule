@@ -1,6 +1,12 @@
-build/*
+# Rust
 target/*
-contracts/**/target/*
 .cache/.cargo/*
+contracts/**/target/*
+
+# C
+contracts/c/build/*
+
+# others
+build/*
 !.gitkeep
 .tmp/
