@@ -6,10 +6,12 @@
 #define SCRIPT_SIZE 32768
 
 // Common error codes that might be returned by the script.
+// Notice: return non-zero value means the script varification is failed.
 #define ERROR_ARGUMENTS_LEN -1
 #define ERROR_ENCODING -2
 #define ERROR_SYSCALL -3
 #define ERROR_SCRIPT_TOO_LONG -21
+#define ERROR_MY_ERR 5
 
 // We will leverage gcc's 128-bit integer extension here for number crunching.
 typedef unsigned __int128 uint128_t;
@@ -39,6 +41,11 @@ int main() {
   mol_seg_t args_bytes_seg = MolReader_Bytes_raw_bytes(&args_seg);
   // the printf only compiled under debug build
   printf("args length: %ld", args_bytes_seg.size);
+
+  // return an error is args is invalid
+  if (args_bytes_seg.size == 0) {
+    return ERROR_MY_ERR;
+  }
 
   return CKB_SUCCESS;
 }

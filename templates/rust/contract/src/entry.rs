@@ -22,6 +22,11 @@ pub fn main() -> Result<(), Error> {
     let args: Bytes = script.args().unpack();
     debug!("script args is {:?}", args);
 
+    // return an error if args is invalid
+    if args.is_empty() {
+        return Err(Error::MyError);
+    }
+
     let tx_hash = load_tx_hash()?;
     debug!("tx hash is {:?}", tx_hash);
 
