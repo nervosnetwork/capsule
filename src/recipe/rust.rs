@@ -82,6 +82,23 @@ impl Rust {
         }
         Ok(())
     }
+
+    fn docker_image(&self) -> String {
+        self.context
+            .config
+            .rust
+            .docker_image
+            .clone()
+            .unwrap_or(DOCKER_IMAGE.to_string())
+    }
+
+    fn cargo_cmd(&self) -> String {
+        let mut cargo_cmd = "cargo".to_string();
+        if let Some(toolchain) = self.context.config.rust.toolchain.as_ref() {
+            cargo_cmd.push_str(&format!(" +{}", toolchain));
+        }
+        cargo_cmd
+    }
 }
 
 impl Recipe for Rust {
@@ -101,11 +118,14 @@ impl Recipe for Rust {
         let context = tera::Context::from_serialize(&CreateContract { name: name.clone() })?;
         // generate contract
         let cmd = DockerCommand::with_config(
-            DOCKER_IMAGE.to_string(),
+            self.docker_image(),
             path.to_str().expect("str").to_string(),
         )
         .fix_dir_permission(name.clone());
-        cmd.run(format!("cargo new {} --vcs none", name), signal)?;
+        cmd.run(
+            format!("{} new {} --vcs none", self.cargo_cmd(), name),
+            signal,
+        )?;
         let mut contract_path = PathBuf::new();
         contract_path.push(path);
         contract_path.push(name);
@@ -135,7 +155,7 @@ impl Recipe for Rust {
         let contract_relative_path = self.contract_relative_path(&contract.name);
         let cmd = DockerCommand::with_context(
             &self.context,
-            DOCKER_IMAGE.to_string(),
+            self.docker_image(),
             project_path.to_string(),
         )
         .workdir(format!(
@@ -169,8 +189,9 @@ impl Recipe for Rust {
 
         // run build command
         let build_cmd = format!(
-            "{rustflags} cargo build --target {rust_target} {build_env} && \
+            "{rustflags} {cargo_cmd} build --target {rust_target} {build_env} && \
          ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
+            cargo_cmd = self.cargo_cmd(),
             rustflags = self.injection_rustflags(config, &contract.name),
             rust_target = RUST_TARGET,
             contract_bin = container_bin_path.to_str().expect("bin"),
@@ -199,7 +220,8 @@ impl Recipe for Rust {
     fn clean(&self, contracts: &[Contract], signal: &Signal) -> Result<()> {
         // cargo clean
         let clean_cmd = format!(
-            "cargo clean --target {rust_target}",
+            "{cargo_cmd} clean --target {rust_target}",
+            cargo_cmd = self.cargo_cmd(),
             rust_target = RUST_TARGET,
         );
 
