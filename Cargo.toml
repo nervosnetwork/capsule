@@ -1,7 +1,7 @@
 [package]
 name = "ckb-capsule"
-version = "0.4.4"
-authors = ["Nervos Network", "jjy <jjyruby@gmail.com>"]
+version = "0.4.5"
+authors = ["Nervos Network"]
 edition = "2018"
 license = "MIT"
 description = "Capsule is a development framework for creating smart contract for Nervos' CKB layer 1 blockchain."
@@ -18,10 +18,10 @@ lazy_static = "1.4"
 serde = { version = "1.0", features = [ "derive" ] }
 toml = "0.5"
 toml_edit = "0.1.5"
-ckb-tool = "0.2"
+ckb-tool = "0.3"
 simple-jsonrpc-client = "0.1"
 bech32 = "0.6"
-secp256k1 = "0.17"
+secp256k1 = "0.20"
 serde_json = "1.0"
 chrono = "0.4"
 rpassword = "4.0"
