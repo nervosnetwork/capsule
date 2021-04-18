@@ -9,7 +9,6 @@ use crate::recipe::Recipe;
 use crate::signal::Signal;
 use crate::util::docker::DockerCommand;
 use anyhow::{anyhow, Result};
-use tera;
 
 use std::fs;
 use std::path::PathBuf;

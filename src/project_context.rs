@@ -64,6 +64,7 @@ pub struct Context {
 
 impl Context {
     pub fn load() -> Result<Context> {
+        // FIXME: should be the directory where `capsule.toml` located in.
         Self::load_from_path(env::current_dir()?)
     }
 

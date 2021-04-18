@@ -21,7 +21,7 @@ pub struct DepGroupRecipe {
     pub occupied_capacity: u64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct DeploymentRecipe {
     pub cell_recipes: Vec<CellRecipe>,
     pub dep_group_recipes: Vec<DepGroupRecipe>,

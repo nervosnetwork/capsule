@@ -33,7 +33,9 @@ fn find_output(
 }
 
 pub fn tx_check(wallet: &Wallet, tx: &TransactionView) -> Result<()> {
+    #[allow(clippy::mutable_key_type)]
     let mut dep_data_hashes: HashSet<packed::Byte32> = HashSet::new();
+    #[allow(clippy::mutable_key_type)]
     let mut dep_type_hashes: HashSet<packed::Byte32> = HashSet::new();
 
     // insert type_id
