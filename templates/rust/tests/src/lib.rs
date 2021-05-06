@@ -1,4 +1,4 @@
-use ckb_tool::ckb_types::bytes::Bytes;
+use ckb_testtool::ckb_types::bytes::Bytes;
 use std::env;
 use std::fs;
 use std::path::PathBuf;

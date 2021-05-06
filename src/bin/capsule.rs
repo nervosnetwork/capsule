@@ -18,7 +18,7 @@ use ckb_capsule::project_context::{
 use ckb_capsule::recipe::get_recipe;
 use ckb_capsule::signal;
 use ckb_capsule::tester::Tester;
-use ckb_capsule::version::version_string;
+use ckb_capsule::version::Version;
 use ckb_capsule::wallet::cli_types::HumanCapacity;
 use ckb_capsule::wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 use ckb_tool::ckb_types::core::Capacity;
@@ -63,7 +63,7 @@ fn group_contracts_by_type(contracts: Vec<Contract>) -> HashMap<TemplateType, Ve
 fn run_cli() -> Result<()> {
     env_logger::init();
 
-    let version = version_string();
+    let version_str = Version::current().to_string();
     let default_max_cycles_str = format!("{}", DEBUGGER_MAX_CYCLES);
 
     let contract_args = [
@@ -82,7 +82,7 @@ fn run_cli() -> Result<()> {
 
     let mut app = App::new("Capsule")
         .setting(AppSettings::ArgRequiredElseHelp)
-        .version(version.as_str())
+        .version(version_str.as_str())
         .author("Nervos Developer Tools Team")
         .about("Capsule CKB contract scaffold")
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))

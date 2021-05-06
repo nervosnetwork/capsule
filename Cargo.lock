@@ -326,7 +326,7 @@ checksum = "027dcb7d0c770d6a7e99cb63e51762f1c6952828f1d01d13f9f044c40a174aee"
 
 [[package]]
 name = "ckb-capsule"
-version = "0.4.5"
+version = "0.4.6"
 dependencies = [
  "anyhow",
  "bech32",
