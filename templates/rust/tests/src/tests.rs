@@ -1,13 +1,13 @@
 use super::*;
 use ckb_testtool::context::Context;
-use ckb_tool::ckb_types::{
+use ckb_testtool::ckb_types::{
     bytes::Bytes,
     core::TransactionBuilder,
     packed::*,
     prelude::*,
 };
-use ckb_tool::ckb_error::assert_error_eq;
-use ckb_tool::ckb_script::ScriptError;
+use ckb_testtool::ckb_error::assert_error_eq;
+use ckb_testtool::ckb_script::ScriptError;
 
 const MAX_CYCLES: u64 = 10_000_000;
 
