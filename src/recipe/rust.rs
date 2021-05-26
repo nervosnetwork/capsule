@@ -73,11 +73,24 @@ impl Rust {
         // rewrite config
         {
             println!("Rewrite Cargo.toml");
-            let mut cargo_path = self.context.project_path.clone();
+            let mut cargo_path = self.context.workspace_dir()?;
+            let workspace_member = if Some(Some(CONTRACTS_DIR))
+                == self
+                    .context
+                    .config
+                    .rust
+                    .workspace_dir
+                    .as_ref()
+                    .map(|dir| dir.to_str())
+            {
+                name.to_string()
+            } else {
+                format!("{}/{}", CONTRACTS_DIR, name)
+            };
             cargo_path.push(CARGO_CONFIG_FILE);
             let config_content = read_config_file(&cargo_path)?;
             let mut doc = config_content.parse::<Document>()?;
-            append_cargo_workspace_member(&mut doc, format!("{}/{}", CONTRACTS_DIR, name))?;
+            append_cargo_workspace_member(&mut doc, workspace_member)?;
             write_config_file(&cargo_path, doc.to_string())?;
         }
         Ok(())
@@ -200,10 +213,7 @@ impl Recipe for Rust {
         self.run(contract, build_cmd, signal)?;
 
         // copy to build dir
-        let mut project_bin_path = self.context.project_path.clone();
-        if let Some(workspace_dir) = self.context.config.rust.workspace_dir.as_ref() {
-            project_bin_path.push(workspace_dir);
-        }
+        let mut project_bin_path = self.context.workspace_dir()?;
         project_bin_path.push(&rel_bin_path);
         if !project_bin_path.exists() {
             return Err(anyhow!("can't find contract binary from path {:?}, please set `workspace_dir` in capsule.toml", project_bin_path));

@@ -29,7 +29,7 @@ const DEBUGGER_MAX_CYCLES: u64 = 70_000_000u64;
 const TEMPLATES_NAMES: &[&str] = &["rust", "c", "c-sharedlib"];
 
 fn append_contract_to_config(context: &Context, contract: &Contract) -> Result<()> {
-    println!("Rewrite ckb_capsule.toml");
+    println!("Rewrite capsule.toml");
     let mut config_path = context.project_path.clone();
     config_path.push(CONFIG_FILE);
     let config_content = read_config_file(&config_path)?;

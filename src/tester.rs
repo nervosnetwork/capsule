@@ -13,13 +13,20 @@ impl Tester {
             BuildEnv::Debug => "debug",
             BuildEnv::Release => "release",
         };
-        let project_path = project_context
-            .project_path
+        let workspace_dir = project_context
+            .workspace_dir()?
             .to_str()
             .expect("project path")
             .to_string();
+        // When workspace_dir is "contracts" we must mount build directory to /code/build so that test Loader can load the binary.
+        let build_dir = project_context
+            .contracts_build_dir()
+            .to_str()
+            .expect("build dir")
+            .to_string();
         let cmd =
-            DockerCommand::with_context(project_context, DOCKER_IMAGE.to_string(), project_path)
+            DockerCommand::with_context(project_context, DOCKER_IMAGE.to_string(), workspace_dir)
+                .map_volume(build_dir, "/code/build".to_string())
                 .fix_dir_permission("target".to_string())
                 .fix_dir_permission("Cargo.lock".to_string());
         cmd.run(
