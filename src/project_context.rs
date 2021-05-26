@@ -91,15 +91,36 @@ impl Context {
         })
     }
 
+    pub fn workspace_dir(&self) -> Result<PathBuf> {
+        let mut path = self.project_path.clone();
+        if let Some(workspace_dir) = self.config.rust.workspace_dir.as_ref() {
+            match workspace_dir.to_str() {
+                Some(".") => {}
+                Some(CONTRACTS_DIR) => {
+                    path.push(workspace_dir);
+                }
+                dir => {
+                    return Err(anyhow!("Invalid `workspace_dir` config: {:?}, only allowed \".\" or \"contracts\".", dir));
+                }
+            }
+        }
+        Ok(path)
+    }
+
     pub fn contracts_path(&self) -> PathBuf {
         let mut path = self.project_path.clone();
         path.push(CONTRACTS_DIR);
         path
     }
 
-    pub fn contracts_build_path(&self, env: BuildEnv) -> PathBuf {
+    pub fn contracts_build_dir(&self) -> PathBuf {
         let mut path = self.project_path.clone();
         path.push(CONTRACTS_BUILD_DIR);
+        path
+    }
+
+    pub fn contracts_build_path(&self, env: BuildEnv) -> PathBuf {
+        let mut path = self.contracts_build_dir();
         let prefix = match env {
             BuildEnv::Debug => "debug",
             BuildEnv::Release => "release",
