@@ -95,9 +95,22 @@ fn run_cli() -> Result<()> {
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
         .display_order(4))
-        .subcommand(SubCommand::with_name("test").about("Run tests").arg(
-                    Arg::with_name("release").long("release").help("Test release mode contracts.")
-        ).display_order(5))
+        .subcommand(
+            SubCommand::with_name("test")
+                .about("Run tests")
+                .arg(
+                    Arg::with_name("release")
+                        .long("release")
+                        .help("Test release mode contracts.")
+                )
+                .arg(
+                    Arg::with_name("testname")
+                        .takes_value(true)
+                        .value_name("TESTNAME")
+                        .help("If specified, only run tests containing this string in their names.")
+                )
+                .display_order(5)
+        )
         .subcommand(
             SubCommand::with_name("deploy")
                 .about("Deploy contracts, edit deployment.toml to custodian deployment recipe.")
@@ -312,7 +325,7 @@ fn run_cli() -> Result<()> {
             } else {
                 BuildEnv::Debug
             };
-            Tester::run(&context, build_env, &signal)?;
+            Tester::run(&context, build_env, &signal, args.value_of("testname"))?;
         }
         ("deploy", Some(args)) => {
             Checker::build()?.check_ckb_cli()?;

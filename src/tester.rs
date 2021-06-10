@@ -8,7 +8,12 @@ const TEST_ENV_VAR: &str = "CAPSULE_TEST_ENV";
 pub struct Tester;
 
 impl Tester {
-    pub fn run(project_context: &Context, env: BuildEnv, signal: &Signal) -> Result<()> {
+    pub fn run(
+        project_context: &Context,
+        env: BuildEnv,
+        signal: &Signal,
+        testname: Option<&str>,
+    ) -> Result<()> {
         let env_arg = match env {
             BuildEnv::Debug => "debug",
             BuildEnv::Release => "release",
@@ -31,8 +36,10 @@ impl Tester {
                 .fix_dir_permission("Cargo.lock".to_string());
         cmd.run(
             format!(
-                "{}={} cargo test -p tests -- --nocapture",
-                TEST_ENV_VAR, env_arg
+                "{}={} cargo test {} -p tests -- --nocapture",
+                TEST_ENV_VAR,
+                env_arg,
+                testname.unwrap_or(""),
             ),
             signal,
         )?;
