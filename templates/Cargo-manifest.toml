@@ -5,5 +5,5 @@ members = ["tests"]
 overflow-checks = true
 opt-level = 's'
 lto = true
-codegen-units = 1
+codegen-units = 2
 panic = 'abort'
