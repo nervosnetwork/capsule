@@ -27,11 +27,12 @@ Capsule provides the following functionality:
 The following must be installed and available to use Capsule.
 
 - Docker - Capsule uses `docker` to build contracts and run tests. https://docs.docker.com/get-docker/
-- ckb-cli (optional) - Capsule requires `ckb-cli` to enable the smart contract deployment feature. https://github.com/nervosnetwork/ckb-cli/releases
+- ckb-cli (optional) - Capsule requires `ckb-cli** to enable the smart contract deployment feature. https://github.com/nervosnetwork/ckb-cli/releases
 
-Note: Docker and ckb-cli must be accessible in the `PATH` in order for them to be used by Capsule.
-
-Note: The current user must have permission to manage Docker instances. [How to manage Docker as a non-root user.](https://docs.docker.com/engine/install/linux-postinstall/)
+**Note**: 
+- Docker and ckb-cli must be accessible in the `PATH` in order for them to be used by Capsule.
+- The current user must have permission to manage Docker instances. [How to manage Docker as a non-root user.](https://docs.docker.com/engine/install/linux-postinstall/)
+- The cargo in docker may very slow or even not working due to network issue. [Fix cargo network issue when work with Docker](https://github.com/nervosnetwork/capsule/wiki/Cargo-network-issue-when-work-with-Docker)
 
 ### Install binary
 
