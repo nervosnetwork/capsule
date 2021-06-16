@@ -104,6 +104,19 @@ fn run_cli() -> Result<()> {
                         .help("Test release mode contracts.")
                 )
                 .arg(
+                    Arg::with_name("nocapture")
+                        .long("nocapture")
+                        .help("Don't capture test output")
+                )
+                .arg(
+                    Arg::with_name("env")
+                        .long("env")
+                        .short("e")
+                        .takes_value(true)
+                        .multiple(true)
+                        .help("Set environment variables")
+                )
+                .arg(
                     Arg::with_name("testname")
                         .takes_value(true)
                         .value_name("TESTNAME")
@@ -325,7 +338,30 @@ fn run_cli() -> Result<()> {
             } else {
                 BuildEnv::Debug
             };
-            Tester::run(&context, build_env, &signal, args.value_of("testname"))?;
+            let env_list = args
+                .values_of("env")
+                .map(|values| {
+                    values
+                        .into_iter()
+                        .map(|pair| {
+                            let mut splitn = pair.splitn(2, '=');
+                            let key = splitn.next().expect("first item");
+                            let value = splitn.next().unwrap_or("");
+                            (key, value)
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            let testname_opt = args.value_of("testname");
+            let nocapture = args.is_present("nocapture");
+            Tester::run(
+                &context,
+                build_env,
+                &signal,
+                testname_opt,
+                nocapture,
+                &env_list[..],
+            )?;
         }
         ("deploy", Some(args)) => {
             Checker::build()?.check_ckb_cli()?;
