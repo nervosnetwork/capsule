@@ -2,6 +2,7 @@ use crate::project_context::Context;
 use crate::signal::Signal;
 use anyhow::{anyhow, Result};
 use log::debug;
+use std::collections::HashMap;
 use std::env;
 use std::process::Command;
 use std::thread::sleep;
@@ -34,6 +35,7 @@ pub struct DockerCommand {
     daemon: bool,
     tty: bool,
     workdir: String,
+    extra_env: HashMap<String, String>,
     inherited_env: Vec<&'static str>,
 }
 
@@ -67,6 +69,7 @@ impl DockerCommand {
             daemon: false,
             tty: false,
             workdir: "/code".to_string(),
+            extra_env: HashMap::default(),
             inherited_env: vec!["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"],
         }
     }
@@ -98,6 +101,11 @@ impl DockerCommand {
 
     pub fn fix_dir_permission(mut self, dir: String) -> Self {
         self.fix_permission_files.push(dir);
+        self
+    }
+
+    pub fn env(mut self, key: String, value: String) -> Self {
+        self.extra_env.insert(key, value);
         self
     }
 
@@ -164,6 +172,7 @@ impl DockerCommand {
             daemon,
             tty,
             workdir,
+            mut extra_env,
             inherited_env,
         } = self;
 
@@ -199,10 +208,17 @@ impl DockerCommand {
 
         // inject env
         for key in inherited_env {
-            if let Ok(value) = env::var(key) {
+            if let Some(value) = extra_env.remove(key) {
+                debug!("extra env {}={}", key, value);
+                cmd.arg(format!("-e{}={}", key, value));
+            } else if let Ok(value) = env::var(key) {
                 debug!("inherited env {}={}", key, value);
-                cmd.arg(format!("-e{}:{}", key, value));
+                cmd.arg(format!("-e{}={}", key, value));
             }
+        }
+        for (key, value) in extra_env {
+            debug!("extra env {}={}", key, value);
+            cmd.arg(format!("-e{}={}", key, value));
         }
 
         if host_network {
@@ -230,6 +246,7 @@ impl DockerCommand {
         }
         shell_cmd.push_str("; exit $EXITCODE");
         cmd.args(&[docker_image.as_ref(), "bash", "-c", shell_cmd.as_str()]);
+        debug!("Docker cmd: {:?}", cmd);
 
         Ok(cmd)
     }

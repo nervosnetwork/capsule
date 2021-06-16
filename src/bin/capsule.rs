@@ -95,9 +95,35 @@ fn run_cli() -> Result<()> {
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
         .display_order(4))
-        .subcommand(SubCommand::with_name("test").about("Run tests").arg(
-                    Arg::with_name("release").long("release").help("Test release mode contracts.")
-        ).display_order(5))
+        .subcommand(
+            SubCommand::with_name("test")
+                .about("Run tests")
+                .arg(
+                    Arg::with_name("release")
+                        .long("release")
+                        .help("Test release mode contracts.")
+                )
+                .arg(
+                    Arg::with_name("nocapture")
+                        .long("nocapture")
+                        .help("Don't capture test output")
+                )
+                .arg(
+                    Arg::with_name("env")
+                        .long("env")
+                        .short("e")
+                        .takes_value(true)
+                        .multiple(true)
+                        .help("Set environment variables")
+                )
+                .arg(
+                    Arg::with_name("testname")
+                        .takes_value(true)
+                        .value_name("TESTNAME")
+                        .help("If specified, only run tests containing this string in their names.")
+                )
+                .display_order(5)
+        )
         .subcommand(
             SubCommand::with_name("deploy")
                 .about("Deploy contracts, edit deployment.toml to custodian deployment recipe.")
@@ -312,7 +338,30 @@ fn run_cli() -> Result<()> {
             } else {
                 BuildEnv::Debug
             };
-            Tester::run(&context, build_env, &signal)?;
+            let env_list = args
+                .values_of("env")
+                .map(|values| {
+                    values
+                        .into_iter()
+                        .map(|pair| {
+                            let mut splitn = pair.splitn(2, '=');
+                            let key = splitn.next().expect("first item");
+                            let value = splitn.next().unwrap_or("");
+                            (key, value)
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            let testname_opt = args.value_of("testname");
+            let nocapture = args.is_present("nocapture");
+            Tester::run(
+                &context,
+                build_env,
+                &signal,
+                testname_opt,
+                nocapture,
+                &env_list[..],
+            )?;
         }
         ("deploy", Some(args)) => {
             Checker::build()?.check_ckb_cli()?;
