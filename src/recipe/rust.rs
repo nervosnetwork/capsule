@@ -11,6 +11,7 @@ use crate::util::docker::DockerCommand;
 use anyhow::{anyhow, Result};
 use tera;
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
@@ -133,6 +134,7 @@ impl Recipe for Rust {
         let cmd = DockerCommand::with_config(
             self.docker_image(),
             path.to_str().expect("str").to_string(),
+            &HashMap::new(),
         )
         .fix_dir_permission(name.clone());
         cmd.run(
@@ -163,13 +165,20 @@ impl Recipe for Rust {
     }
 
     /// run command in build image
-    fn run(&self, contract: &Contract, build_cmd: String, signal: &Signal) -> Result<()> {
+    fn run(
+        &self,
+        contract: &Contract,
+        build_cmd: String,
+        signal: &Signal,
+        custom_env: &HashMap<String, String>,
+    ) -> Result<()> {
         let project_path = self.context.project_path.to_str().expect("path");
         let contract_relative_path = self.contract_relative_path(&contract.name);
         let cmd = DockerCommand::with_context(
             &self.context,
             self.docker_image(),
             project_path.to_string(),
+            custom_env,
         )
         .workdir(format!(
             "/code/{}",
@@ -182,7 +191,13 @@ impl Recipe for Rust {
     }
 
     /// build contract
-    fn run_build(&self, contract: &Contract, config: BuildConfig, signal: &Signal) -> Result<()> {
+    fn run_build(
+        &self,
+        contract: &Contract,
+        config: BuildConfig,
+        signal: &Signal,
+        custom_env: &HashMap<String, String>,
+    ) -> Result<()> {
         // docker cargo build
         let mut rel_bin_path = PathBuf::new();
         let (bin_dir_prefix, build_cmd_opt) = match config.build_env {
@@ -210,7 +225,7 @@ impl Recipe for Rust {
             contract_bin = container_bin_path.to_str().expect("bin"),
             build_env = build_cmd_opt
         );
-        self.run(contract, build_cmd, signal)?;
+        self.run(contract, build_cmd, signal, custom_env)?;
 
         // copy to build dir
         let mut project_bin_path = self.context.workspace_dir()?;
@@ -236,7 +251,7 @@ impl Recipe for Rust {
         );
 
         for c in contracts {
-            self.run(c, clean_cmd.clone(), signal)?;
+            self.run(c, clean_cmd.clone(), signal, &HashMap::new())?;
 
             // remove binary
             for build_env in &[BuildEnv::Debug, BuildEnv::Release] {

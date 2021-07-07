@@ -6,6 +6,7 @@ use crate::signal::Signal;
 use crate::util::cli;
 use crate::util::git;
 use anyhow::{anyhow, Result};
+use std::collections::HashMap;
 use std::fs;
 use std::io::Write;
 use std::marker::PhantomData;
@@ -197,13 +198,25 @@ impl<R: CRecipe> Recipe for C<R> {
 
     /// run command
     /// Delegate to cli command
-    fn run(&self, _contract: &Contract, build_cmd: String, signal: &Signal) -> Result<()> {
+    fn run(
+        &self,
+        _contract: &Contract,
+        build_cmd: String,
+        signal: &Signal,
+        _custom_env: &HashMap<String, String>,
+    ) -> Result<()> {
         cli::run(build_cmd, self.c_dir(), signal)
     }
 
     /// build contract
     /// Delegate to Makefile
-    fn run_build(&self, c: &Contract, config: BuildConfig, signal: &Signal) -> Result<()> {
+    fn run_build(
+        &self,
+        c: &Contract,
+        config: BuildConfig,
+        signal: &Signal,
+        _custom_build_env: &HashMap<String, String>,
+    ) -> Result<()> {
         let build_target = self.build_target(config.build_env, &c.name);
         let mut bin_path = self.c_dir();
         bin_path.push(&build_target);
@@ -213,6 +226,7 @@ impl<R: CRecipe> Recipe for C<R> {
             c,
             format!("make via-docker ARGS=\"{}\"", &build_target),
             signal,
+            _custom_build_env,
         )?;
 
         // copy to build dir

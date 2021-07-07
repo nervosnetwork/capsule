@@ -22,6 +22,7 @@ use ckb_capsule::version::Version;
 use ckb_capsule::wallet::cli_types::HumanCapacity;
 use ckb_capsule::wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
 use ckb_tool::ckb_types::core::Capacity;
+use log::debug;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 
@@ -88,15 +89,18 @@ fn run_cli() -> Result<()> {
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
         .subcommand(SubCommand::with_name("new").about("Create a new project").args(&contract_args).display_order(1))
         .subcommand(SubCommand::with_name("new-contract").about("Create a new contract").args(&contract_args).display_order(2))
-        .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
-                    Arg::with_name("release").long("release").help("Build contracts in release mode.")
-        ).arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output")).display_order(3))
+        .subcommand(SubCommand::with_name("build").about("Build contracts")
+            .arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name"))
+            .arg(Arg::with_name("release").long("release").help("Build contracts in release mode."))
+            .arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output"))
+            .arg(Arg::with_name("env").long("env").short("e").multiple(true).takes_value(true).help("Environment variable passed to compiler assigned by equal-signs, only ASCII key and value pairs"))
+            .display_order(3))
         .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("ckb_capsule run --name <name> 'echo list contract dir: && ls'")
-        .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
+            .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
-        .display_order(4))
+            .display_order(4))
         .subcommand(SubCommand::with_name("test").about("Run tests").arg(
-                    Arg::with_name("release").long("release").help("Test release mode contracts.")
+            Arg::with_name("release").long("release").help("Test release mode contracts.")
         ).display_order(5))
         .subcommand(
             SubCommand::with_name("deploy")
@@ -109,7 +113,7 @@ fn run_cli() -> Result<()> {
                         "Per transaction's fee, deployment may involve more than one transaction.",
                     ).default_value("0.0001").takes_value(true),
                     Arg::with_name("env").long("env").help("Deployment environment.")
-                    .possible_values(&["dev", "production"]).default_value("dev").takes_value(true),
+                        .possible_values(&["dev", "production"]).default_value("dev").takes_value(true),
                     Arg::with_name("migrate")
                         .long("migrate")
                         .help("Use previously deployed cells as inputs.").possible_values(&["on", "off"]).default_value("on").takes_value(true),
@@ -122,70 +126,70 @@ fn run_cli() -> Result<()> {
                 ]).display_order(6),
         )
         .subcommand(SubCommand::with_name("clean").about("Remove contracts targets and binaries").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name"))
-        .display_order(7))
+            .display_order(7))
         .subcommand(
             SubCommand::with_name("debugger")
-            .about("CKB debugger")
-            .subcommand(
-                SubCommand::with_name("gen-template")
-                .about("Generate transaction debugging template")
-                .args(&[
-                    Arg::with_name("name").long("name").short("n").help(
-                        "contract name",
-                    ).required(true).takes_value(true),
-                    Arg::with_name("output-file")
-                        .long("output-file")
-                        .short("o")
-                        .help("Output file path").required(true).takes_value(true),
-                ])
-            )
-            .subcommand(
-                SubCommand::with_name("start")
-                .about("Start GDB")
-                .args(&[
-                    Arg::with_name("template-file")
-                        .long("template-file")
-                        .short("f")
-                        .help("Transaction debugging template file")
-                        .required(true)
-                        .takes_value(true),
-                    Arg::with_name("name")
-                        .short("n")
-                        .long("name")
-                        .required(true)
-                        .takes_value(true)
-                        .help("contract name"),
-                    Arg::with_name("release").long("release").help("Debugging release contract"),
-                    Arg::with_name("script-group-type")
-                        .long("script-group-type")
-                        .possible_values(&["type", "lock"])
-                        .help("Script type")
-                        .required(true)
-                        .takes_value(true),
-                    Arg::with_name("cell-index")
-                        .long("cell-index")
-                        .required(true)
-                        .help("index of the cell")
-                        .takes_value(true),
-                    Arg::with_name("cell-type")
-                        .long("cell-type")
-                        .required(true)
-                        .possible_values(&["input", "output"])
-                        .help("cell type")
-                        .takes_value(true),
-                    Arg::with_name("max-cycles")
-                        .long("max-cycles")
-                        .default_value(&default_max_cycles_str)
-                        .help("Max cycles")
-                        .takes_value(true),
-                    Arg::with_name("listen")
-                        .long("listen")
-                        .short("l")
-                        .help("GDB server listening port")
-                        .default_value("8000").required(true).takes_value(true),
-                    Arg::with_name("only-server").long("only-server").help("Only start debugger server"),
-                ])
-            )
+                .about("CKB debugger")
+                .subcommand(
+                    SubCommand::with_name("gen-template")
+                        .about("Generate transaction debugging template")
+                        .args(&[
+                            Arg::with_name("name").long("name").short("n").help(
+                                "contract name",
+                            ).required(true).takes_value(true),
+                            Arg::with_name("output-file")
+                                .long("output-file")
+                                .short("o")
+                                .help("Output file path").required(true).takes_value(true),
+                        ])
+                )
+                .subcommand(
+                    SubCommand::with_name("start")
+                        .about("Start GDB")
+                        .args(&[
+                            Arg::with_name("template-file")
+                                .long("template-file")
+                                .short("f")
+                                .help("Transaction debugging template file")
+                                .required(true)
+                                .takes_value(true),
+                            Arg::with_name("name")
+                                .short("n")
+                                .long("name")
+                                .required(true)
+                                .takes_value(true)
+                                .help("contract name"),
+                            Arg::with_name("release").long("release").help("Debugging release contract"),
+                            Arg::with_name("script-group-type")
+                                .long("script-group-type")
+                                .possible_values(&["type", "lock"])
+                                .help("Script type")
+                                .required(true)
+                                .takes_value(true),
+                            Arg::with_name("cell-index")
+                                .long("cell-index")
+                                .required(true)
+                                .help("index of the cell")
+                                .takes_value(true),
+                            Arg::with_name("cell-type")
+                                .long("cell-type")
+                                .required(true)
+                                .possible_values(&["input", "output"])
+                                .help("cell type")
+                                .takes_value(true),
+                            Arg::with_name("max-cycles")
+                                .long("max-cycles")
+                                .default_value(&default_max_cycles_str)
+                                .help("Max cycles")
+                                .takes_value(true),
+                            Arg::with_name("listen")
+                                .long("listen")
+                                .short("l")
+                                .help("GDB server listening port")
+                                .default_value("8000").required(true).takes_value(true),
+                            Arg::with_name("only-server").long("only-server").help("Only start debugger server"),
+                        ])
+                )
                 .display_order(8),
         );
 
@@ -262,6 +266,31 @@ fn run_cli() -> Result<()> {
                 always_debug,
             };
 
+            let custom_env = args
+                .values_of("env")
+                .map(|values| {
+                    values
+                        .into_iter()
+                        .map(|value| {
+                            println!("{}", value);
+                            if let Some(index) = value.find('=') {
+                                if index == 0 {
+                                    Err(anyhow!("Key of env {} ?", value))
+                                } else {
+                                    let key = value[0..index].to_string();
+                                    //the value could be emtpy
+                                    let value = value[index + 1..].to_string();
+                                    debug!("Env: {}={}", key, value);
+                                    Ok((key, value))
+                                }
+                            } else {
+                                Err(anyhow!("Missing '=' of env expression {}", value))
+                            }
+                        })
+                        .collect::<Result<HashMap<String, String>, _>>()
+                })
+                .unwrap_or(Ok(HashMap::<_, _, _>::default()))?;
+
             let contracts: Vec<_> = select_contracts(&context, &build_names);
             if contracts.is_empty() {
                 println!("Nothing to do");
@@ -269,7 +298,7 @@ fn run_cli() -> Result<()> {
                 for contract in contracts {
                     println!("Building contract {}", contract.name);
                     let recipe = get_recipe(context.clone(), contract.template_type)?;
-                    recipe.run_build(&contract, build_config, &signal)?;
+                    recipe.run_build(&contract, build_config, &signal, &custom_env)?;
                 }
                 println!("Done");
             }
@@ -303,7 +332,12 @@ fn run_cli() -> Result<()> {
                 Some(c) => c.clone(),
                 None => return Err(anyhow!("can't find contract '{}'", name)),
             };
-            get_recipe(context, contract.template_type)?.run(&contract, cmd, &signal)?;
+            get_recipe(context, contract.template_type)?.run(
+                &contract,
+                cmd,
+                &signal,
+                &HashMap::new(),
+            )?;
         }
         ("test", Some(args)) => {
             let context = Context::load()?;

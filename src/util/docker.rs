@@ -2,6 +2,7 @@ use crate::project_context::Context;
 use crate::signal::Signal;
 use anyhow::{anyhow, Result};
 use log::debug;
+use std::collections::HashMap;
 use std::env;
 use std::process::Command;
 use std::thread::sleep;
@@ -13,6 +14,7 @@ struct Volume {
     volume: String,
     container: String,
 }
+
 struct Port {
     host: usize,
     container: usize,
@@ -35,14 +37,24 @@ pub struct DockerCommand {
     tty: bool,
     workdir: String,
     inherited_env: Vec<&'static str>,
+    custom_env: HashMap<String, String>,
 }
 
 impl DockerCommand {
-    pub fn with_context(_context: &Context, docker_image: String, code_path: String) -> Self {
-        Self::with_config(docker_image, code_path)
+    pub fn with_context(
+        _context: &Context,
+        docker_image: String,
+        code_path: String,
+        custom_env: &HashMap<String, String>,
+    ) -> Self {
+        Self::with_config(docker_image, code_path, &custom_env)
     }
 
-    pub fn with_config(docker_image: String, code_path: String) -> Self {
+    pub fn with_config(
+        docker_image: String,
+        code_path: String,
+        custom_env: &HashMap<String, String>,
+    ) -> Self {
         let bin = DOCKER_BIN.to_string();
         let uid = users::get_current_uid();
         let gid = users::get_current_gid();
@@ -68,6 +80,7 @@ impl DockerCommand {
             tty: false,
             workdir: "/code".to_string(),
             inherited_env: vec!["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"],
+            custom_env: custom_env.clone(),
         }
     }
 
@@ -165,6 +178,7 @@ impl DockerCommand {
             tty,
             workdir,
             inherited_env,
+            custom_env,
         } = self;
 
         let mut cmd = Command::new(bin);
@@ -203,6 +217,12 @@ impl DockerCommand {
                 debug!("inherited env {}={}", key, value);
                 cmd.arg(format!("-e{}:{}", key, value));
             }
+        }
+
+        // inject custom env
+        for (key, value) in custom_env {
+            debug!("custom env {}={}", key, value);
+            cmd.arg(format!("-e{}:{}", key, value));
         }
 
         if host_network {
