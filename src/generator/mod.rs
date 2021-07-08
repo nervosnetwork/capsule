@@ -6,6 +6,7 @@ use crate::version::Version;
 use anyhow::{Context as ErrorContext, Result};
 use lazy_static::lazy_static;
 use serde::Serialize;
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tera::{self, Context, Tera};
@@ -86,8 +87,12 @@ fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P, signal: &Sign
     const DEFAULT_TESTS_DIR: &str = "tests";
 
     let project_path = project_path.as_ref().to_str().expect("path");
-    let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), project_path.to_string())
-        .fix_dir_permission(DEFAULT_TESTS_DIR.to_string());
+    let cmd = DockerCommand::with_config(
+        DOCKER_IMAGE.to_string(),
+        project_path.to_string(),
+        &HashMap::new(),
+    )
+    .fix_dir_permission(DEFAULT_TESTS_DIR.to_string());
     cmd.run(
         format!("cargo new {} --lib --vcs none", DEFAULT_TESTS_DIR),
         signal,
