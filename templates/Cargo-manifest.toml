@@ -4,6 +4,6 @@ members = ["tests"]
 [profile.release]
 overflow-checks = true
 opt-level = 's'
-lto = true
+lto = false
 codegen-units = 1
 panic = 'abort'
