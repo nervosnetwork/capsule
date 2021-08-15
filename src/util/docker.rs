@@ -1,12 +1,14 @@
-use crate::project_context::Context;
-use crate::signal::Signal;
-use anyhow::{anyhow, Result};
-use log::debug;
 use std::collections::HashMap;
 use std::env;
 use std::process::Command;
 use std::thread::sleep;
 use std::time::Duration;
+
+use anyhow::{anyhow, Result};
+use log::debug;
+
+use crate::project_context::Context;
+use crate::signal::Signal;
 
 const DOCKER_BIN: &str = "docker";
 
@@ -221,8 +223,15 @@ impl DockerCommand {
 
         // inject custom env
         for (key, value) in custom_env {
-            debug!("custom env {}={}", key, value);
-            cmd.arg(format!("-e{}:{}", key, value));
+            if value.as_str() == "" {
+                debug!("--env {}", key);
+                //cmd.arg(format!("--env {}", key));
+                cmd.arg("--env").arg(key);
+            } else {
+                debug!("--env {}={}", key, value);
+                //cmd.arg(format!("--env {}={}", key, value));
+                cmd.arg("--env").arg(format!("{}={}", key, value));
+            }
         }
 
         if host_network {

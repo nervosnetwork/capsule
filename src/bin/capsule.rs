@@ -93,7 +93,7 @@ fn run_cli() -> Result<()> {
             .arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name"))
             .arg(Arg::with_name("release").long("release").help("Build contracts in release mode."))
             .arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output"))
-            .arg(Arg::with_name("env").long("env").short("e").multiple(true).takes_value(true).help("Environment variable passed to compiler assigned by equal-signs, only ASCII key and value pairs"))
+            .arg(Arg::with_name("env").long("env").short("e").multiple(true).takes_value(true).help("Environment variable passed to compiler assigned by equal-signs, only ASCII key and value pairs, e.g. --env --env X=A Y=B Z"))
             .display_order(3))
         .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("ckb_capsule run --name <name> 'echo list contract dir: && ls'")
             .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
@@ -271,20 +271,20 @@ fn run_cli() -> Result<()> {
                 .map(|values| {
                     values
                         .into_iter()
-                        .map(|value| {
-                            println!("{}", value);
-                            if let Some(index) = value.find('=') {
+                        .map(|entry| {
+                            debug!("entry: ->{}<-", entry);
+                            if let Some(index) = entry.find('=') {
                                 if index == 0 {
-                                    Err(anyhow!("Key of env {} ?", value))
+                                    Err(anyhow!("Key of env {} ?", entry))
                                 } else {
-                                    let key = value[0..index].to_string();
+                                    let key = entry[0..index].to_string();
                                     //the value could be emtpy
-                                    let value = value[index + 1..].to_string();
+                                    let value = entry[index + 1..].to_string();
                                     debug!("Env: {}={}", key, value);
                                     Ok((key, value))
                                 }
                             } else {
-                                Err(anyhow!("Missing '=' of env expression {}", value))
+                                Ok((entry.to_string(), "".to_string()))
                             }
                         })
                         .collect::<Result<HashMap<String, String>, _>>()
