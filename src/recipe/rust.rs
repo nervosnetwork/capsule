@@ -57,14 +57,20 @@ impl Rust {
             _ if has_cargo_config => "".to_string(),
             BuildEnv::Debug => format!("RUSTFLAGS=\"{}\"", BASE_RUSTFLAGS.to_string()),
             BuildEnv::Release => {
+                let mut args = String::from(format!("RUSTFLAGS=\"{} ", BASE_RUSTFLAGS));
                 if config.always_debug {
-                    format!(
-                        "RUSTFLAGS=\"{} {} {}\"",
-                        BASE_RUSTFLAGS, RELEASE_RUSTFLAGS, ALWAYS_DEBUG_RUSTFLAGS
-                    )
-                } else {
-                    format!("RUSTFLAGS=\"{} {}\"", BASE_RUSTFLAGS, RELEASE_RUSTFLAGS)
+                    args.push_str(&format!("{} ", ALWAYS_DEBUG_RUSTFLAGS));
                 }
+                if config.debug_info {
+                    // https://doc.rust-lang.org/rustc/codegen-options/index.html#debuginfo
+                    // The `-g` flag is an alias for -C debuginfo=2,
+                    // which will generate full debug info
+                    args.push_str("-g ");
+                } else {
+                    args.push_str(&format!("{} ", RELEASE_RUSTFLAGS));
+                }
+                args.push('\"');
+                args
             }
         }
     }

@@ -88,9 +88,11 @@ fn run_cli() -> Result<()> {
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
         .subcommand(SubCommand::with_name("new").about("Create a new project").args(&contract_args).display_order(1))
         .subcommand(SubCommand::with_name("new-contract").about("Create a new contract").args(&contract_args).display_order(2))
-        .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
-                    Arg::with_name("release").long("release").help("Build contracts in release mode.")
-        ).arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output")).display_order(3))
+        .subcommand(SubCommand::with_name("build").about("Build contracts")
+            .arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name"))
+            .arg(Arg::with_name("release").long("release").help("Build contracts in release mode."))
+                .args(&[Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output").display_order(3),
+                        Arg::with_name("debug-info").long("debug-info").help("Always generate debug information, using -g flag, which is an alias for -C debuginfo=2").display_order(3)]))
         .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("ckb_capsule run --name <name> 'echo list contract dir: && ls'")
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
@@ -257,9 +259,11 @@ fn run_cli() -> Result<()> {
                 BuildEnv::Debug
             };
             let always_debug = args.is_present("debug-output");
+            let debug_info = args.is_present("debug-info");
             let build_config = BuildConfig {
                 build_env,
                 always_debug,
+                debug_info,
             };
 
             let contracts: Vec<_> = select_contracts(&context, &build_names);

@@ -36,6 +36,7 @@ impl FromStr for BuildEnv {
 pub struct BuildConfig {
     pub build_env: BuildEnv,
     pub always_debug: bool,
+    pub debug_info: bool
 }
 
 #[derive(Debug, Copy, Clone)]
