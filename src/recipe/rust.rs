@@ -19,7 +19,9 @@ const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
 const CARGO_CONFIG_PATH: &str = ".cargo/config";
 const BASE_RUSTFLAGS: &str =
     "-Z pre-link-arg=-zseparate-code -Z pre-link-arg=-zseparate-loadable-segments";
-const RELEASE_RUSTFLAGS: &str = "-C link-arg=-s";
+const RELEASE_RUSTFLAGS: &str = "";
+/// strip binaries making executables much smaller often
+const STRIP_RUSTFLAG: &str = "-C link-arg=-s";
 const ALWAYS_DEBUG_RUSTFLAGS: &str = "--cfg=debug_assertions";
 
 pub struct Rust {
@@ -57,7 +59,7 @@ impl Rust {
             _ if has_cargo_config => "".to_string(),
             BuildEnv::Debug => format!("RUSTFLAGS=\"{}\"", BASE_RUSTFLAGS.to_string()),
             BuildEnv::Release => {
-                let mut args = String::from(format!("RUSTFLAGS=\"{} ", BASE_RUSTFLAGS));
+                let mut args = String::from(format!("RUSTFLAGS=\"{} {} ", BASE_RUSTFLAGS, RELEASE_RUSTFLAGS));
                 if config.always_debug {
                     args.push_str(&format!("{} ", ALWAYS_DEBUG_RUSTFLAGS));
                 }
@@ -67,7 +69,7 @@ impl Rust {
                     // which will generate full debug info
                     args.push_str("-g ");
                 } else {
-                    args.push_str(&format!("{} ", RELEASE_RUSTFLAGS));
+                    args.push_str(&format!("{} ", STRIP_RUSTFLAG));
                 }
                 args.push('\"');
                 args
