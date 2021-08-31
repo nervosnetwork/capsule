@@ -1,6 +1,6 @@
 //! Deployment Recipes
 
-use ckb_tool::ckb_types::H256;
+use ckb_testtool::ckb_types::H256;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -11,7 +11,7 @@ pub use live_cell::LiveCell;
 pub use live_cell_info::{LiveCellInfo, LiveCellInfoVec};
 pub use signature::SignatureOutput;
 
-use ckb_tool::ckb_types::{h256, H256};
+use ckb_testtool::ckb_types::{h256, H256};
 
 pub const ONE_CKB: u64 = 1_00000000;
 pub const PREFIX_MAINNET: &str = "ckb";

@@ -4,7 +4,7 @@ use crate::recipe::rust::DOCKER_IMAGE;
 use crate::signal::Signal;
 use crate::util::docker::DockerCommand;
 use anyhow::{anyhow, Result};
-use ckb_tool::ckb_hash::new_blake2b;
+use ckb_testtool::ckb_hash::new_blake2b;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::fs;
@@ -154,7 +154,7 @@ pub fn patch_template<P: AsRef<Path>>(
         let patch = match attribute.as_str() {
             "data" => {
                 let bin = fs::read(contract_binary_path)?;
-                faster_hex::hex_string(&bin)?
+                faster_hex::hex_string(&bin)
             }
             "code_hash" => {
                 let bin = fs::read(contract_binary_path)?;
@@ -162,7 +162,7 @@ pub fn patch_template<P: AsRef<Path>>(
                 hasher.update(&bin);
                 let mut code_hash = [0u8; 32];
                 hasher.finalize(&mut code_hash);
-                faster_hex::hex_string(&code_hash)?
+                faster_hex::hex_string(&code_hash)
             }
             _ => panic!(
                 "unknown template mark attribute: '{}.{}'",

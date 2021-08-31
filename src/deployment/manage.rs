@@ -4,7 +4,7 @@ use crate::util::cli::ask_for_confirm;
 use crate::wallet::{cli_types::LiveCell, Wallet};
 use anyhow::{anyhow, Result};
 use chrono::prelude::*;
-use ckb_tool::ckb_types::core::{Capacity, TransactionView};
+use ckb_testtool::ckb_types::core::{Capacity, TransactionView};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;

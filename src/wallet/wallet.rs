@@ -3,18 +3,18 @@ use super::collector::Collector;
 use super::password::Password;
 use super::util;
 
+use super::rpc::RpcClient;
 use anyhow::Result;
-use ckb_tool::ckb_jsonrpc_types::TransactionWithStatus;
-use ckb_tool::ckb_types::{
+use ckb_testtool::ckb_jsonrpc_types::TransactionWithStatus;
+use ckb_testtool::ckb_types::{
     bytes::Bytes,
     core::{BlockView, Capacity, DepType, TransactionView},
     packed,
     prelude::*,
     H256,
 };
-use ckb_tool::faster_hex::hex_decode;
-use ckb_tool::faster_hex::hex_encode;
-use ckb_tool::rpc_client::RpcClient;
+use faster_hex::hex_decode;
+use faster_hex::hex_encode;
 use std::collections::HashSet;
 use std::io::Write;
 use std::process::{Command, Stdio};
@@ -34,9 +34,7 @@ pub struct Wallet {
 impl Wallet {
     pub fn load(uri: String, ckb_cli_bin: String, address: Address) -> Self {
         let rpc_client = RpcClient::new(&uri);
-        let genesis = rpc_client
-            .get_block_by_number(0u64.into())
-            .expect("genesis");
+        let genesis = rpc_client.get_block_by_number(0u64).expect("genesis");
         let collector = Collector::new(uri.clone(), ckb_cli_bin.clone());
         Wallet {
             ckb_cli_bin,
@@ -198,7 +196,7 @@ impl Wallet {
     }
 
     pub fn query_transaction(&self, tx_hash: &H256) -> Result<Option<TransactionWithStatus>> {
-        let tx_opt = self.rpc_client().get_transaction(tx_hash.to_owned());
+        let tx_opt = self.rpc_client().get_transaction(tx_hash.pack());
         Ok(tx_opt)
     }
 
@@ -243,7 +241,6 @@ impl Wallet {
     pub fn get_cell_output(&self, out_point: packed::OutPoint) -> packed::CellOutput {
         let cell_resp = self
             .rpc_client()
-            .inner()
             .get_live_cell(out_point.into(), false)
             .expect("rpc get_live_cell");
         cell_resp

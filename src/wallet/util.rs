@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
-use ckb_tool::ckb_hash::new_blake2b;
-use ckb_tool::ckb_types::{
+use ckb_testtool::ckb_hash::new_blake2b;
+use ckb_testtool::ckb_types::{
     bytes::Bytes,
     core::TransactionView,
     packed::{self, WitnessArgs},

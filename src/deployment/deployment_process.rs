@@ -4,9 +4,9 @@ use crate::config::{Cell, CellLocation, DepGroup, Deployment};
 use crate::wallet::{cli_types::LiveCell, *};
 
 use anyhow::{anyhow, Result};
-use ckb_tool::ckb_chain_spec::consensus::TYPE_ID_CODE_HASH;
-use ckb_tool::ckb_hash::new_blake2b;
-use ckb_tool::ckb_types::{
+use ckb_testtool::ckb_chain_spec::consensus::TYPE_ID_CODE_HASH;
+use ckb_testtool::ckb_hash::new_blake2b;
+use ckb_testtool::ckb_types::{
     bytes::Bytes,
     core::{Capacity, ScriptHashType, TransactionBuilder, TransactionView},
     packed,
