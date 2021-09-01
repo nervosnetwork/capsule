@@ -21,7 +21,7 @@ use ckb_capsule::tester::Tester;
 use ckb_capsule::version::Version;
 use ckb_capsule::wallet::cli_types::HumanCapacity;
 use ckb_capsule::wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
-use ckb_tool::ckb_types::core::Capacity;
+use ckb_testtool::ckb_types::core::Capacity;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 

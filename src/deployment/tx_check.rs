@@ -1,7 +1,7 @@
 use crate::wallet::Wallet;
 use anyhow::{anyhow, Result};
-use ckb_tool::ckb_chain_spec::consensus::TYPE_ID_CODE_HASH;
-use ckb_tool::ckb_types::{
+use ckb_testtool::ckb_chain_spec::consensus::TYPE_ID_CODE_HASH;
+use ckb_testtool::ckb_types::{
     bytes::Bytes,
     core::{BlockView, ScriptHashType, TransactionView},
     packed,

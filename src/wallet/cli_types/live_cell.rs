@@ -1,4 +1,4 @@
-use ckb_tool::ckb_types::{
+use ckb_testtool::ckb_types::{
     packed::{CellInput, OutPoint},
     prelude::*,
     H256,

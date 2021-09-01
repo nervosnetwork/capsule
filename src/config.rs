@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Error};
-use ckb_tool::{ckb_jsonrpc_types::Script, ckb_types::H256};
+use ckb_testtool::{ckb_jsonrpc_types::Script, ckb_types::H256};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::str::FromStr;

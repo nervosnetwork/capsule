@@ -1,7 +1,7 @@
 use super::recipe::DeploymentRecipe;
 use crate::deployment::recipe::*;
 use crate::wallet::cli_types::HumanCapacity;
-use ckb_tool::ckb_types::H256;
+use ckb_testtool::ckb_types::H256;
 use serde::Serialize;
 
 #[derive(Serialize)]
