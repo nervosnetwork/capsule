@@ -35,6 +35,8 @@ Note: The current user must have permission to manage Docker instances. [How to 
 
 ### Install binary
 
+Install ckb-capsule from crates.io need Rust **1.51.0** or above.
+
 [Download the latest release](https://github.com/nervosnetwork/capsule/releases/latest)
 
 ### Cargo install
