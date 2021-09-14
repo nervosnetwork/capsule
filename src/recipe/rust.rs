@@ -171,6 +171,7 @@ impl Recipe for Rust {
             self.docker_image(),
             project_path.to_string(),
         )
+        .host_network(true)
         .workdir(format!(
             "/code/{}",
             contract_relative_path.to_str().expect("path")
