@@ -218,7 +218,8 @@ impl<R: CRecipe> Recipe for C<R> {
         // copy to build dir
         if !bin_path.exists() {
             return Err(anyhow!(
-                "can't find contract binary from path {:?}, please check Makefile"
+                "can't find contract binary from path {:?}, please check Makefile",
+                bin_path,
             ));
         }
         let mut target_path = self.context.project_path.clone();
