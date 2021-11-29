@@ -96,8 +96,9 @@ impl DeploymentProcess {
                 let tx: packed::Transaction = self
                     .wallet
                     .query_transaction(&input_cell.tx_hash)?
-                    .expect("tx")
+                    .expect("query tx")
                     .transaction
+                    .expect("tx")
                     .inner
                     .into();
                 let tx: TransactionView = tx.into_view();
