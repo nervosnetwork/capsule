@@ -203,7 +203,13 @@ impl<R: CRecipe> Recipe for C<R> {
 
     /// build contract
     /// Delegate to Makefile
-    fn run_build(&self, c: &Contract, config: BuildConfig, signal: &Signal) -> Result<()> {
+    fn run_build(
+        &self,
+        c: &Contract,
+        config: BuildConfig,
+        signal: &Signal,
+        _opt_cmd: Option<Vec<String>>,
+    ) -> Result<()> {
         let build_target = self.build_target(config.build_env, &c.name);
         let mut bin_path = self.c_dir();
         bin_path.push(&build_target);

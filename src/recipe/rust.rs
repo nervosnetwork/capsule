@@ -182,13 +182,25 @@ impl Recipe for Rust {
     }
 
     /// build contract
-    fn run_build(&self, contract: &Contract, config: BuildConfig, signal: &Signal) -> Result<()> {
+    fn run_build(
+        &self,
+        contract: &Contract,
+        config: BuildConfig,
+        signal: &Signal,
+        opt_cmd: Option<Vec<String>>,
+    ) -> Result<()> {
         // docker cargo build
         let mut rel_bin_path = PathBuf::new();
         let (bin_dir_prefix, build_cmd_opt) = match config.build_env {
             BuildEnv::Debug => ("debug", ""),
             BuildEnv::Release => ("release", "--release"),
         };
+        let mut build_cmd_opt = String::from(build_cmd_opt);
+        if opt_cmd.is_some() {
+            for cmd in opt_cmd.unwrap() {
+                build_cmd_opt = build_cmd_opt + " " + &cmd;
+            }
+        }
         rel_bin_path.push(format!(
             "target/{}/{}/{}",
             RUST_TARGET, bin_dir_prefix, &contract.name

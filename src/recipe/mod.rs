@@ -23,6 +23,12 @@ pub trait Recipe {
         signal: &Signal,
     ) -> Result<()>;
     fn run(&self, contract: &Contract, build_cmd: String, signal: &Signal) -> Result<()>;
-    fn run_build(&self, contract: &Contract, config: BuildConfig, signal: &Signal) -> Result<()>;
+    fn run_build(
+        &self,
+        contract: &Contract,
+        config: BuildConfig,
+        signal: &Signal,
+        opt_cmd: Option<Vec<String>>,
+    ) -> Result<()>;
     fn clean(&self, contracts: &[Contract], signal: &Signal) -> Result<()>;
 }
