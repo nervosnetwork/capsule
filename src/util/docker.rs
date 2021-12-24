@@ -201,7 +201,7 @@ impl DockerCommand {
         for key in inherited_env {
             if let Ok(value) = env::var(key) {
                 debug!("inherited env {}={}", key, value);
-                cmd.arg(format!("-e{}:{}", key, value));
+                cmd.arg(format!("-e{}={}", key, value));
             }
         }
 

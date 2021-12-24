@@ -177,6 +177,7 @@ impl Recipe for Rust {
         ))
         .fix_dir_permission("/code/target".to_string())
         .fix_dir_permission("/code/Cargo.lock".to_string());
+        let cmd = cmd.host_network(self.context.use_docker_host);
         cmd.run(build_cmd, &signal)?;
         Ok(())
     }
