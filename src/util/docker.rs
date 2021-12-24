@@ -67,7 +67,13 @@ impl DockerCommand {
             daemon: false,
             tty: false,
             workdir: "/code".to_string(),
-            inherited_env: vec!["HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy", "ALL_PROXY"],
+            inherited_env: vec![
+                "HTTP_PROXY",
+                "http_proxy",
+                "HTTPS_PROXY",
+                "https_proxy",
+                "ALL_PROXY",
+            ],
         }
     }
 

@@ -287,7 +287,12 @@ fn run_cli() -> Result<()> {
                 for contract in contracts {
                     println!("Building contract {}", contract.name);
                     let recipe = get_recipe(context.clone(), contract.template_type)?;
-                    recipe.run_build(&contract, build_config, &signal, Option::Some(args_last.clone()))?;
+                    recipe.run_build(
+                        &contract,
+                        build_config,
+                        &signal,
+                        Option::Some(args_last.clone()),
+                    )?;
                 }
                 println!("Done");
             }
