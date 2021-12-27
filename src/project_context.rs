@@ -60,6 +60,7 @@ impl FromStr for DeployEnv {
 pub struct Context {
     pub project_path: PathBuf,
     pub config: Config,
+    pub use_docker_host: bool,
 }
 
 impl Context {
@@ -88,6 +89,7 @@ impl Context {
         Ok(Context {
             config,
             project_path,
+            use_docker_host: false,
         })
     }
 

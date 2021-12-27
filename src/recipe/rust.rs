@@ -177,17 +177,29 @@ impl Recipe for Rust {
         ))
         .fix_dir_permission("/code/target".to_string())
         .fix_dir_permission("/code/Cargo.lock".to_string());
+        let cmd = cmd.host_network(self.context.use_docker_host);
         cmd.run(build_cmd, &signal)?;
         Ok(())
     }
 
     /// build contract
-    fn run_build(&self, contract: &Contract, config: BuildConfig, signal: &Signal) -> Result<()> {
+    fn run_build(
+        &self,
+        contract: &Contract,
+        config: BuildConfig,
+        signal: &Signal,
+        build_args_opt: Option<Vec<String>>,
+    ) -> Result<()> {
         // docker cargo build
         let mut rel_bin_path = PathBuf::new();
         let (bin_dir_prefix, build_cmd_opt) = match config.build_env {
             BuildEnv::Debug => ("debug", ""),
             BuildEnv::Release => ("release", "--release"),
+        };
+        let build_cmd_opt = if build_args_opt.is_some() {
+            format!("{} {}", build_cmd_opt, build_args_opt.unwrap().join(" "))
+        } else {
+            String::from(build_cmd_opt)
         };
         rel_bin_path.push(format!(
             "target/{}/{}/{}",

@@ -60,6 +60,15 @@ fn group_contracts_by_type(contracts: Vec<Contract>) -> HashMap<TemplateType, Ve
     contracts_by_type
 }
 
+fn get_last_args() -> (Vec<String>, Vec<String>) {
+    let args: Vec<String> = env::args().collect();
+    let mut iter = args.splitn(2, |n| n == "--");
+    (
+        iter.next().unwrap().to_vec(),
+        iter.next().map(|f| f.to_vec()).unwrap_or(Vec::new()),
+    )
+}
+
 fn run_cli() -> Result<()> {
     env_logger::init();
 
@@ -88,9 +97,14 @@ fn run_cli() -> Result<()> {
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
         .subcommand(SubCommand::with_name("new").about("Create a new project").args(&contract_args).display_order(1))
         .subcommand(SubCommand::with_name("new-contract").about("Create a new contract").args(&contract_args).display_order(2))
-        .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
-                    Arg::with_name("release").long("release").help("Build contracts in release mode.")
-        ).arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output")).display_order(3))
+        .subcommand(
+            SubCommand::with_name("build")
+                .about("Build contracts")
+                .arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name"))
+                .arg(Arg::with_name("release").long("release").help("Build contracts in release mode."))
+                .arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output"))
+                .arg(Arg::with_name("host").long("host").help("Docker runs in host mode"))
+                .display_order(3))
         .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("ckb_capsule run --name <name> 'echo list contract dir: && ls'")
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
@@ -186,7 +200,7 @@ fn run_cli() -> Result<()> {
                     Arg::with_name("only-server").long("only-server").help("Only start debugger server"),
                 ])
             )
-                .display_order(8),
+            .display_order(8),
         );
 
     let signal = signal::Signal::setup();
@@ -197,7 +211,8 @@ fn run_cli() -> Result<()> {
         String::from_utf8(buf)?
     };
 
-    let matches = app.get_matches();
+    let (args, args_last) = get_last_args();
+    let matches = app.get_matches_from(args);
     match matches.subcommand() {
         ("check", _args) => {
             Checker::build()?.print_report();
@@ -246,7 +261,7 @@ fn run_cli() -> Result<()> {
             println!("Done");
         }
         ("build", Some(args)) => {
-            let context = Context::load()?;
+            let mut context = Context::load()?;
             let build_names: Vec<&str> = args
                 .values_of("name")
                 .map(|values| values.collect())
@@ -257,6 +272,7 @@ fn run_cli() -> Result<()> {
                 BuildEnv::Debug
             };
             let always_debug = args.is_present("debug-output");
+            context.use_docker_host = args.is_present("host");
             let build_config = BuildConfig {
                 build_env,
                 always_debug,
@@ -269,7 +285,12 @@ fn run_cli() -> Result<()> {
                 for contract in contracts {
                     println!("Building contract {}", contract.name);
                     let recipe = get_recipe(context.clone(), contract.template_type)?;
-                    recipe.run_build(&contract, build_config, &signal)?;
+                    recipe.run_build(
+                        &contract,
+                        build_config,
+                        &signal,
+                        Option::Some(args_last.clone()),
+                    )?;
                 }
                 println!("Done");
             }

@@ -67,7 +67,13 @@ impl DockerCommand {
             daemon: false,
             tty: false,
             workdir: "/code".to_string(),
-            inherited_env: vec!["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"],
+            inherited_env: vec![
+                "HTTP_PROXY",
+                "http_proxy",
+                "HTTPS_PROXY",
+                "https_proxy",
+                "ALL_PROXY",
+            ],
         }
     }
 
@@ -201,7 +207,7 @@ impl DockerCommand {
         for key in inherited_env {
             if let Ok(value) = env::var(key) {
                 debug!("inherited env {}={}", key, value);
-                cmd.arg(format!("-e{}:{}", key, value));
+                cmd.arg(format!("-e{}={}", key, value));
             }
         }
 
