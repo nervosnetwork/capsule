@@ -62,7 +62,7 @@ fn group_contracts_by_type(contracts: Vec<Contract>) -> HashMap<TemplateType, Ve
 
 fn get_last_args() -> (Vec<String>, Option<Vec<String>>) {
     let args: Vec<String> = env::args().collect();
-    let mut iter = args.split(|n| n == "--");
+    let mut iter = args.splitn(2, |n| n == "--");
     (iter.next().unwrap().to_vec(), {
         let next_iter = iter.next();
         if next_iter.is_none() || next_iter.unwrap().is_empty() {
