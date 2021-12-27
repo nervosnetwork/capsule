@@ -28,7 +28,7 @@ pub trait Recipe {
         contract: &Contract,
         config: BuildConfig,
         signal: &Signal,
-        opt_cmd: Option<Vec<String>>,
+        build_args_opt: Option<Vec<String>>,
     ) -> Result<()>;
     fn clean(&self, contracts: &[Contract], signal: &Signal) -> Result<()>;
 }
