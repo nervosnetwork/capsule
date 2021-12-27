@@ -60,15 +60,17 @@ fn group_contracts_by_type(contracts: Vec<Contract>) -> HashMap<TemplateType, Ve
     contracts_by_type
 }
 
-fn get_last_args() -> (Vec<String>, Vec<String>) {
+fn get_last_args() -> (Vec<String>, Option<Vec<String>>) {
     let args: Vec<String> = env::args().collect();
-    for i in 0..args.len() {
-        if args[i] == "--" {
-            let args = args.split_at(i);
-            return (Vec::from(args.0), Vec::from(args.1.split_at(1).1));
+    let mut iter = args.split(|n| n == "--");
+    (iter.next().unwrap().to_vec(), {
+        let next_iter = iter.next();
+        if next_iter.is_none() || next_iter.unwrap().is_empty() {
+            Option::None
+        } else {
+            Option::Some(next_iter.unwrap().to_vec())
         }
-    }
-    (args, Vec::new())
+    })
 }
 
 fn run_cli() -> Result<()> {
@@ -287,12 +289,7 @@ fn run_cli() -> Result<()> {
                 for contract in contracts {
                     println!("Building contract {}", contract.name);
                     let recipe = get_recipe(context.clone(), contract.template_type)?;
-                    recipe.run_build(
-                        &contract,
-                        build_config,
-                        &signal,
-                        Option::Some(args_last.clone()),
-                    )?;
+                    recipe.run_build(&contract, build_config, &signal, args_last.clone())?;
                 }
                 println!("Done");
             }
