@@ -20,7 +20,7 @@ fn main() {
         path.push("tmp");
         path
     };
-    fs::create_dir(&tmp_dir).expect("create dir");
+    fs::create_dir_all(&tmp_dir).expect("create dir");
 
     // test cases
     test_build(&tmp_dir, &bin_path, "rust-demo", "rust").expect("rust demo");
@@ -57,7 +57,7 @@ fn test_build<P: AsRef<Path>>(
     env::set_current_dir(&contract_path)?;
     let exit_code = Command::new("bash")
         .arg("-c")
-        .arg(format!("{} build", bin_path))
+        .arg(format!("{} build --host", bin_path))
         .spawn()?
         .wait()?;
     if !exit_code.success() {
@@ -66,7 +66,7 @@ fn test_build<P: AsRef<Path>>(
     println!("Run contract test ...");
     let exit_code = Command::new("bash")
         .arg("-c")
-        .arg(format!("{} test", bin_path))
+        .arg(format!("cargo test -p tests"))
         .spawn()?
         .wait()?;
     if !exit_code.success() {
@@ -110,7 +110,7 @@ fn test_build_sharedlib<P: AsRef<Path>>(
     env::set_current_dir(&contract_path)?;
     let exit_code = Command::new("bash")
         .arg("-c")
-        .arg(format!("{} build", bin_path))
+        .arg(format!("{} build --host", bin_path))
         .spawn()?
         .wait()?;
     if !exit_code.success() {
