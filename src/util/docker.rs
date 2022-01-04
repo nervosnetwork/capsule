@@ -39,7 +39,12 @@ pub struct DockerCommand {
 }
 
 impl DockerCommand {
-    pub fn with_context(_context: &Context, docker_image: String, code_path: String, env_file: String) -> Self {
+    pub fn with_context(
+        _context: &Context,
+        docker_image: String,
+        code_path: String,
+        env_file: String,
+    ) -> Self {
         Self::with_config(docker_image, code_path, env_file)
     }
 

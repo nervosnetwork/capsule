@@ -129,7 +129,12 @@ fn gen_project_test<P: AsRef<Path>>(
 }
 
 // create a new project
-pub fn new_project<P: AsRef<Path>>(name: String, path: P, signal: &Signal, docker_env_file: String) -> Result<PathBuf> {
+pub fn new_project<P: AsRef<Path>>(
+    name: String,
+    path: P,
+    signal: &Signal,
+    docker_env_file: String,
+) -> Result<PathBuf> {
     let mut project_path: PathBuf = PathBuf::new();
     project_path.push(path);
     project_path.push(&name);
