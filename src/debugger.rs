@@ -23,6 +23,7 @@ pub fn start_debugger<P: AsRef<Path>>(
     listen_port: usize,
     tty: bool,
     signal: &Signal,
+    docker_env_file: String,
 ) -> Result<()> {
     const DEBUG_SERVER_NAME: &str = "capsule-debugger-server";
 
@@ -54,12 +55,17 @@ pub fn start_debugger<P: AsRef<Path>>(
         script_group_type, cell_index, cell_type, container_template_path, max_cycles, listen_port
     );
     println!("GDB server is started!");
-    DockerCommand::with_context(context, DOCKER_IMAGE.to_string(), project_path.clone())
-        .host_network(true)
-        .name(DEBUG_SERVER_NAME.to_string())
-        .daemon(tty)
-        .map_volume(patched_template_path, container_template_path)
-        .run(cmd, signal)?;
+    DockerCommand::with_context(
+        context,
+        DOCKER_IMAGE.to_string(),
+        project_path.clone(),
+        docker_env_file.clone(),
+    )
+    .host_network(true)
+    .name(DEBUG_SERVER_NAME.to_string())
+    .daemon(tty)
+    .map_volume(patched_template_path, container_template_path)
+    .run(cmd, signal)?;
     if tty {
         let contract_path = match env {
             BuildEnv::Debug => format!("build/debug/{}", contract_name),
@@ -72,10 +78,14 @@ pub fn start_debugger<P: AsRef<Path>>(
             contract=contract_name,
             contract_path=contract_path
         );
-        let docker_cmd =
-            DockerCommand::with_context(context, DOCKER_IMAGE.to_string(), project_path)
-                .host_network(true)
-                .tty(true);
+        let docker_cmd = DockerCommand::with_context(
+            context,
+            DOCKER_IMAGE.to_string(),
+            project_path,
+            docker_env_file,
+        )
+        .host_network(true)
+        .tty(true);
 
         // Prepare a specific docker environment for GDB client then enable this
         //

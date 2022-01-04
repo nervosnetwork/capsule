@@ -9,6 +9,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: install rust format
+      run: rustup component add rustfmt
+    - name: check format
+      run: cargo fmt --all -- --check
     - name: Build
       run: cargo build
     - name: Install dependencies

@@ -30,6 +30,7 @@ pub struct DockerCommand {
     mapping_ports: Vec<Port>,
     mapping_volumes: Vec<Volume>,
     host_network: bool,
+    env_file: String,
     name: Option<String>,
     daemon: bool,
     tty: bool,
@@ -38,11 +39,16 @@ pub struct DockerCommand {
 }
 
 impl DockerCommand {
-    pub fn with_context(_context: &Context, docker_image: String, code_path: String) -> Self {
-        Self::with_config(docker_image, code_path)
+    pub fn with_context(
+        _context: &Context,
+        docker_image: String,
+        code_path: String,
+        env_file: String,
+    ) -> Self {
+        Self::with_config(docker_image, code_path, env_file)
     }
 
-    pub fn with_config(docker_image: String, code_path: String) -> Self {
+    pub fn with_config(docker_image: String, code_path: String, env_file: String) -> Self {
         let bin = DOCKER_BIN.to_string();
         let uid = users::get_current_uid();
         let gid = users::get_current_gid();
@@ -63,6 +69,7 @@ impl DockerCommand {
             mapping_ports: Vec::new(),
             mapping_volumes: Vec::new(),
             host_network: false,
+            env_file,
             name: None,
             daemon: false,
             tty: false,
@@ -166,6 +173,7 @@ impl DockerCommand {
             mapping_ports,
             mut mapping_volumes,
             host_network,
+            env_file,
             name,
             daemon,
             tty,
@@ -213,6 +221,10 @@ impl DockerCommand {
 
         if host_network {
             cmd.arg("--network").arg("host");
+        }
+
+        if !env_file.is_empty() {
+            cmd.arg("--env-file").arg(env_file);
         }
 
         if let Some(name) = name {

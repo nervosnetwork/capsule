@@ -124,6 +124,7 @@ impl Recipe for Rust {
         contract: &Contract,
         rewrite_config: bool,
         signal: &Signal,
+        docker_env_file: String,
     ) -> Result<()> {
         let name = &contract.name;
         println!("New contract {:?}", &name);
@@ -133,6 +134,7 @@ impl Recipe for Rust {
         let cmd = DockerCommand::with_config(
             self.docker_image(),
             path.to_str().expect("str").to_string(),
+            docker_env_file,
         )
         .fix_dir_permission(name.clone());
         cmd.run(
@@ -170,14 +172,16 @@ impl Recipe for Rust {
             &self.context,
             self.docker_image(),
             project_path.to_string(),
+            self.context.docker_env_file.clone(),
         )
         .workdir(format!(
             "/code/{}",
             contract_relative_path.to_str().expect("path")
         ))
         .fix_dir_permission("/code/target".to_string())
-        .fix_dir_permission("/code/Cargo.lock".to_string());
-        let cmd = cmd.host_network(self.context.use_docker_host);
+        .fix_dir_permission("/code/Cargo.lock".to_string())
+        .host_network(self.context.use_docker_host);
+
         cmd.run(build_cmd, &signal)?;
         Ok(())
     }

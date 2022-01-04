@@ -199,9 +199,9 @@ fn run_cli() -> Result<()> {
                         .default_value("8000").required(true).takes_value(true),
                     Arg::with_name("only-server").long("only-server").help("Only start debugger server"),
                 ])
-            )
-            .display_order(8),
-        );
+            ).display_order(8),
+        )
+        .arg(Arg::with_name("env-file").long("env-file").takes_value(true).help("Read in a file of environment variables to docker"));
 
     let signal = signal::Signal::setup();
 
@@ -213,6 +213,7 @@ fn run_cli() -> Result<()> {
 
     let (args, args_last) = get_last_args();
     let matches = app.get_matches_from(args);
+    let docker_env_file = String::from(matches.value_of("env-file").unwrap_or_default());
     match matches.subcommand() {
         ("check", _args) => {
             Checker::build()?.print_report();
@@ -233,13 +234,19 @@ fn run_cli() -> Result<()> {
             } else {
                 path.push(env::current_dir()?);
             }
-            let project_path = new_project(name.to_string(), path, &signal)?;
+            let project_path =
+                new_project(name.to_string(), path, &signal, docker_env_file.clone())?;
             let context = Context::load_from_path(&project_path)?;
             let c = Contract {
                 name,
                 template_type,
             };
-            get_recipe(context.clone(), c.template_type)?.create_contract(&c, true, &signal)?;
+            get_recipe(context.clone(), c.template_type)?.create_contract(
+                &c,
+                true,
+                &signal,
+                docker_env_file,
+            )?;
             append_contract_to_config(&context, &c)?;
             println!("Done");
         }
@@ -256,7 +263,7 @@ fn run_cli() -> Result<()> {
             if recipe.exists(&contract.name) {
                 return Err(anyhow!("contract '{}' is already exists", contract.name));
             }
-            recipe.create_contract(&contract, true, &signal)?;
+            recipe.create_contract(&contract, true, &signal, docker_env_file)?;
             append_contract_to_config(&context, &contract)?;
             println!("Done");
         }
@@ -273,6 +280,7 @@ fn run_cli() -> Result<()> {
             };
             let always_debug = args.is_present("debug-output");
             context.use_docker_host = args.is_present("host");
+            context.docker_env_file = docker_env_file;
             let build_config = BuildConfig {
                 build_env,
                 always_debug,
@@ -333,7 +341,7 @@ fn run_cli() -> Result<()> {
             } else {
                 BuildEnv::Debug
             };
-            Tester::run(&context, build_env, &signal)?;
+            Tester::run(&context, build_env, &signal, docker_env_file)?;
         }
         ("deploy", Some(args)) => {
             Checker::build()?.check_ckb_cli()?;
@@ -398,6 +406,7 @@ fn run_cli() -> Result<()> {
                     listen_port,
                     tty,
                     &signal,
+                    docker_env_file,
                 )?;
             }
             (command, _) => {

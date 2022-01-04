@@ -61,6 +61,7 @@ pub struct Context {
     pub project_path: PathBuf,
     pub config: Config,
     pub use_docker_host: bool,
+    pub docker_env_file: String,
 }
 
 impl Context {
@@ -90,6 +91,7 @@ impl Context {
             config,
             project_path,
             use_docker_host: false,
+            docker_env_file: String::new(),
         })
     }
 
