@@ -164,6 +164,7 @@ impl<R: CRecipe> Recipe for C<R> {
         contract: &Contract,
         rewrite_config: bool,
         _signal: &Signal,
+        _docker_env_file: String,
     ) -> Result<()> {
         // setup c environment if needed
         self.setup_c_environment()?;

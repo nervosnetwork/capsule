@@ -8,7 +8,12 @@ const TEST_ENV_VAR: &str = "CAPSULE_TEST_ENV";
 pub struct Tester;
 
 impl Tester {
-    pub fn run(project_context: &Context, env: BuildEnv, signal: &Signal) -> Result<()> {
+    pub fn run(
+        project_context: &Context,
+        env: BuildEnv,
+        signal: &Signal,
+        docker_env_file: String,
+    ) -> Result<()> {
         let env_arg = match env {
             BuildEnv::Debug => "debug",
             BuildEnv::Release => "release",
@@ -24,11 +29,15 @@ impl Tester {
             .to_str()
             .expect("build dir")
             .to_string();
-        let cmd =
-            DockerCommand::with_context(project_context, DOCKER_IMAGE.to_string(), workspace_dir)
-                .map_volume(build_dir, "/code/build".to_string())
-                .fix_dir_permission("target".to_string())
-                .fix_dir_permission("Cargo.lock".to_string());
+        let cmd = DockerCommand::with_context(
+            project_context,
+            DOCKER_IMAGE.to_string(),
+            workspace_dir,
+            docker_env_file,
+        )
+        .map_volume(build_dir, "/code/build".to_string())
+        .fix_dir_permission("target".to_string())
+        .fix_dir_permission("Cargo.lock".to_string());
         cmd.run(
             format!(
                 "{}={} cargo test -p tests -- --nocapture",
