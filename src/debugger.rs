@@ -50,9 +50,10 @@ pub fn start_debugger<P: AsRef<Path>>(
 
     // start GDB server container
     let container_template_path = "/tmp/tx.json".to_string();
+    let mode = if tty { "gdb" } else { "full" };
     let cmd = format!(
-        "ckb-debugger --script-group-type {} --cell-index {} --cell-type {} --tx-file {} --max-cycle {} --listen 127.0.0.1:{}",
-        script_group_type, cell_index, cell_type, container_template_path, max_cycles, listen_port
+        "ckb-debugger --script-group-type {} --cell-index {} --cell-type {} --tx-file {} --max-cycles {} --mode {} --gdb-listen 127.0.0.1:{}",
+        script_group_type, cell_index, cell_type, container_template_path, max_cycles, mode, listen_port
     );
     println!("GDB server is started!");
     DockerCommand::with_context(
@@ -98,8 +99,10 @@ pub fn start_debugger<P: AsRef<Path>>(
         // }
 
         docker_cmd.run(cmd, signal)?;
+
+        return DockerCommand::stop(DEBUG_SERVER_NAME);
     }
-    DockerCommand::stop(DEBUG_SERVER_NAME)
+    Ok(())
 }
 
 #[derive(Serialize)]
