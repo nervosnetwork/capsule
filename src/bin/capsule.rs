@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 
@@ -104,6 +104,7 @@ fn run_cli() -> Result<()> {
                 .arg(Arg::with_name("release").long("release").help("Build contracts in release mode."))
                 .arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output"))
                 .arg(Arg::with_name("host").long("host").help("Docker runs in host mode"))
+                .arg(Arg::with_name("rustup-dir").long("rustup-dir").takes_value(true).help("Mount the directory to /root/.rustup in docker image"))
                 .display_order(3))
         .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("ckb_capsule run --name <name> 'echo list contract dir: && ls'")
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
@@ -279,8 +280,22 @@ fn run_cli() -> Result<()> {
                 BuildEnv::Debug
             };
             let always_debug = args.is_present("debug-output");
+            let rustup_dir = args
+                .value_of("rustup-dir")
+                .map(|value| {
+                    let path = Path::new(value);
+                    if !path.exists() {
+                        return Err(anyhow!("rustup path not exists: {}", value));
+                    }
+                    if !path.is_dir() {
+                        return Err(anyhow!("rustup path is not directory: {}", value));
+                    }
+                    Ok(value.to_string())
+                })
+                .transpose()?;
             context.use_docker_host = args.is_present("host");
             context.docker_env_file = docker_env_file;
+            context.rustup_dir = rustup_dir;
             let build_config = BuildConfig {
                 build_env,
                 always_debug,

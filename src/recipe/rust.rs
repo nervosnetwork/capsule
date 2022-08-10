@@ -168,7 +168,7 @@ impl Recipe for Rust {
     fn run(&self, contract: &Contract, build_cmd: String, signal: &Signal) -> Result<()> {
         let project_path = self.context.project_path.to_str().expect("path");
         let contract_relative_path = self.contract_relative_path(&contract.name);
-        let cmd = DockerCommand::with_context(
+        let mut cmd = DockerCommand::with_context(
             &self.context,
             self.docker_image(),
             project_path.to_string(),
@@ -181,6 +181,9 @@ impl Recipe for Rust {
         .fix_dir_permission("/code/target".to_string())
         .fix_dir_permission("/code/Cargo.lock".to_string())
         .host_network(self.context.use_docker_host);
+        if let Some(rustup_dir) = self.context.rustup_dir.as_ref() {
+            cmd = cmd.map_volume(rustup_dir.to_string(), "/root/.rustup".to_string());
+        }
 
         cmd.run(build_cmd, &signal)?;
         Ok(())
@@ -224,6 +227,7 @@ impl Recipe for Rust {
             rust_target = RUST_TARGET,
             build_env = build_cmd_opt
         );
+        log::debug!("[build cmd]: {}", build_cmd);
         self.run(contract, build_cmd, signal)?;
 
         // copy to build dir
