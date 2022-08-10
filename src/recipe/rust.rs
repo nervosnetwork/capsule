@@ -218,12 +218,10 @@ impl Recipe for Rust {
 
         // run build command
         let build_cmd = format!(
-            "{rustflags} {cargo_cmd} build --target {rust_target} {build_env} && \
-         ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
+            "{rustflags} {cargo_cmd} build --target {rust_target} {build_env}",
             cargo_cmd = self.cargo_cmd(),
             rustflags = self.injection_rustflags(config, &contract.name),
             rust_target = RUST_TARGET,
-            contract_bin = container_bin_path.to_str().expect("bin"),
             build_env = build_cmd_opt
         );
         self.run(contract, build_cmd, signal)?;
