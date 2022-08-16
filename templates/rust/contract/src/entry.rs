@@ -6,7 +6,7 @@ use core::result::Result;
 use alloc::{vec, vec::Vec};
 
 // Import CKB syscalls and structures
-// https://nervosnetwork.github.io/ckb-std/riscv64imac-unknown-none-elf/doc/ckb_std/index.html
+// https://docs.rs/ckb-std/
 use ckb_std::{
     debug,
     high_level::{load_script, load_tx_hash},

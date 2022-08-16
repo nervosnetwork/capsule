@@ -1,11 +1,9 @@
 [package]
 name = "tests"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tentacle-multiaddr = "=0.3.0"
-tentacle-secio = "=0.5.0"
-ckb-testtool = "0.6"
+ckb-testtool = "0.8"

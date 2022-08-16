@@ -14,7 +14,7 @@ use tera;
 use std::fs;
 use std::path::PathBuf;
 
-pub const DOCKER_IMAGE: &str = "thewawar/ckb-capsule:2021-12-25";
+pub const DOCKER_IMAGE: &str = "thewawar/ckb-capsule:2022-08-01";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
 const CARGO_CONFIG_PATH: &str = ".cargo/config";
 const BASE_RUSTFLAGS: &str =
@@ -218,12 +218,10 @@ impl Recipe for Rust {
 
         // run build command
         let build_cmd = format!(
-            "{rustflags} {cargo_cmd} build --target {rust_target} {build_env} && \
-         ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
+            "{rustflags} {cargo_cmd} build --target {rust_target} {build_env}",
             cargo_cmd = self.cargo_cmd(),
             rustflags = self.injection_rustflags(config, &contract.name),
             rust_target = RUST_TARGET,
-            contract_bin = container_bin_path.to_str().expect("bin"),
             build_env = build_cmd_opt
         );
         self.run(contract, build_cmd, signal)?;
