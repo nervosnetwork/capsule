@@ -3,7 +3,7 @@ use crate::signal::Signal;
 use anyhow::{anyhow, Result};
 use log::debug;
 use std::env;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -72,7 +72,7 @@ impl DockerCommand {
             env_file,
             name: None,
             daemon: false,
-            tty: false,
+            tty: true,
             workdir: "/code".to_string(),
             inherited_env: vec![
                 //"HTTP_PROXY",
@@ -182,8 +182,12 @@ impl DockerCommand {
         } = self;
 
         let mut cmd = Command::new(bin);
+        cmd.stdin(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .stdout(Stdio::inherit());
         cmd.args(&[
             "run",
+            "--init",
             format!("-eUID={}", uid).as_str(),
             format!("-eGID={}", gid).as_str(),
             format!("-eUSER={}", user).as_str(),
