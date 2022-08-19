@@ -1,9 +1,9 @@
 [package]
 name = "{{name}}"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ckb-std = "0.7.1"
+ckb-std = "0.10.0"

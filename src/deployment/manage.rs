@@ -4,7 +4,7 @@ use crate::util::cli::ask_for_confirm;
 use crate::wallet::{cli_types::LiveCell, Wallet};
 use anyhow::{anyhow, Result};
 use chrono::prelude::*;
-use ckb_tool::ckb_types::core::{Capacity, TransactionView};
+use ckb_testtool::ckb_types::core::{Capacity, TransactionView};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -91,29 +91,33 @@ impl Manage {
 
         // query cells recipes
         for cell in recipe.cell_recipes {
-            if let Some(tx) = wallet.query_transaction(&cell.tx_hash)? {
-                let output = &tx.transaction.inner.outputs[cell.index as usize];
-                let live_cell = LiveCell {
-                    tx_hash: tx.transaction.hash.clone(),
-                    index: cell.index,
-                    capacity: output.capacity.value(),
-                    mature: true,
-                };
-                cells.push((cell.name.clone(), live_cell));
+            if let Some(tx_with_status) = wallet.query_transaction(&cell.tx_hash)? {
+                if let Some(tx) = tx_with_status.transaction {
+                    let output = &tx.inner.outputs[cell.index as usize];
+                    let live_cell = LiveCell {
+                        tx_hash: tx.hash.clone(),
+                        index: cell.index,
+                        capacity: output.capacity.value(),
+                        mature: true,
+                    };
+                    cells.push((cell.name.clone(), live_cell));
+                }
             }
         }
 
         // query dep groups recipes
         for dep_group in recipe.dep_group_recipes {
-            if let Some(tx) = wallet.query_transaction(&dep_group.tx_hash)? {
-                let output = &tx.transaction.inner.outputs[dep_group.index as usize];
-                let live_cell = LiveCell {
-                    tx_hash: tx.transaction.hash.clone(),
-                    index: dep_group.index,
-                    capacity: output.capacity.value(),
-                    mature: true,
-                };
-                cells.push((dep_group.name.clone(), live_cell));
+            if let Some(tx_with_status) = wallet.query_transaction(&dep_group.tx_hash)? {
+                if let Some(tx) = tx_with_status.transaction {
+                    let output = &tx.inner.outputs[dep_group.index as usize];
+                    let live_cell = LiveCell {
+                        tx_hash: tx.hash.clone(),
+                        index: dep_group.index,
+                        capacity: output.capacity.value(),
+                        mature: true,
+                    };
+                    cells.push((dep_group.name.clone(), live_cell));
+                }
             }
         }
 

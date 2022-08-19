@@ -82,12 +82,21 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
     Ok(())
 }
 
-fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P, signal: &Signal) -> Result<()> {
+fn gen_project_test<P: AsRef<Path>>(
+    name: String,
+    project_path: P,
+    signal: &Signal,
+    docker_env_file: String,
+) -> Result<()> {
     const DEFAULT_TESTS_DIR: &str = "tests";
 
     let project_path = project_path.as_ref().to_str().expect("path");
-    let cmd = DockerCommand::with_config(DOCKER_IMAGE.to_string(), project_path.to_string())
-        .fix_dir_permission(DEFAULT_TESTS_DIR.to_string());
+    let cmd = DockerCommand::with_config(
+        DOCKER_IMAGE.to_string(),
+        project_path.to_string(),
+        docker_env_file,
+    )
+    .fix_dir_permission(DEFAULT_TESTS_DIR.to_string());
     cmd.run(
         format!("cargo new {} --lib --vcs none", DEFAULT_TESTS_DIR),
         signal,
@@ -120,7 +129,12 @@ fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P, signal: &Sign
 }
 
 // create a new project
-pub fn new_project<P: AsRef<Path>>(name: String, path: P, signal: &Signal) -> Result<PathBuf> {
+pub fn new_project<P: AsRef<Path>>(
+    name: String,
+    path: P,
+    signal: &Signal,
+    docker_env_file: String,
+) -> Result<PathBuf> {
     let mut project_path: PathBuf = PathBuf::new();
     project_path.push(path);
     project_path.push(&name);
@@ -133,6 +147,6 @@ pub fn new_project<P: AsRef<Path>>(name: String, path: P, signal: &Signal) -> Re
     contracts_path.push("contracts");
     // generate contract tests
     println!("Created tests");
-    gen_project_test(name, &project_path, signal)?;
+    gen_project_test(name, &project_path, signal, docker_env_file)?;
     Ok(project_path)
 }

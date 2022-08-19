@@ -14,7 +14,7 @@ use tera;
 use std::fs;
 use std::path::PathBuf;
 
-pub const DOCKER_IMAGE: &str = "jjy0/ckb-capsule-recipe-rust:2020-9-28";
+pub const DOCKER_IMAGE: &str = "thewawar/ckb-capsule:2022-08-01";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
 const CARGO_CONFIG_PATH: &str = ".cargo/config";
 const BASE_RUSTFLAGS: &str =
@@ -124,6 +124,7 @@ impl Recipe for Rust {
         contract: &Contract,
         rewrite_config: bool,
         signal: &Signal,
+        docker_env_file: String,
     ) -> Result<()> {
         let name = &contract.name;
         println!("New contract {:?}", &name);
@@ -133,6 +134,7 @@ impl Recipe for Rust {
         let cmd = DockerCommand::with_config(
             self.docker_image(),
             path.to_str().expect("str").to_string(),
+            docker_env_file,
         )
         .fix_dir_permission(name.clone());
         cmd.run(
@@ -166,28 +168,45 @@ impl Recipe for Rust {
     fn run(&self, contract: &Contract, build_cmd: String, signal: &Signal) -> Result<()> {
         let project_path = self.context.project_path.to_str().expect("path");
         let contract_relative_path = self.contract_relative_path(&contract.name);
-        let cmd = DockerCommand::with_context(
+        let mut cmd = DockerCommand::with_context(
             &self.context,
             self.docker_image(),
             project_path.to_string(),
+            self.context.docker_env_file.clone(),
         )
         .workdir(format!(
             "/code/{}",
             contract_relative_path.to_str().expect("path")
         ))
         .fix_dir_permission("/code/target".to_string())
-        .fix_dir_permission("/code/Cargo.lock".to_string());
+        .fix_dir_permission("/code/Cargo.lock".to_string())
+        .host_network(self.context.use_docker_host);
+        if let Some(rustup_dir) = self.context.rustup_dir.as_ref() {
+            cmd = cmd.map_volume(rustup_dir.to_string(), "/root/.rustup".to_string());
+        }
+
         cmd.run(build_cmd, &signal)?;
         Ok(())
     }
 
     /// build contract
-    fn run_build(&self, contract: &Contract, config: BuildConfig, signal: &Signal) -> Result<()> {
+    fn run_build(
+        &self,
+        contract: &Contract,
+        config: BuildConfig,
+        signal: &Signal,
+        build_args_opt: Option<Vec<String>>,
+    ) -> Result<()> {
         // docker cargo build
         let mut rel_bin_path = PathBuf::new();
         let (bin_dir_prefix, build_cmd_opt) = match config.build_env {
             BuildEnv::Debug => ("debug", ""),
             BuildEnv::Release => ("release", "--release"),
+        };
+        let build_cmd_opt = if build_args_opt.is_some() {
+            format!("{} {}", build_cmd_opt, build_args_opt.unwrap().join(" "))
+        } else {
+            String::from(build_cmd_opt)
         };
         rel_bin_path.push(format!(
             "target/{}/{}/{}",
@@ -202,14 +221,13 @@ impl Recipe for Rust {
 
         // run build command
         let build_cmd = format!(
-            "{rustflags} {cargo_cmd} build --target {rust_target} {build_env} && \
-         ckb-binary-patcher -i {contract_bin} -o {contract_bin}",
+            "{rustflags} {cargo_cmd} build --target {rust_target} {build_env}",
             cargo_cmd = self.cargo_cmd(),
             rustflags = self.injection_rustflags(config, &contract.name),
             rust_target = RUST_TARGET,
-            contract_bin = container_bin_path.to_str().expect("bin"),
             build_env = build_cmd_opt
         );
+        log::debug!("[build cmd]: {}", build_cmd);
         self.run(contract, build_cmd, signal)?;
 
         // copy to build dir

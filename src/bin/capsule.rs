@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
 
@@ -21,7 +21,7 @@ use ckb_capsule::tester::Tester;
 use ckb_capsule::version::Version;
 use ckb_capsule::wallet::cli_types::HumanCapacity;
 use ckb_capsule::wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
-use ckb_tool::ckb_types::core::Capacity;
+use ckb_testtool::ckb_types::core::Capacity;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 
@@ -60,6 +60,15 @@ fn group_contracts_by_type(contracts: Vec<Contract>) -> HashMap<TemplateType, Ve
     contracts_by_type
 }
 
+fn get_last_args() -> (Vec<String>, Vec<String>) {
+    let args: Vec<String> = env::args().collect();
+    let mut iter = args.splitn(2, |n| n == "--");
+    (
+        iter.next().unwrap().to_vec(),
+        iter.next().map(|f| f.to_vec()).unwrap_or(Vec::new()),
+    )
+}
+
 fn run_cli() -> Result<()> {
     env_logger::init();
 
@@ -88,9 +97,15 @@ fn run_cli() -> Result<()> {
         .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
         .subcommand(SubCommand::with_name("new").about("Create a new project").args(&contract_args).display_order(1))
         .subcommand(SubCommand::with_name("new-contract").about("Create a new contract").args(&contract_args).display_order(2))
-        .subcommand(SubCommand::with_name("build").about("Build contracts").arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name")).arg(
-                    Arg::with_name("release").long("release").help("Build contracts in release mode.")
-        ).arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output")).display_order(3))
+        .subcommand(
+            SubCommand::with_name("build")
+                .about("Build contracts")
+                .arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name"))
+                .arg(Arg::with_name("release").long("release").help("Build contracts in release mode."))
+                .arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output"))
+                .arg(Arg::with_name("host").long("host").help("Docker runs in host mode"))
+                .arg(Arg::with_name("rustup-dir").long("rustup-dir").takes_value(true).help("Mount the directory to /root/.rustup in docker image"))
+                .display_order(3))
         .subcommand(SubCommand::with_name("run").about("Run command in contract build image").usage("ckb_capsule run --name <name> 'echo list contract dir: && ls'")
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
@@ -185,9 +200,9 @@ fn run_cli() -> Result<()> {
                         .default_value("8000").required(true).takes_value(true),
                     Arg::with_name("only-server").long("only-server").help("Only start debugger server"),
                 ])
-            )
-                .display_order(8),
-        );
+            ).display_order(8),
+        )
+        .arg(Arg::with_name("env-file").long("env-file").takes_value(true).help("Read in a file of environment variables to docker"));
 
     let signal = signal::Signal::setup();
 
@@ -197,7 +212,9 @@ fn run_cli() -> Result<()> {
         String::from_utf8(buf)?
     };
 
-    let matches = app.get_matches();
+    let (args, args_last) = get_last_args();
+    let matches = app.get_matches_from(args);
+    let docker_env_file = String::from(matches.value_of("env-file").unwrap_or_default());
     match matches.subcommand() {
         ("check", _args) => {
             Checker::build()?.print_report();
@@ -218,13 +235,19 @@ fn run_cli() -> Result<()> {
             } else {
                 path.push(env::current_dir()?);
             }
-            let project_path = new_project(name.to_string(), path, &signal)?;
+            let project_path =
+                new_project(name.to_string(), path, &signal, docker_env_file.clone())?;
             let context = Context::load_from_path(&project_path)?;
             let c = Contract {
                 name,
                 template_type,
             };
-            get_recipe(context.clone(), c.template_type)?.create_contract(&c, true, &signal)?;
+            get_recipe(context.clone(), c.template_type)?.create_contract(
+                &c,
+                true,
+                &signal,
+                docker_env_file,
+            )?;
             append_contract_to_config(&context, &c)?;
             println!("Done");
         }
@@ -241,12 +264,12 @@ fn run_cli() -> Result<()> {
             if recipe.exists(&contract.name) {
                 return Err(anyhow!("contract '{}' is already exists", contract.name));
             }
-            recipe.create_contract(&contract, true, &signal)?;
+            recipe.create_contract(&contract, true, &signal, docker_env_file)?;
             append_contract_to_config(&context, &contract)?;
             println!("Done");
         }
         ("build", Some(args)) => {
-            let context = Context::load()?;
+            let mut context = Context::load()?;
             let build_names: Vec<&str> = args
                 .values_of("name")
                 .map(|values| values.collect())
@@ -257,6 +280,22 @@ fn run_cli() -> Result<()> {
                 BuildEnv::Debug
             };
             let always_debug = args.is_present("debug-output");
+            let rustup_dir = args
+                .value_of("rustup-dir")
+                .map(|value| {
+                    let path = Path::new(value);
+                    if !path.exists() {
+                        return Err(anyhow!("rustup path not exists: {}", value));
+                    }
+                    if !path.is_dir() {
+                        return Err(anyhow!("rustup path is not directory: {}", value));
+                    }
+                    Ok(value.to_string())
+                })
+                .transpose()?;
+            context.use_docker_host = args.is_present("host");
+            context.docker_env_file = docker_env_file;
+            context.rustup_dir = rustup_dir;
             let build_config = BuildConfig {
                 build_env,
                 always_debug,
@@ -269,7 +308,12 @@ fn run_cli() -> Result<()> {
                 for contract in contracts {
                     println!("Building contract {}", contract.name);
                     let recipe = get_recipe(context.clone(), contract.template_type)?;
-                    recipe.run_build(&contract, build_config, &signal)?;
+                    recipe.run_build(
+                        &contract,
+                        build_config,
+                        &signal,
+                        Option::Some(args_last.clone()),
+                    )?;
                 }
                 println!("Done");
             }
@@ -312,7 +356,7 @@ fn run_cli() -> Result<()> {
             } else {
                 BuildEnv::Debug
             };
-            Tester::run(&context, build_env, &signal)?;
+            Tester::run(&context, build_env, &signal, docker_env_file)?;
         }
         ("deploy", Some(args)) => {
             Checker::build()?.check_ckb_cli()?;
@@ -377,6 +421,7 @@ fn run_cli() -> Result<()> {
                     listen_port,
                     tty,
                     &signal,
+                    docker_env_file,
                 )?;
             }
             (command, _) => {

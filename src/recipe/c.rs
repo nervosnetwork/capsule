@@ -164,6 +164,7 @@ impl<R: CRecipe> Recipe for C<R> {
         contract: &Contract,
         rewrite_config: bool,
         _signal: &Signal,
+        _docker_env_file: String,
     ) -> Result<()> {
         // setup c environment if needed
         self.setup_c_environment()?;
@@ -203,7 +204,13 @@ impl<R: CRecipe> Recipe for C<R> {
 
     /// build contract
     /// Delegate to Makefile
-    fn run_build(&self, c: &Contract, config: BuildConfig, signal: &Signal) -> Result<()> {
+    fn run_build(
+        &self,
+        c: &Contract,
+        config: BuildConfig,
+        signal: &Signal,
+        _build_args_opt: Option<Vec<String>>,
+    ) -> Result<()> {
         let build_target = self.build_target(config.build_env, &c.name);
         let mut bin_path = self.c_dir();
         bin_path.push(&build_target);
@@ -218,7 +225,8 @@ impl<R: CRecipe> Recipe for C<R> {
         // copy to build dir
         if !bin_path.exists() {
             return Err(anyhow!(
-                "can't find contract binary from path {:?}, please check Makefile"
+                "can't find contract binary from path {:?}, please check Makefile",
+                bin_path,
             ));
         }
         let mut target_path = self.context.project_path.clone();

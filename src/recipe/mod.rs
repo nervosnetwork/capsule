@@ -21,8 +21,15 @@ pub trait Recipe {
         contract: &Contract,
         rewrite_config: bool,
         signal: &Signal,
+        docker_env_file: String,
     ) -> Result<()>;
     fn run(&self, contract: &Contract, build_cmd: String, signal: &Signal) -> Result<()>;
-    fn run_build(&self, contract: &Contract, config: BuildConfig, signal: &Signal) -> Result<()>;
+    fn run_build(
+        &self,
+        contract: &Contract,
+        config: BuildConfig,
+        signal: &Signal,
+        build_args_opt: Option<Vec<String>>,
+    ) -> Result<()>;
     fn clean(&self, contracts: &[Contract], signal: &Signal) -> Result<()>;
 }

@@ -4,7 +4,7 @@ use crate::recipe::rust::DOCKER_IMAGE;
 use crate::signal::Signal;
 use crate::util::docker::DockerCommand;
 use anyhow::{anyhow, Result};
-use ckb_tool::ckb_hash::new_blake2b;
+use ckb_testtool::ckb_hash::new_blake2b;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::fs;
@@ -23,6 +23,7 @@ pub fn start_debugger<P: AsRef<Path>>(
     listen_port: usize,
     tty: bool,
     signal: &Signal,
+    docker_env_file: String,
 ) -> Result<()> {
     const DEBUG_SERVER_NAME: &str = "capsule-debugger-server";
 
@@ -49,17 +50,23 @@ pub fn start_debugger<P: AsRef<Path>>(
 
     // start GDB server container
     let container_template_path = "/tmp/tx.json".to_string();
+    let mode = if tty { "gdb" } else { "full" };
     let cmd = format!(
-        "ckb-debugger --script-group-type {} --cell-index {} --cell-type {} --tx-file {} --max-cycle {} --listen 127.0.0.1:{}",
-        script_group_type, cell_index, cell_type, container_template_path, max_cycles, listen_port
+        "ckb-debugger --script-group-type {} --cell-index {} --cell-type {} --tx-file {} --max-cycles {} --mode {} --gdb-listen 127.0.0.1:{}",
+        script_group_type, cell_index, cell_type, container_template_path, max_cycles, mode, listen_port
     );
     println!("GDB server is started!");
-    DockerCommand::with_context(context, DOCKER_IMAGE.to_string(), project_path.clone())
-        .host_network(true)
-        .name(DEBUG_SERVER_NAME.to_string())
-        .daemon(tty)
-        .map_volume(patched_template_path, container_template_path)
-        .run(cmd, signal)?;
+    DockerCommand::with_context(
+        context,
+        DOCKER_IMAGE.to_string(),
+        project_path.clone(),
+        docker_env_file.clone(),
+    )
+    .host_network(true)
+    .name(DEBUG_SERVER_NAME.to_string())
+    .daemon(tty)
+    .map_volume(patched_template_path, container_template_path)
+    .run(cmd, signal)?;
     if tty {
         let contract_path = match env {
             BuildEnv::Debug => format!("build/debug/{}", contract_name),
@@ -72,10 +79,14 @@ pub fn start_debugger<P: AsRef<Path>>(
             contract=contract_name,
             contract_path=contract_path
         );
-        let docker_cmd =
-            DockerCommand::with_context(context, DOCKER_IMAGE.to_string(), project_path)
-                .host_network(true)
-                .tty(true);
+        let docker_cmd = DockerCommand::with_context(
+            context,
+            DOCKER_IMAGE.to_string(),
+            project_path,
+            docker_env_file,
+        )
+        .host_network(true)
+        .tty(true);
 
         // Prepare a specific docker environment for GDB client then enable this
         //
@@ -88,8 +99,10 @@ pub fn start_debugger<P: AsRef<Path>>(
         // }
 
         docker_cmd.run(cmd, signal)?;
+
+        return DockerCommand::stop(DEBUG_SERVER_NAME);
     }
-    DockerCommand::stop(DEBUG_SERVER_NAME)
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -154,7 +167,7 @@ pub fn patch_template<P: AsRef<Path>>(
         let patch = match attribute.as_str() {
             "data" => {
                 let bin = fs::read(contract_binary_path)?;
-                faster_hex::hex_string(&bin)?
+                faster_hex::hex_string(&bin)
             }
             "code_hash" => {
                 let bin = fs::read(contract_binary_path)?;
@@ -162,7 +175,7 @@ pub fn patch_template<P: AsRef<Path>>(
                 hasher.update(&bin);
                 let mut code_hash = [0u8; 32];
                 hasher.finalize(&mut code_hash);
-                faster_hex::hex_string(&code_hash)?
+                faster_hex::hex_string(&code_hash)
             }
             _ => panic!(
                 "unknown template mark attribute: '{}.{}'",

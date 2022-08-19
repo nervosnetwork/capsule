@@ -60,6 +60,9 @@ impl FromStr for DeployEnv {
 pub struct Context {
     pub project_path: PathBuf,
     pub config: Config,
+    pub use_docker_host: bool,
+    pub docker_env_file: String,
+    pub rustup_dir: Option<String>,
 }
 
 impl Context {
@@ -88,6 +91,9 @@ impl Context {
         Ok(Context {
             config,
             project_path,
+            use_docker_host: false,
+            docker_env_file: String::new(),
+            rustup_dir: None,
         })
     }
 

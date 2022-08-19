@@ -3,8 +3,8 @@ use std::fmt;
 use std::str::FromStr;
 
 use bech32::{convert_bits, Bech32, ToBase32};
-use ckb_tool::ckb_hash::blake2b_256;
-use ckb_tool::ckb_types::{
+use ckb_testtool::ckb_hash::blake2b_256;
+use ckb_testtool::ckb_types::{
     bytes::Bytes,
     core::ScriptHashType,
     packed::{Byte32, Script},
@@ -91,6 +91,7 @@ impl AddressPayload {
             AddressPayload::Short { .. } => AddressType::Short,
             AddressPayload::Full { hash_type, .. } => match hash_type {
                 ScriptHashType::Data => AddressType::FullData,
+                ScriptHashType::Data1 => AddressType::FullData,
                 ScriptHashType::Type => AddressType::FullType,
             },
         }

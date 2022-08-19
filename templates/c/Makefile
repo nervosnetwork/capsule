@@ -8,10 +8,10 @@ CFLAGS := -fPIC -O3 -fno-builtin-memcmp -fno-builtin-printf -nostdinc -nostdlib 
 LDFLAGS := -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections
 DBGFLAGS := -DCKB_C_STDLIB_PRINTF
 MOLC := moleculec
-MOLC_VERSION := 0.6.0
+MOLC_VERSION := 0.7.3
 PROTOCOL_HEADER := build/blockchain.h
 PROTOCOL_SCHEMA := build/blockchain.mol
-PROTOCOL_VERSION := d75e4c56ffa40e17fd2fe477da3f98c5578edcd1
+PROTOCOL_VERSION := v0.104.0
 PROTOCOL_URL := https://raw.githubusercontent.com/nervosnetwork/ckb/${PROTOCOL_VERSION}/util/types/schemas/blockchain.mol
 
 # docker pull nervos/ckb-riscv-gnu-toolchain:gnu-bionic-20191012
