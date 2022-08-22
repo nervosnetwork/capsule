@@ -229,6 +229,7 @@ name = "ckb-capsule"
 version = "0.8.0"
 dependencies = [
  "anyhow",
+ "atty",
  "bech32",
  "chrono",
  "ckb-testtool",
