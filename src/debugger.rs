@@ -85,8 +85,7 @@ pub fn start_debugger<P: AsRef<Path>>(
             project_path,
             docker_env_file,
         )
-        .host_network(true)
-        .tty(true);
+        .host_network(true);
 
         // Prepare a specific docker environment for GDB client then enable this
         //

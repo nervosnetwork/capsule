@@ -3,7 +3,7 @@ use crate::signal::Signal;
 use anyhow::{anyhow, Result};
 use log::debug;
 use std::env;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -33,7 +33,6 @@ pub struct DockerCommand {
     env_file: String,
     name: Option<String>,
     daemon: bool,
-    tty: bool,
     workdir: String,
     inherited_env: Vec<&'static str>,
 }
@@ -72,7 +71,6 @@ impl DockerCommand {
             env_file,
             name: None,
             daemon: false,
-            tty: false,
             workdir: "/code".to_string(),
             inherited_env: vec![
                 //"HTTP_PROXY",
@@ -96,11 +94,6 @@ impl DockerCommand {
 
     pub fn daemon(mut self, daemon: bool) -> Self {
         self.daemon = daemon;
-        self
-    }
-
-    pub fn tty(mut self, tty: bool) -> Self {
-        self.tty = tty;
         self
     }
 
@@ -176,14 +169,17 @@ impl DockerCommand {
             env_file,
             name,
             daemon,
-            tty,
             workdir,
             inherited_env,
         } = self;
 
         let mut cmd = Command::new(bin);
+        cmd.stdin(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .stdout(Stdio::inherit());
         cmd.args(&[
             "run",
+            "--init",
             format!("-eUID={}", uid).as_str(),
             format!("-eGID={}", gid).as_str(),
             format!("-eUSER={}", user).as_str(),
@@ -235,7 +231,7 @@ impl DockerCommand {
             cmd.arg("-d");
         }
 
-        if tty {
+        if atty::is(atty::Stream::Stdin) {
             cmd.arg("-it");
         }
 
