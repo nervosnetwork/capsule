@@ -1,6 +1,7 @@
 extern crate includedir_codegen;
 
 use includedir_codegen::Compression;
+use std::io::ErrorKind;
 
 fn main() {
     // include templates
@@ -9,8 +10,7 @@ fn main() {
         .build("templates.rs")
         .unwrap();
 
-    // get commit id
-    let commit_id = std::process::Command::new("git")
+    let get_command_id = std::process::Command::new("git")
         .args(&[
             "describe",
             "--dirty",
@@ -19,9 +19,17 @@ fn main() {
             "__EXCLUDE__",
             "--abbrev=7",
         ])
-        .output()
-        .ok()
-        .and_then(|r| String::from_utf8(r.stdout).ok())
-        .expect("commit id");
+        .output();
+    let commit_id = match get_command_id {
+        Ok(output) => String::from_utf8(output.stdout).ok().expect("commit id"),
+        Err(err) => {
+            if let ErrorKind::NotFound = err.kind() {
+                panic!("error when get commit id: `git` was not found!");
+            } else {
+                panic!("error when get commit id: {}", err);
+            }
+        }
+    };
+
     println!("cargo:rustc-env=COMMIT_ID={}", commit_id);
 }
