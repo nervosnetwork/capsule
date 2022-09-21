@@ -7,10 +7,6 @@ use std::str::FromStr;
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct LiveCellInfoVec {
     pub live_cells: Vec<LiveCellInfo>,
-    pub current_capacity: String,
-    pub current_count: usize,
-    pub total_capacity: String,
-    pub total_count: usize,
 }
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
