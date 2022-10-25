@@ -20,7 +20,9 @@ use ckb_capsule::signal;
 use ckb_capsule::tester::Tester;
 use ckb_capsule::version::Version;
 use ckb_capsule::wallet::cli_types::HumanCapacity;
-use ckb_capsule::wallet::{Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_RPC_URL};
+use ckb_capsule::wallet::{
+    Address, Wallet, DEFAULT_CKB_CLI_BIN_NAME, DEFAULT_CKB_INDEXER_RPC_URL, DEFAULT_CKB_RPC_URL,
+};
 use ckb_testtool::ckb_types::core::Capacity;
 
 use clap::{App, AppSettings, Arg, SubCommand};
@@ -130,7 +132,16 @@ fn run_cli() -> Result<()> {
                         .help("Use previously deployed cells as inputs.").possible_values(&["on", "off"]).default_value("on").takes_value(true),
                     Arg::with_name("api")
                         .long("api")
-                        .help("CKB RPC url").default_value(DEFAULT_CKB_RPC_URL).takes_value(true),
+                        .help("CKB RPC url")
+                        .env("API_URL")
+                        .default_value(DEFAULT_CKB_RPC_URL)
+                        .takes_value(true),
+                    Arg::with_name("ckb-indexer-url")
+                        .long("ckb-indexer-url")
+                        .help("ckb-indexer RPC url")
+                        .default_value(DEFAULT_CKB_INDEXER_RPC_URL)
+                        .env("CKB_INDEXER_URL")
+                        .takes_value(true),
                     Arg::with_name("ckb-cli")
                         .long("ckb-cli")
                         .help("CKB cli binary").default_value(DEFAULT_CKB_CLI_BIN_NAME).takes_value(true),
@@ -366,8 +377,14 @@ fn run_cli() -> Result<()> {
             };
             let context = Context::load()?;
             let ckb_rpc_url = args.value_of("api").expect("api");
+            let ckb_indexer_rpc_url = args.value_of("ckb-indexer-url").expect("indexer url");
             let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
-            let wallet = Wallet::load(ckb_rpc_url.to_string(), ckb_cli_bin.to_string(), address);
+            let wallet = Wallet::load(
+                ckb_rpc_url.to_string(),
+                ckb_indexer_rpc_url.to_string(),
+                ckb_cli_bin.to_string(),
+                address,
+            );
             let deploy_env: DeployEnv = args
                 .value_of("env")
                 .expect("deploy env")
