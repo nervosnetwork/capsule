@@ -3,6 +3,8 @@ use log::warn;
 use std::fmt;
 use std::process::{Command, Output};
 
+use crate::wallet::REQUIRED_CKB_CLI_VERSION;
+
 fn check_cmd(program: &str, arg: &str) -> Result<Output> {
     Command::new(program).arg(arg).output().map_err(Into::into)
 }
@@ -13,11 +15,11 @@ pub struct Checker {
 }
 
 impl Checker {
-    pub fn build() -> Result<Self> {
+    pub fn build(ckb_cli_bin: &str) -> Result<Self> {
         let docker = check_cmd("docker", "version")
             .map(|output| output.status.success())
             .unwrap_or(false);
-        let ckb_cli = check_cmd("ckb-cli", "--version")
+        let ckb_cli = check_cmd(ckb_cli_bin, "--version")
             .map(|output| output.stdout)
             .ok();
         Ok(Checker { docker, ckb_cli })
@@ -72,10 +74,8 @@ impl Checker {
     }
 }
 
-const REQUIRED_CKB_CLI_VERSION: Version = Version(0, 34, 0);
-
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-struct Version(usize, usize, usize);
+pub struct Version(pub usize, pub usize, pub usize);
 
 impl Version {
     fn parse_with_prefix(prefix: &'static str, buf: Vec<u8>) -> Result<Self> {

@@ -9,15 +9,13 @@ pub struct Collector {
     locked_cells: HashSet<OutPoint>,
     ckb_cli_bin: String,
     api_uri: String,
-    indexer_uri: String,
 }
 
 impl Collector {
-    pub fn new(api_uri: String, indexer_uri: String, ckb_cli_bin: String) -> Self {
+    pub fn new(api_uri: String, ckb_cli_bin: String) -> Self {
         Collector {
             locked_cells: HashSet::default(),
             api_uri,
-            indexer_uri,
             ckb_cli_bin,
         }
     }
@@ -87,8 +85,6 @@ impl Collector {
             Command::new(&self.ckb_cli_bin)
                 .arg("--url")
                 .arg(&self.api_uri)
-                .arg("--ckb-indexer-url")
-                .arg(&self.indexer_uri)
                 .arg("rpc")
                 .arg("get_tip_block_number")
                 .arg("--output-format")
@@ -116,8 +112,6 @@ impl Collector {
             Command::new(&self.ckb_cli_bin)
                 .arg("--url")
                 .arg(&self.api_uri)
-                .arg("--ckb-indexer-url")
-                .arg(&self.indexer_uri)
                 .arg("wallet")
                 .arg("get-live-cells")
                 .arg("--address")
