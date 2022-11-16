@@ -3,8 +3,6 @@ use log::warn;
 use std::fmt;
 use std::process::{Command, Output};
 
-use crate::wallet::REQUIRED_CKB_CLI_VERSION;
-
 fn check_cmd(program: &str, arg: &str) -> Result<Output> {
     Command::new(program).arg(arg).output().map_err(Into::into)
 }
@@ -74,8 +72,10 @@ impl Checker {
     }
 }
 
+const REQUIRED_CKB_CLI_VERSION: Version = Version(1, 2, 0);
+
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Version(pub usize, pub usize, pub usize);
+struct Version(usize, usize, usize);
 
 impl Version {
     fn parse_with_prefix(prefix: &'static str, buf: Vec<u8>) -> Result<Self> {

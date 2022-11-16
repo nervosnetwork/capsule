@@ -1,5 +1,3 @@
-use crate::checker::Version;
-
 use super::cli_types::{Address, LiveCell, SignatureOutput};
 use super::collector::Collector;
 use super::password::Password;
@@ -21,9 +19,8 @@ use std::collections::HashSet;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
+// If ckb-cli is not compatible anymore, don't forget to update variable REQUIRED_CKB_CLI_VERSION in checker.rs
 pub const DEFAULT_CKB_CLI_BIN_NAME: &str = "ckb-cli";
-// required ckb-cli version, put it here to prevent forget update after ckb-cli is not compatible anymore
-pub const REQUIRED_CKB_CLI_VERSION: Version = Version(1, 2, 0);
 pub const DEFAULT_CKB_RPC_URL: &str = "http://localhost:8114";
 
 pub struct Wallet {
