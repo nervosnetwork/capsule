@@ -19,14 +19,13 @@ use std::collections::HashSet;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
+// If ckb-cli is not compatible anymore, don't forget to update variable REQUIRED_CKB_CLI_VERSION in checker.rs
 pub const DEFAULT_CKB_CLI_BIN_NAME: &str = "ckb-cli";
 pub const DEFAULT_CKB_RPC_URL: &str = "http://localhost:8114";
-pub const DEFAULT_CKB_INDEXER_RPC_URL: &str = "http://localhost:8116";
 
 pub struct Wallet {
     ckb_cli_bin: String,
     api_uri: String,
-    indexer_uri: String,
     rpc_client: RpcClient,
     address: Address,
     genesis: BlockView,
@@ -34,14 +33,13 @@ pub struct Wallet {
 }
 
 impl Wallet {
-    pub fn load(uri: String, indexer_uri: String, ckb_cli_bin: String, address: Address) -> Self {
+    pub fn load(uri: String, ckb_cli_bin: String, address: Address) -> Self {
         let rpc_client = RpcClient::new(&uri);
         let genesis = rpc_client.get_block_by_number(0u64).expect("genesis");
-        let collector = Collector::new(uri.clone(), indexer_uri.clone(), ckb_cli_bin.clone());
+        let collector = Collector::new(uri.clone(), ckb_cli_bin.clone());
         Wallet {
             ckb_cli_bin,
             api_uri: uri,
-            indexer_uri,
             rpc_client,
             address,
             genesis: genesis.into(),
@@ -167,8 +165,6 @@ impl Wallet {
             .stdout(Stdio::piped())
             .arg("--url")
             .arg(&self.api_uri)
-            .arg("--ckb-indexer-url")
-            .arg(&self.indexer_uri)
             .arg("util")
             .arg("sign-message")
             .arg("--recoverable")
