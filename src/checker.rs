@@ -13,11 +13,11 @@ pub struct Checker {
 }
 
 impl Checker {
-    pub fn build() -> Result<Self> {
+    pub fn build(ckb_cli_bin: &str) -> Result<Self> {
         let docker = check_cmd("docker", "version")
             .map(|output| output.status.success())
             .unwrap_or(false);
-        let ckb_cli = check_cmd("ckb-cli", "--version")
+        let ckb_cli = check_cmd(ckb_cli_bin, "--version")
             .map(|output| output.stdout)
             .ok();
         Ok(Checker { docker, ckb_cli })
@@ -72,7 +72,7 @@ impl Checker {
     }
 }
 
-const REQUIRED_CKB_CLI_VERSION: Version = Version(0, 34, 0);
+const REQUIRED_CKB_CLI_VERSION: Version = Version(1, 2, 0);
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct Version(usize, usize, usize);

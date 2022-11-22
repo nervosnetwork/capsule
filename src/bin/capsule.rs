@@ -94,7 +94,11 @@ fn run_cli() -> Result<()> {
         .version(version_str.as_str())
         .author("Nervos Developer Tools Team")
         .about("Capsule CKB contract scaffold")
-        .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").display_order(0))
+        .subcommand(SubCommand::with_name("check").about("Check environment and dependencies").args(&[
+            Arg::with_name("ckb-cli")
+                .long("ckb-cli")
+                .help("CKB cli binary").default_value(DEFAULT_CKB_CLI_BIN_NAME).takes_value(true),
+        ]).display_order(0))
         .subcommand(SubCommand::with_name("new").about("Create a new project").args(&contract_args).display_order(1))
         .subcommand(SubCommand::with_name("new-contract").about("Create a new contract").args(&contract_args).display_order(2))
         .subcommand(
@@ -130,7 +134,11 @@ fn run_cli() -> Result<()> {
                         .help("Use previously deployed cells as inputs.").possible_values(&["on", "off"]).default_value("on").takes_value(true),
                     Arg::with_name("api")
                         .long("api")
-                        .help("CKB RPC url").default_value(DEFAULT_CKB_RPC_URL).takes_value(true),
+                        .help("CKB RPC url")
+                        .env("API_URL")
+                        .default_value(DEFAULT_CKB_RPC_URL)
+                        .takes_value(true),
+
                     Arg::with_name("ckb-cli")
                         .long("ckb-cli")
                         .help("CKB cli binary").default_value(DEFAULT_CKB_CLI_BIN_NAME).takes_value(true),
@@ -216,8 +224,9 @@ fn run_cli() -> Result<()> {
     let matches = app.get_matches_from(args);
     let docker_env_file = String::from(matches.value_of("env-file").unwrap_or_default());
     match matches.subcommand() {
-        ("check", _args) => {
-            Checker::build()?.print_report();
+        ("check", Some(args)) => {
+            let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
+            Checker::build(ckb_cli_bin)?.print_report();
         }
         ("new", Some(args)) => {
             let mut name = args
@@ -359,14 +368,14 @@ fn run_cli() -> Result<()> {
             Tester::run(&context, build_env, &signal, docker_env_file)?;
         }
         ("deploy", Some(args)) => {
-            Checker::build()?.check_ckb_cli()?;
+            let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
+            Checker::build(ckb_cli_bin)?.check_ckb_cli()?;
             let address = {
                 let address_hex = args.value_of("address").expect("address");
                 Address::from_str(&address_hex).expect("parse address")
             };
             let context = Context::load()?;
             let ckb_rpc_url = args.value_of("api").expect("api");
-            let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
             let wallet = Wallet::load(ckb_rpc_url.to_string(), ckb_cli_bin.to_string(), address);
             let deploy_env: DeployEnv = args
                 .value_of("env")

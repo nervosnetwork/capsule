@@ -19,6 +19,7 @@ use std::collections::HashSet;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
+// If ckb-cli is not compatible anymore, don't forget to update variable REQUIRED_CKB_CLI_VERSION in checker.rs
 pub const DEFAULT_CKB_CLI_BIN_NAME: &str = "ckb-cli";
 pub const DEFAULT_CKB_RPC_URL: &str = "http://localhost:8114";
 
