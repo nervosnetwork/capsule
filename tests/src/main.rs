@@ -25,12 +25,11 @@ fn main() {
     // test cases
     test_build(&tmp_dir, &bin_path, "rust-demo", "rust").expect("rust demo");
     test_build(&tmp_dir, &bin_path, "c-demo", "c").expect("c demo");
-    test_build_sharedlib(&tmp_dir, &bin_path, "c-sharedlib-demo", "c-sharedlib")
-        .expect("c sharedlib demo");
-    test_build(&tmp_dir, &bin_path, "lua-demo", "lua").expect("lua demo");
-    // TODO: Current lua recipe is copied from c, fix this test case.
-    // test_build_sharedlib(&tmp_dir, &bin_path, "lua-sharedlib-demo", "lua-sharedlib")
-    //     .expect("lua sharedlib demo");
+    test_build(&tmp_dir, &bin_path, "c-sharedlib-demo", "c-sharedlib").expect("c sharedlib demo");
+    // TODO: Adapt default tests to lua
+    // test_build(&tmp_dir, &bin_path, "lua-demo", "lua").expect("lua demo");
+    test_build(&tmp_dir, &bin_path, "lua-sharedlib-demo", "lua-sharedlib")
+        .expect("lua sharedlib demo");
 
     // clean
     fs::remove_dir_all(&tmp_dir).expect("remove dir");
