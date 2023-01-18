@@ -1,4 +1,5 @@
 mod c;
+mod lua;
 pub mod rust;
 
 use crate::config::{Contract, TemplateType};
@@ -11,6 +12,8 @@ pub fn get_recipe(context: Context, template_type: TemplateType) -> Result<Box<d
         TemplateType::Rust => Ok(Box::new(rust::Rust::new(context))),
         TemplateType::C => Ok(Box::new(c::C::<c::CBin>::new(context))),
         TemplateType::CSharedLib => Ok(Box::new(c::C::<c::CSharedLib>::new(context))),
+        TemplateType::Lua => Ok(Box::new(lua::Lua::<lua::LuaStandalone>::new(context))),
+        TemplateType::LuaSharedLib => Ok(Box::new(lua::Lua::<lua::LuaSharedLib>::new(context))),
     }
 }
 

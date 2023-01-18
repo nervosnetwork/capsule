@@ -10,6 +10,8 @@ pub enum TemplateType {
     Rust,
     C,
     CSharedLib,
+    Lua,
+    LuaSharedLib,
 }
 
 impl FromStr for TemplateType {
@@ -20,6 +22,8 @@ impl FromStr for TemplateType {
             "rust" => TemplateType::Rust,
             "c" => TemplateType::C,
             "c-sharedlib" => TemplateType::CSharedLib,
+            "lua" => TemplateType::Lua,
+            "lua-sharedlib" => TemplateType::LuaSharedLib,
             _ => {
                 return Err(anyhow!("Unexpected template type '{}'", s));
             }
