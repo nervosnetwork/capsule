@@ -20,8 +20,6 @@ const MAKEFILE: &str = "Makefile";
 
 const LUA_DIR_PREFIX: &str = "lua";
 const LUA_TEMPLATE_DIR_PREFIX: &str = "lua";
-const CKB_LUA_SHARED_LIB_NAME: &str = "libckblua.so";
-const CKB_LUA_LOADER_NAME: &str = "lua-loader";
 const DEPS_DIR_PREFIX: &str = "deps";
 const SRC_DIR_PREFIX: &str = "src";
 const DEBUG_DIR: &str = "build/debug";
@@ -41,8 +39,8 @@ pub trait LuaRecipe {
 pub struct LuaStandalone;
 
 impl LuaRecipe for LuaStandalone {
-    fn bin_name(_name: &str) -> String {
-        CKB_LUA_LOADER_NAME.to_string()
+    fn bin_name(name: &str) -> String {
+        name.to_string()
     }
 
     fn src_template() -> &'static str {
@@ -56,8 +54,8 @@ impl LuaRecipe for LuaStandalone {
 pub struct LuaSharedLib;
 
 impl LuaRecipe for LuaSharedLib {
-    fn bin_name(_name: &str) -> String {
-        CKB_LUA_SHARED_LIB_NAME.to_string()
+    fn bin_name(name: &str) -> String {
+        name.to_string()
     }
 
     fn src_template() -> &'static str {
@@ -100,27 +98,27 @@ impl<R: LuaRecipe> Lua<R> {
         p
     }
 
-    fn setup_c_environment(&self) -> Result<()> {
-        println!("Setup C environment");
-        let c_dir = self.lua_dir();
-        if c_dir.exists() {
+    fn setup_lua_environment(&self) -> Result<()> {
+        println!("Setup Lua environment");
+        let lua_dir = self.lua_dir();
+        if lua_dir.exists() {
             return Ok(());
         }
 
         // Setup Dirs
-        fs::create_dir(&c_dir)?;
+        fs::create_dir(&lua_dir)?;
 
         for prefix in &[DEPS_DIR_PREFIX, SRC_DIR_PREFIX] {
-            let mut dir = c_dir.clone();
+            let mut dir = lua_dir.clone();
             dir.push(prefix);
             fs::create_dir(&dir)?;
         }
 
         // Pull deps
         let rel_path = format!(
-            "{contracts}/{c}/{deps}/{name}",
+            "{contracts}/{dir}/{deps}/{name}",
             contracts = CONTRACTS_DIR,
-            c = LUA_DIR_PREFIX,
+            dir = LUA_DIR_PREFIX,
             deps = DEPS_DIR_PREFIX,
             name = CKB_LUA_NAME
         );
@@ -135,7 +133,7 @@ impl<R: LuaRecipe> Lua<R> {
         for f in &["Makefile"] {
             let template_path = format!("{}/{}", LUA_TEMPLATE_DIR_PREFIX, f);
             let content = TEMPLATES.render(&template_path, &tera::Context::default())?;
-            let mut file_path = c_dir.clone();
+            let mut file_path = lua_dir.clone();
             file_path.push(f);
             fs::write(file_path, content)?;
         }
@@ -178,7 +176,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         _docker_env_file: String,
     ) -> Result<()> {
         // setup c environment if needed
-        self.setup_c_environment()?;
+        self.setup_lua_environment()?;
 
         // new contract
         let name = &contract.name;
