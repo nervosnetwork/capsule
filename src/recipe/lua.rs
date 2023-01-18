@@ -51,19 +51,19 @@ impl LuaRecipe for LuaStandalone {
         "standalone/contract/BUILD"
     }
 }
-pub struct LuaSharedLib;
+pub struct LuaEmbeddedLib;
 
-impl LuaRecipe for LuaSharedLib {
+impl LuaRecipe for LuaEmbeddedLib {
     fn bin_name(name: &str) -> String {
         name.to_string()
     }
 
     fn src_template() -> &'static str {
-        "sharedlib/contract/example.c"
+        "embedded/contract/example.c"
     }
 
     fn build_template() -> &'static str {
-        "sharedlib/contract/BUILD"
+        "embedded/contract/BUILD"
     }
 }
 
@@ -144,7 +144,7 @@ impl<R: LuaRecipe> Lua<R> {
     fn source_name(&self, name: &str, contract_type: TemplateType) -> String {
         match contract_type {
             TemplateType::Lua => format!("{}.lua", name),
-            TemplateType::LuaSharedLib => format!("{}.c", name),
+            TemplateType::LuaEmbedded => format!("{}.c", name),
             _ => unreachable!("Must be a Lua contract"),
         }
     }
@@ -164,7 +164,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         let mut c_src = self.src_dir();
         c_src.push(self.source_name(name, TemplateType::Lua));
         let mut lua_src = self.src_dir();
-        lua_src.push(self.source_name(name, TemplateType::LuaSharedLib));
+        lua_src.push(self.source_name(name, TemplateType::LuaEmbedded));
         c_src.exists() || lua_src.exists()
     }
 
@@ -192,7 +192,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         fs::write(src_path, content)?;
 
         // TODO: support tests for TemplateType::Lua
-        if contract.template_type == TemplateType::LuaSharedLib {
+        if contract.template_type == TemplateType::LuaEmbedded {
             for (f, template_name) in &[
                 ("Cargo.toml", None),
                 ("build.rs", None),
@@ -200,7 +200,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
                 ("src/tests.rs", None),
             ] {
                 let template_path = format!(
-                    "{}/sharedlib/contract/{}",
+                    "{}/embedded/contract/{}",
                     LUA_TEMPLATE_DIR_PREFIX,
                     template_name.unwrap_or(f)
                 );

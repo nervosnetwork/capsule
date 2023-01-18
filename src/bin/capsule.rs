@@ -26,7 +26,7 @@ use ckb_testtool::ckb_types::core::Capacity;
 use clap::{App, AppSettings, Arg, SubCommand};
 
 const DEBUGGER_MAX_CYCLES: u64 = 70_000_000u64;
-const TEMPLATES_NAMES: &[&str] = &["rust", "c", "c-sharedlib", "lua", "lua-sharedlib"];
+const TEMPLATES_NAMES: &[&str] = &["rust", "c", "c-sharedlib", "lua", "lua-embedded"];
 
 fn append_contract_to_config(context: &Context, contract: &Contract) -> Result<()> {
     println!("Rewrite capsule.toml");

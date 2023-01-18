@@ -28,8 +28,8 @@ fn main() {
     test_build(&tmp_dir, &bin_path, "c-sharedlib-demo", "c-sharedlib").expect("c sharedlib demo");
     // TODO: Adapt default tests to lua
     // test_build(&tmp_dir, &bin_path, "lua-demo", "lua").expect("lua demo");
-    test_build(&tmp_dir, &bin_path, "lua-sharedlib-demo", "lua-sharedlib")
-        .expect("lua sharedlib demo");
+    test_build(&tmp_dir, &bin_path, "lua-embedded-demo", "lua-embedded")
+        .expect("lua embedded demo");
 
     // clean
     fs::remove_dir_all(&tmp_dir).expect("remove dir");
