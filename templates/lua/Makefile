@@ -1,13 +1,13 @@
 .PHONY: build clean
 
-TARGET ?= debug
-SAVE_DIR ?= build
+BUILD_TARGET ?= debug
+DIR = build/$(BUILD_TARGET)
 
-build:
+build-common:
 	make -C deps/ckb-lua all-via-docker
-	mkdir -p $(SAVE_DIR)/$(TARGET)
-	cp -a deps/ckb-lua/build/. $(SAVE_DIR)/$(TARGET)
+	mkdir -p $(DIR)
+	cp -a deps/ckb-lua/build/. $(DIR)
 
 clean:
 	make -C deps/ckb-lua clean
-	rm -rf $(SAVE_DIR)/$(TARGET)
+	rm -rf $(DIR)

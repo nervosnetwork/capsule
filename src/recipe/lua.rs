@@ -29,9 +29,9 @@ const RELEASE_DIR: &str = "build/release";
 
 // Deps
 
-const CKB_C_STDLIB_URL: &str = "https://github.com/nervosnetwork/ckb-lua.git";
-const CKB_C_STDLIB_COMMIT: &str = "ffc147e6a091a7a90b7dbe28d0a140def336bc7f";
-const CKB_C_STDLIB_NAME: &str = "ckb-lua";
+const CKB_LUA_URL: &str = "https://github.com/nervosnetwork/ckb-lua.git";
+const CKB_LUA_COMMIT: &str = "ffc147e6a091a7a90b7dbe28d0a140def336bc7f";
+const CKB_LUA_NAME: &str = "ckb-lua";
 
 pub trait LuaRecipe {
     fn bin_name(name: &str) -> String;
@@ -41,7 +41,7 @@ pub trait LuaRecipe {
 pub struct LuaStandalone;
 
 impl LuaRecipe for LuaStandalone {
-    fn bin_name(name: &str) -> String {
+    fn bin_name(_name: &str) -> String {
         CKB_LUA_LOADER_NAME.to_string()
     }
 
@@ -122,13 +122,13 @@ impl<R: LuaRecipe> Lua<R> {
             contracts = CONTRACTS_DIR,
             c = LUA_DIR_PREFIX,
             deps = DEPS_DIR_PREFIX,
-            name = CKB_C_STDLIB_NAME
+            name = CKB_LUA_NAME
         );
         git::add_submodule(
             &self.context,
-            CKB_C_STDLIB_URL,
+            CKB_LUA_URL,
             rel_path.as_str(),
-            CKB_C_STDLIB_COMMIT,
+            CKB_LUA_COMMIT,
         )?;
 
         // Generate files
