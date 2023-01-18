@@ -51,9 +51,9 @@ impl LuaRecipe for LuaStandalone {
         "standalone/contract/BUILD"
     }
 }
-pub struct LuaEmbeddedLib;
+pub struct LuaEmbedded;
 
-impl LuaRecipe for LuaEmbeddedLib {
+impl LuaRecipe for LuaEmbedded {
     fn bin_name(name: &str) -> String {
         name.to_string()
     }
