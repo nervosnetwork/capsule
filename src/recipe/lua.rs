@@ -18,7 +18,10 @@ const MAKEFILE: &str = "Makefile";
 
 // Dirs
 
-const LUA_DIR_PREFIX: &str = "c";
+const LUA_DIR_PREFIX: &str = "lua";
+const LUA_TEMPLATE_DIR_PREFIX: &str = "lua";
+const CKB_LUA_SHARED_LIB_NAME: &str = "libckblua.so";
+const CKB_LUA_LOADER_NAME: &str = "lua-loader";
 const DEPS_DIR_PREFIX: &str = "deps";
 const SRC_DIR_PREFIX: &str = "src";
 const DEBUG_DIR: &str = "build/debug";
@@ -26,9 +29,9 @@ const RELEASE_DIR: &str = "build/release";
 
 // Deps
 
-const CKB_C_STDLIB_URL: &str = "https://github.com/nervosnetwork/ckb-c-stdlib.git";
-const CKB_C_STDLIB_COMMIT: &str = "82bc1ab07572ceacd1e016488f0a1ac7725ad3c6";
-const CKB_C_STDLIB_NAME: &str = "ckb-c-stdlib";
+const CKB_C_STDLIB_URL: &str = "https://github.com/nervosnetwork/ckb-lua.git";
+const CKB_C_STDLIB_COMMIT: &str = "ffc147e6a091a7a90b7dbe28d0a140def336bc7f";
+const CKB_C_STDLIB_NAME: &str = "ckb-lua";
 
 pub trait LuaRecipe {
     fn bin_name(name: &str) -> String;
@@ -39,7 +42,7 @@ pub struct LuaStandalone;
 
 impl LuaRecipe for LuaStandalone {
     fn bin_name(name: &str) -> String {
-        name.to_string()
+        CKB_LUA_LOADER_NAME.to_string()
     }
 
     fn src_template() -> &'static str {
@@ -53,8 +56,8 @@ impl LuaRecipe for LuaStandalone {
 pub struct LuaSharedLib;
 
 impl LuaRecipe for LuaSharedLib {
-    fn bin_name(name: &str) -> String {
-        format!("{}.so", name)
+    fn bin_name(_name: &str) -> String {
+        CKB_LUA_SHARED_LIB_NAME.to_string()
     }
 
     fn src_template() -> &'static str {
@@ -79,27 +82,27 @@ impl<R: LuaRecipe> Lua<R> {
         }
     }
 
-    fn c_dir(&self) -> PathBuf {
+    fn lua_dir(&self) -> PathBuf {
         let mut c_dir = self.context.contracts_path();
         c_dir.push(LUA_DIR_PREFIX);
         c_dir
     }
 
     fn src_dir(&self) -> PathBuf {
-        let mut src_path = self.c_dir();
+        let mut src_path = self.lua_dir();
         src_path.push(SRC_DIR_PREFIX);
         src_path
     }
 
     fn makefile_path(&self) -> PathBuf {
-        let mut p = self.c_dir();
+        let mut p = self.lua_dir();
         p.push(MAKEFILE);
         p
     }
 
     fn setup_c_environment(&self) -> Result<()> {
         println!("Setup C environment");
-        let c_dir = self.c_dir();
+        let c_dir = self.lua_dir();
         if c_dir.exists() {
             return Ok(());
         }
@@ -130,7 +133,7 @@ impl<R: LuaRecipe> Lua<R> {
 
         // Generate files
         for f in &["Makefile"] {
-            let template_path = format!("c/{}", f);
+            let template_path = format!("{}/{}", LUA_TEMPLATE_DIR_PREFIX, f);
             let content = TEMPLATES.render(&template_path, &tera::Context::default())?;
             let mut file_path = c_dir.clone();
             file_path.push(f);
@@ -176,7 +179,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
 
         // initialize contract code
         let f = R::src_template();
-        let template_path = format!("c/{}", f);
+        let template_path = format!("{}/{}", LUA_TEMPLATE_DIR_PREFIX, f);
         let content = TEMPLATES.render(&template_path, &context)?;
         let mut src_path = self.src_dir();
         src_path.push(self.source_name(name));
@@ -185,7 +188,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         if rewrite_config {
             println!("Rewrite Makefile");
             let f = R::build_template();
-            let template_path = format!("c/{}", f);
+            let template_path = format!("{}/{}", LUA_TEMPLATE_DIR_PREFIX, f);
             let content = TEMPLATES.render(&template_path, &context)?;
             let makefile_path = self.makefile_path();
             fs::OpenOptions::new()
@@ -199,7 +202,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
     /// run command
     /// Delegate to cli command
     fn run(&self, _contract: &Contract, build_cmd: String, signal: &Signal) -> Result<()> {
-        cli::run(build_cmd, self.c_dir(), signal)
+        cli::run(build_cmd, self.lua_dir(), signal)
     }
 
     /// build contract
@@ -212,15 +215,11 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         _build_args_opt: Option<Vec<String>>,
     ) -> Result<()> {
         let build_target = self.build_target(config.build_env, &c.name);
-        let mut bin_path = self.c_dir();
+        let mut bin_path = self.lua_dir();
         bin_path.push(&build_target);
         // make sure the bin dir is exist
         fs::create_dir_all(&bin_path.parent().ok_or(anyhow!("expect build dir"))?)?;
-        self.run(
-            c,
-            format!("make via-docker ARGS=\"{}\"", &build_target),
-            signal,
-        )?;
+        self.run(c, "make build".to_string(), signal)?;
 
         // copy to build dir
         if !bin_path.exists() {
@@ -240,6 +239,6 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
     /// clean contract
     /// Delegate to Makefile
     fn clean(&self, _contracts: &[Contract], signal: &Signal) -> Result<()> {
-        cli::run("make clean".to_string(), self.c_dir(), signal)
+        cli::run("make clean".to_string(), self.lua_dir(), signal)
     }
 }
