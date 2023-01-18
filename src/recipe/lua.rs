@@ -1,4 +1,4 @@
-use crate::config::Contract;
+use crate::config::{Contract, TemplateType};
 use crate::generator::{CreateContract, TEMPLATES};
 use crate::project_context::{BuildConfig, BuildEnv, Context, CONTRACTS_DIR};
 use crate::recipe::Recipe;
@@ -46,11 +46,11 @@ impl LuaRecipe for LuaStandalone {
     }
 
     fn src_template() -> &'static str {
-        "bin/contract/example.c"
+        "standalone/contract/example.lua"
     }
 
     fn build_template() -> &'static str {
-        "bin/contract/BUILD"
+        "standalone/contract/BUILD"
     }
 }
 pub struct LuaSharedLib;
@@ -143,11 +143,15 @@ impl<R: LuaRecipe> Lua<R> {
         Ok(())
     }
 
-    fn source_name(&self, name: &str) -> String {
-        format!("{}.c", name)
+    fn source_name(&self, name: &str, contract_type: TemplateType) -> String {
+        match contract_type {
+            TemplateType::Lua => format!("{}.lua", name),
+            TemplateType::LuaSharedLib => format!("{}.c", name),
+            _ => unreachable!("Must be a Lua contract"),
+        }
     }
 
-    fn build_target(&self, build_env: BuildEnv, name: &str) -> String {
+    fn bin_path(&self, build_env: BuildEnv, name: &str) -> String {
         match build_env {
             BuildEnv::Debug => format!("{}/{}", DEBUG_DIR, R::bin_name(name)),
             BuildEnv::Release => format!("{}/{}", RELEASE_DIR, R::bin_name(name)),
@@ -156,10 +160,14 @@ impl<R: LuaRecipe> Lua<R> {
 }
 
 impl<R: LuaRecipe> Recipe for Lua<R> {
+    // The parameter name passed here is not enough to determine the contract
+    // source file, below is a best-effort approach to check contract existence.
     fn exists(&self, name: &str) -> bool {
-        let mut src = self.src_dir();
-        src.push(self.source_name(name));
-        src.exists()
+        let mut c_src = self.src_dir();
+        c_src.push(self.source_name(name, TemplateType::Lua));
+        let mut lua_src = self.src_dir();
+        lua_src.push(self.source_name(name, TemplateType::LuaSharedLib));
+        c_src.exists() || lua_src.exists()
     }
 
     fn create_contract(
@@ -182,7 +190,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         let template_path = format!("{}/{}", LUA_TEMPLATE_DIR_PREFIX, f);
         let content = TEMPLATES.render(&template_path, &context)?;
         let mut src_path = self.src_dir();
-        src_path.push(self.source_name(name));
+        src_path.push(self.source_name(name, contract.template_type));
         fs::write(src_path, content)?;
 
         if rewrite_config {
@@ -214,9 +222,9 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         signal: &Signal,
         _build_args_opt: Option<Vec<String>>,
     ) -> Result<()> {
-        let build_target = self.build_target(config.build_env, &c.name);
+        let path = self.bin_path(config.build_env, &c.name);
         let mut bin_path = self.lua_dir();
-        bin_path.push(&build_target);
+        bin_path.push(&path);
         // make sure the bin dir is exist
         fs::create_dir_all(&bin_path.parent().ok_or(anyhow!("expect build dir"))?)?;
         self.run(c, "make build".to_string(), signal)?;
@@ -229,7 +237,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
             ));
         }
         let mut target_path = self.context.project_path.clone();
-        target_path.push(&build_target);
+        target_path.push(&path);
         // make sure the target dir is exist
         fs::create_dir_all(&target_path.parent().ok_or(anyhow!("expect build dir"))?)?;
         fs::copy(bin_path, target_path)?;
