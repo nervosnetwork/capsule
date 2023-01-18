@@ -149,6 +149,18 @@ impl<R: LuaRecipe> Lua<R> {
         }
     }
 
+    fn template_path(&self, file: &str, contract_type: TemplateType) -> String {
+        match contract_type {
+            TemplateType::Lua => {
+                format!("{}/standalone/contract/{}", LUA_TEMPLATE_DIR_PREFIX, file)
+            }
+            TemplateType::LuaEmbedded => {
+                format!("{}/embedded/contract/{}", LUA_TEMPLATE_DIR_PREFIX, file)
+            }
+            _ => unreachable!("Must be a Lua contract"),
+        }
+    }
+
     fn bin_path(&self, build_env: BuildEnv, name: &str) -> String {
         match build_env {
             BuildEnv::Debug => format!("{}/{}", DEBUG_DIR, R::bin_name(name)),
@@ -191,24 +203,18 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         src_path.push(self.source_name(name, contract.template_type));
         fs::write(src_path, content)?;
 
-        // TODO: support tests for TemplateType::Lua
-        if contract.template_type == TemplateType::LuaEmbedded {
-            for (f, template_name) in &[
-                ("Cargo.toml", None),
-                ("build.rs", None),
-                ("src/lib.rs", None),
-                ("src/tests.rs", None),
-            ] {
-                let template_path = format!(
-                    "{}/embedded/contract/{}",
-                    LUA_TEMPLATE_DIR_PREFIX,
-                    template_name.unwrap_or(f)
-                );
-                let content = TEMPLATES.render(&template_path, &context)?;
-                let mut file_path = self.context.project_path.clone();
-                file_path.push(format!("tests/{}", f));
-                fs::write(file_path, content)?;
-            }
+        for (f, template_name) in &[
+            ("Cargo.toml", None),
+            ("build.rs", None),
+            ("src/lib.rs", None),
+            ("src/tests.rs", None),
+        ] {
+            let template_path =
+                self.template_path(template_name.unwrap_or(f), contract.template_type);
+            let content = TEMPLATES.render(&template_path, &context)?;
+            let mut file_path = self.context.project_path.clone();
+            file_path.push(format!("tests/{}", f));
+            fs::write(file_path, content)?;
         }
 
         if rewrite_config {
