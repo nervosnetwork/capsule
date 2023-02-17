@@ -1,24 +1,21 @@
-use bytes::BufMut;
-use ckb_chain_spec::consensus::{Consensus, ConsensusBuilder};
-use ckb_traits::{CellDataProvider, HeaderProvider};
-use ckb_types::core::EpochExt;
-use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-use ckb_script::{TransactionScriptsVerifier, TxVerifyEnv};
-use ckb_types::core::hardfork::HardForkSwitch;
+use ckb_script::TransactionScriptsVerifier;
+use ckb_traits::{CellDataProvider, HeaderProvider};
+use ckb_types::core::EpochExt;
 use ckb_types::{
     bytes::Bytes,
     bytes::BytesMut,
     core::{
         cell::{CellMetaBuilder, ResolvedTransaction},
-        Capacity, DepType, EpochNumberWithFraction, HeaderView, ScriptHashType, TransactionBuilder,
-        TransactionView,
+        Capacity, DepType, HeaderView, ScriptHashType, TransactionBuilder, TransactionView,
     },
     packed::{Byte32, CellDep, CellOutput, OutPoint, Script, WitnessArgsBuilder},
     prelude::*,
 };
 
+use bytes::BufMut;
+use lazy_static::lazy_static;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
@@ -178,25 +175,6 @@ fn gen_tx(dummy: &mut DummyDataLoader) -> TransactionView {
     tx_builder.build()
 }
 
-pub fn gen_tx_env() -> TxVerifyEnv {
-    let epoch = EpochNumberWithFraction::new(300, 0, 1);
-    let header = HeaderView::new_advanced_builder()
-        .epoch(epoch.pack())
-        .build();
-    TxVerifyEnv::new_commit(&header)
-}
-
-pub fn gen_consensus() -> Consensus {
-    let hardfork_switch = HardForkSwitch::new_without_any_enabled()
-        .as_builder()
-        .rfc_0032(200)
-        .build()
-        .unwrap();
-    ConsensusBuilder::default()
-        .hardfork_switch(hardfork_switch)
-        .build()
-}
-
 fn build_resolved_tx(data_loader: &DummyDataLoader, tx: &TransactionView) -> ResolvedTransaction {
     let resolved_cell_deps = tx
         .cell_deps()
@@ -234,10 +212,7 @@ fn run_lua_script() {
     let mut data_loader = DummyDataLoader::new();
     let tx = gen_tx(&mut data_loader);
     let resolved_tx = build_resolved_tx(&data_loader, &tx);
-    let consensus = gen_consensus();
-    let tx_env = gen_tx_env();
-    let mut verifier =
-        TransactionScriptsVerifier::new(&resolved_tx, &consensus, &data_loader, &tx_env);
+    let mut verifier = TransactionScriptsVerifier::new(&resolved_tx, &data_loader);
     verifier.set_debug_printer(debug_printer);
     let verify_result = verifier.verify(MAX_CYCLES);
     verify_result.expect("pass verification");

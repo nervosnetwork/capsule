@@ -187,7 +187,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         _signal: &Signal,
         _docker_env_file: String,
     ) -> Result<()> {
-        // setup c environment if needed
+        // setup lua environment if needed
         self.setup_lua_environment()?;
 
         // new contract
