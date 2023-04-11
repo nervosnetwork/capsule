@@ -62,7 +62,12 @@ impl ToString for Version {
 
 impl Version {
     pub fn is_compatible(&self, version: &Version) -> bool {
-        self.major == version.major && self.minor == version.minor
+        if self.major == 0 {
+            version.major == 0 && self.minor == version.minor && self.patch >= version.patch
+        } else {
+            self.major == version.major
+                && (self.minor, self.patch) >= (version.minor, version.patch)
+        }
     }
 
     pub fn current() -> Self {
@@ -84,5 +89,63 @@ impl Version {
             pre,
             commit_id,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Version;
+
+    #[test]
+    fn test_version_compatible() {
+        assert!("0.9.1"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"0.9.1".parse().unwrap()));
+        assert!("0.9.1"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"0.9.0".parse().unwrap()));
+        assert!(!"0.9.1"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"0.9.2".parse().unwrap()));
+        assert!(!"0.9.1"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"1.2.0".parse().unwrap()));
+        assert!(!"0.9.1"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"0.8.0".parse().unwrap()));
+        assert!(!"0.9.1"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"0.10.0".parse().unwrap()));
+
+        assert!("1.0.2"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"1.0.2".parse().unwrap()));
+        assert!("1.0.2"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"1.0.1".parse().unwrap()));
+        assert!("1.1.0"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"1.0.9".parse().unwrap()));
+        assert!(!"1.2.2"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"1.3.0".parse().unwrap()));
+        assert!(!"1.2.2"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"1.3.3".parse().unwrap()));
+        assert!(!"1.2.2"
+            .parse::<Version>()
+            .unwrap()
+            .is_compatible(&"2.0.0".parse().unwrap()));
     }
 }

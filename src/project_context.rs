@@ -83,7 +83,7 @@ impl Context {
         let project_version: Version = config.version.parse()?;
         if !capsule_version.is_compatible(&project_version) {
             return Err(anyhow!(
-                "Please use the right capsule version, Capsule version: {}, Project version: {}",
+                "Incompatible capsule version {}, this project requires a version that's compatible with {}",
                 capsule_version.to_string(),
                 project_version.to_string()
             ));
