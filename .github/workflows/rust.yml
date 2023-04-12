@@ -18,4 +18,4 @@ jobs:
     - name: Install dependencies
       run: cargo install --version 0.7.3 moleculec
     - name: Run tests
-      run: cargo run -p tests
+      run: cargo test && cargo run -p tests
