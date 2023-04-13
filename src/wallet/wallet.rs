@@ -1,11 +1,9 @@
 use super::cli_types::{Address, LiveCell, SignatureOutput};
 use super::collector::Collector;
 use super::password::Password;
+use super::rpc::{RpcClient, TransactionWithStatus};
 use super::util;
-
-use super::rpc::RpcClient;
 use anyhow::Result;
-use ckb_testtool::ckb_jsonrpc_types::TransactionWithStatus;
 use ckb_testtool::ckb_types::{
     bytes::Bytes,
     core::{BlockView, Capacity, DepType, TransactionView},

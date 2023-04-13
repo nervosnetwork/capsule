@@ -1,10 +1,11 @@
 use jsonrpc_core::error::Error as JsonRpcError;
+use serde::Deserialize;
 use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use ckb_testtool::ckb_error::AnyError;
 use ckb_testtool::ckb_jsonrpc_types::{
-    BlockNumber, BlockView, CellWithStatus, OutPoint, Transaction, TransactionWithStatus,
+    BlockNumber, BlockView, CellWithStatus, OutPoint, Transaction, TransactionView, TxStatus,
 };
 use ckb_testtool::ckb_types::{
     core::BlockNumber as CoreBlockNumber, packed::Byte32, prelude::*, H256,
@@ -156,6 +157,12 @@ impl RpcClient {
             .get_block_by_number(number.into())
             .expect("rpc call get_block_by_number")
     }
+}
+
+#[derive(Deserialize)]
+pub struct TransactionWithStatus {
+    pub transaction: Option<TransactionView>,
+    pub tx_status: TxStatus,
 }
 
 jsonrpc!(pub struct Inner {

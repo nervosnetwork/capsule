@@ -1,8 +1,10 @@
 //! functions manipulate config file
 
-use crate::config::TemplateType;
+use crate::config::{Contract, TemplateType};
 use anyhow::{anyhow, Result};
-pub use toml_edit::{array, value, Document, Table};
+use serde::Serialize;
+pub use toml_edit::Document;
+use toml_edit::{array, ser::ValueSerializer, value};
 
 pub fn append_contract(
     doc: &mut Document,
@@ -13,9 +15,13 @@ pub fn append_contract(
         .or_insert(array())
         .as_array_of_tables_mut()
         .ok_or(anyhow!("no 'contracts' section"))?;
-    let contract = contracts.append(Table::new());
-    contract["name"] = value(name);
-    contract["template_type"] = value(toml::to_string(&template_type)?);
+    // Why doesn't toml_edit provide a to_value function?
+    let t = Contract {
+        name,
+        template_type,
+    }
+    .serialize(ValueSerializer::new())?;
+    contracts.push(value(t).into_table().unwrap());
     Ok(())
 }
 
@@ -28,4 +34,39 @@ pub fn append_cargo_workspace_member(doc: &mut Document, name: String) -> Result
         .ok_or(anyhow!("no 'members' section"))?;
     members.push(name);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::append_contract;
+
+    #[test]
+    fn test_append_contract() {
+        let mut doc = r#"
+version = "0.9.1"
+"#
+        .parse()
+        .unwrap();
+        append_contract(&mut doc, "a".into(), crate::config::TemplateType::C).unwrap();
+        append_contract(
+            &mut doc,
+            "'strange name\"".into(),
+            crate::config::TemplateType::Rust,
+        )
+        .unwrap();
+        assert_eq!(
+            doc.to_string(),
+            r#"
+version = "0.9.1"
+
+[[contracts]]
+name = "a"
+template_type = "C"
+
+[[contracts]]
+name = "'strange name\""
+template_type = "Rust"
+"#
+        )
+    }
 }

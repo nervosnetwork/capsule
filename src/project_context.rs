@@ -78,7 +78,7 @@ impl Context {
             config_path.push(CONFIG_FILE);
             read_config_file(config_path)?
         };
-        let config: Config = toml::from_slice(content.as_bytes()).expect("parse config");
+        let config: Config = toml_edit::de::from_str(&content).expect("parse config");
         let capsule_version = Version::current();
         let project_version: Version = config.version.parse()?;
         if !capsule_version.is_compatible(&project_version) {
@@ -149,7 +149,7 @@ impl Context {
     pub fn load_deployment(&self) -> Result<Deployment> {
         let mut path = self.project_path.clone();
         path.push(&self.config.deployment);
-        match toml::from_slice(&fs::read(&path)?) {
+        match toml_edit::de::from_str(&fs::read_to_string(&path)?) {
             Ok(deployment) => Ok(deployment),
             Err(err) => {
                 error!("failed to parse {:?}", path);
