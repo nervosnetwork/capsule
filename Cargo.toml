@@ -42,4 +42,5 @@ includedir_codegen = "0.6"
 [workspace]
 members = [
     "tests",
+    "crates/testtool",
 ]
