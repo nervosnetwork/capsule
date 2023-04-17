@@ -16,26 +16,25 @@ anyhow = "1.0"
 tera = "1.2"
 lazy_static = "1.4"
 serde = { version = "1.0", features = [ "derive" ] }
-toml = "0.5"
-toml_edit = "0.1.5"
-ckb-testtool = "0.8.0"
+ckb-testtool = "0.9.0"
 bech32 = "0.6"
-secp256k1 = "0.20"
+secp256k1 = "0.24"
 serde_json = "1.0"
-chrono = "0.4"
 rpassword = "4.0"
-serde_yaml = "0.8.11"
+serde_yaml = "0.9.21"
 users = "0.10"
-clap = "2.33"
+clap = { version = "2.33", default-features = false, features = ["suggestions", "vec_map"] }
 ctrlc = "3.1"
 atty = "0.2"
-env_logger = "0.7"
+env_logger = "0.10.0"
 log = "0.4"
 faster-hex = "0.6"
 phf = "0.8"
 includedir = "0.6"
 reqwest = { version = "0.11.11", features = ["blocking", "json"] }
-jsonrpc-core = "17.1"
+jsonrpc-core = "18.0.0"
+toml_edit = { version = "0.19.8", features = ["serde"] }
+chrono = { version = "0.4.24", default-features = false, features = ["clock", "std"] }
 
 [build-dependencies]
 includedir_codegen = "0.6"
