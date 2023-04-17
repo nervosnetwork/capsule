@@ -8,7 +8,7 @@ use crate::project_context::{
 use crate::recipe::Recipe;
 use crate::signal::Signal;
 use crate::util::docker::DockerCommand;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use tera;
 
 use std::fs;
@@ -106,11 +106,20 @@ impl Rust {
     }
 
     fn cargo_cmd(&self) -> String {
-        let mut cargo_cmd = "cargo".to_string();
-        if let Some(toolchain) = self.context.config.rust.toolchain.as_ref() {
-            cargo_cmd.push_str(&format!(" +{}", toolchain));
+        if let Some(toolchain) = self.rust_toolchain_arg() {
+            format!("cargo {}", toolchain)
+        } else {
+            "cargo".to_string()
         }
-        cargo_cmd
+    }
+
+    fn rust_toolchain_arg(&self) -> Option<String> {
+        self.context
+            .config
+            .rust
+            .toolchain
+            .as_ref()
+            .map(|toolchain| format!(" +{}", toolchain))
     }
 }
 
@@ -123,24 +132,25 @@ impl Recipe for Rust {
         &self,
         contract: &Contract,
         rewrite_config: bool,
-        signal: &Signal,
-        docker_env_file: String,
+        _signal: &Signal,
+        _docker_env_file: String,
     ) -> Result<()> {
         let name = &contract.name;
         println!("New contract {:?}", &name);
         let path = self.context.contracts_path();
         let context = tera::Context::from_serialize(&CreateContract { name: name.clone() })?;
         // generate contract
-        let cmd = DockerCommand::with_config(
-            self.docker_image(),
-            path.to_str().expect("str").to_string(),
-            docker_env_file,
-        )
-        .fix_dir_permission(name.clone());
-        cmd.run(
-            format!("{} new {} --vcs none", self.cargo_cmd(), name),
-            signal,
-        )?;
+        let mut cmd = std::process::Command::new("cargo");
+        if let Some(toolchain) = self.rust_toolchain_arg() {
+            cmd.arg(toolchain);
+        }
+        let output = cmd
+            .args(["new", &name, "--vcs", "none"])
+            .current_dir(&path)
+            .output()?;
+        if !output.status.success() {
+            bail!("failed to generate tests, status: {}", output.status);
+        }
         let mut contract_path = PathBuf::new();
         contract_path.push(path);
         contract_path.push(name);

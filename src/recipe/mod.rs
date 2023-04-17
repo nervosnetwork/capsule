@@ -24,7 +24,7 @@ pub trait Recipe {
         contract: &Contract,
         rewrite_config: bool,
         signal: &Signal,
-        docker_env_file: String,
+        env_file: String,
     ) -> Result<()>;
     fn run(&self, contract: &Contract, build_cmd: String, signal: &Signal) -> Result<()>;
     fn run_build(

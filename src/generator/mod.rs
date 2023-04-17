@@ -1,9 +1,6 @@
-use crate::recipe::rust::DOCKER_IMAGE;
-use crate::signal::Signal;
-use crate::util::docker::DockerCommand;
 use crate::util::git;
 use crate::version::Version;
-use anyhow::{Context as ErrorContext, Result};
+use anyhow::{bail, Context as ErrorContext, Result};
 use lazy_static::lazy_static;
 use serde::Serialize;
 use std::fs;
@@ -82,25 +79,17 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
     Ok(())
 }
 
-fn gen_project_test<P: AsRef<Path>>(
-    name: String,
-    project_path: P,
-    signal: &Signal,
-    docker_env_file: String,
-) -> Result<()> {
+fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P) -> Result<()> {
     const DEFAULT_TESTS_DIR: &str = "tests";
 
     let project_path = project_path.as_ref().to_str().expect("path");
-    let cmd = DockerCommand::with_config(
-        DOCKER_IMAGE.to_string(),
-        project_path.to_string(),
-        docker_env_file,
-    )
-    .fix_dir_permission(DEFAULT_TESTS_DIR.to_string());
-    cmd.run(
-        format!("cargo new {} --lib --vcs none", DEFAULT_TESTS_DIR),
-        signal,
-    )?;
+    let output = std::process::Command::new("cargo")
+        .args(["new", DEFAULT_TESTS_DIR, "--lib", "--vcs", "none"])
+        .current_dir(project_path)
+        .output()?;
+    if !output.status.success() {
+        bail!("failed to generate tests, status: {}", output.status);
+    }
     let project_path = {
         let mut path = PathBuf::new();
         path.push(project_path);
@@ -119,6 +108,7 @@ fn gen_project_test<P: AsRef<Path>>(
         ("src/tests.rs", None),
         ("Cargo.toml", Some("Cargo-manifest.toml")),
     ] {
+        log::trace!("[modify test file] {}", f);
         let template_path = format!("rust/tests/{}", template_name.unwrap_or(f));
         let content = TEMPLATES.render(&template_path, &context)?;
         let mut file_path = tests_path.clone();
@@ -129,12 +119,7 @@ fn gen_project_test<P: AsRef<Path>>(
 }
 
 // create a new project
-pub fn new_project<P: AsRef<Path>>(
-    name: String,
-    path: P,
-    signal: &Signal,
-    docker_env_file: String,
-) -> Result<PathBuf> {
+pub fn new_project<P: AsRef<Path>>(name: String, path: P) -> Result<PathBuf> {
     let mut project_path: PathBuf = PathBuf::new();
     project_path.push(path);
     project_path.push(&name);
@@ -147,6 +132,6 @@ pub fn new_project<P: AsRef<Path>>(
     contracts_path.push("contracts");
     // generate contract tests
     println!("Created tests");
-    gen_project_test(name, &project_path, signal, docker_env_file)?;
+    gen_project_test(name, &project_path)?;
     Ok(project_path)
 }

@@ -222,7 +222,7 @@ fn run_cli() -> Result<()> {
 
     let (args, args_last) = get_last_args();
     let matches = app.get_matches_from(args);
-    let docker_env_file = String::from(matches.value_of("env-file").unwrap_or_default());
+    let env_file = String::from(matches.value_of("env-file").unwrap_or_default());
     match matches.subcommand() {
         ("check", Some(args)) => {
             let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
@@ -244,19 +244,14 @@ fn run_cli() -> Result<()> {
             } else {
                 path.push(env::current_dir()?);
             }
-            let project_path =
-                new_project(name.to_string(), path, &signal, docker_env_file.clone())?;
+            let project_path = new_project(name.to_string(), path)?;
             let context = Context::load_from_path(&project_path)?;
             let c = Contract {
                 name,
                 template_type,
             };
-            get_recipe(context.clone(), c.template_type)?.create_contract(
-                &c,
-                true,
-                &signal,
-                docker_env_file,
-            )?;
+            get_recipe(context.clone(), c.template_type)?
+                .create_contract(&c, true, &signal, env_file)?;
             append_contract_to_config(&context, &c)?;
             println!("Done");
         }
@@ -273,7 +268,7 @@ fn run_cli() -> Result<()> {
             if recipe.exists(&contract.name) {
                 return Err(anyhow!("contract '{}' is already exists", contract.name));
             }
-            recipe.create_contract(&contract, true, &signal, docker_env_file)?;
+            recipe.create_contract(&contract, true, &signal, env_file)?;
             append_contract_to_config(&context, &contract)?;
             println!("Done");
         }
@@ -303,7 +298,7 @@ fn run_cli() -> Result<()> {
                 })
                 .transpose()?;
             context.use_docker_host = args.is_present("host");
-            context.docker_env_file = docker_env_file;
+            context.docker_env_file = env_file;
             context.rustup_dir = rustup_dir;
             let build_config = BuildConfig {
                 build_env,
@@ -365,7 +360,7 @@ fn run_cli() -> Result<()> {
             } else {
                 BuildEnv::Debug
             };
-            Tester::run(&context, build_env, &signal, docker_env_file)?;
+            Tester::run(&context, build_env, &signal, env_file)?;
         }
         ("deploy", Some(args)) => {
             let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
@@ -430,7 +425,7 @@ fn run_cli() -> Result<()> {
                     listen_port,
                     tty,
                     &signal,
-                    docker_env_file,
+                    env_file,
                 )?;
             }
             (command, _) => {
