@@ -34,7 +34,7 @@ includedir = "0.6"
 reqwest = { version = "0.11.11", features = ["blocking", "json"] }
 jsonrpc-core = "18.0.0"
 toml_edit = { version = "0.19.8", features = ["serde"] }
-chrono = { version = "0.4.24", default-features = false, features = ["clock", "std"] }
+chrono = { version = "0.4.24", default-features = false, features = ["std"] }
 
 [build-dependencies]
 includedir_codegen = "0.6"
