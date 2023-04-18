@@ -238,9 +238,8 @@ impl DockerCommand {
         // fix files permission
         shell_cmd.push_str("; EXITCODE=$?");
         for f in &fix_permission_files {
-            shell_cmd.push_str(
-                format!("; test -f {f} -o -d {f} && chown -R $UID:$GID {f}", f = f).as_str(),
-            );
+            log::trace!("[fix permission] file: {}", f);
+            shell_cmd.push_str(format!("; chown -R $UID:$GID {f}").as_str());
         }
         shell_cmd.push_str("; exit $EXITCODE");
         cmd.args(&[docker_image.as_ref(), "bash", "-c", shell_cmd.as_str()]);
