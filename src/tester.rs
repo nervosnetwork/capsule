@@ -1,50 +1,37 @@
+use std::process::Command;
+
 use crate::project_context::{BuildEnv, Context};
 use crate::recipe::rust::DOCKER_IMAGE;
 use crate::signal::Signal;
 use crate::util::docker::DockerCommand;
 use anyhow::Result;
 
-const TEST_ENV_VAR: &str = "CAPSULE_TEST_ENV";
+const TESTS_DIR: &str = "tests";
 pub struct Tester;
 
 impl Tester {
-    pub fn run(
-        project_context: &Context,
-        env: BuildEnv,
-        signal: &Signal,
-        docker_env_file: String,
-    ) -> Result<()> {
-        let env_arg = match env {
-            BuildEnv::Debug => "debug",
-            BuildEnv::Release => "release",
-        };
-        let workspace_dir = project_context
-            .workspace_dir()?
-            .to_str()
-            .expect("project path")
-            .to_string();
+    pub fn run(project_context: &Context, env: BuildEnv, test_name: Option<&str>) -> Result<()> {
+        let workspace_dir = project_context.workspace_dir()?;
+        let test_dir = workspace_dir.join(TESTS_DIR);
         // When workspace_dir is "contracts" we must mount build directory to /code/build so that test Loader can load the binary.
-        let build_dir = project_context
-            .contracts_build_dir()
-            .to_str()
-            .expect("build dir")
-            .to_string();
-        let cmd = DockerCommand::with_context(
-            project_context,
-            DOCKER_IMAGE.to_string(),
-            workspace_dir,
-            docker_env_file,
-        )
-        .map_volume(build_dir, "/code/build".to_string())
-        .fix_dir_permission("target".to_string())
-        .fix_dir_permission("Cargo.lock".to_string());
-        cmd.run(
-            format!(
-                "{}={} cargo test -p tests -- --nocapture",
-                TEST_ENV_VAR, env_arg
-            ),
-            signal,
-        )?;
+        let mut cmd = Command::new("cargo");
+        cmd.arg("test").current_dir(&test_dir);
+        if env == BuildEnv::Release {
+            cmd.arg("--release");
+        }
+        if let Some(test_name) = test_name {
+            cmd.arg(test_name);
+        }
+        cmd.arg("--").arg("--nocapture");
+        let output = cmd.output()?;
+        if output.status.success() {
+            println!("{}", String::from_utf8(output.stdout)?);
+        } else {
+            return Err(anyhow::anyhow!(
+                "cargo test failed: \n{}",
+                String::from_utf8(output.stderr)?
+            ));
+        }
         Ok(())
     }
 }

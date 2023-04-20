@@ -14,7 +14,7 @@ const MIGRATIONS_DIR: &str = "migrations";
 pub const CONFIG_FILE: &str = "capsule.toml";
 pub const CARGO_CONFIG_FILE: &str = "Cargo.toml";
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BuildEnv {
     Debug,
     Release,

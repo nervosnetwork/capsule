@@ -114,8 +114,14 @@ fn run_cli() -> Result<()> {
         .args(&[Arg::with_name("name").short("n").long("name").required(true).takes_value(true).help("contract name"),
                 Arg::with_name("cmd").required(true).multiple(true).help("command to run")])
         .display_order(4))
-        .subcommand(SubCommand::with_name("test").about("Run tests").arg(
-                    Arg::with_name("release").long("release").help("Test release mode contracts.")
+        .subcommand(SubCommand::with_name("test").about("Run `cargo test` in the tests directory").arg(
+            Arg::with_name("release").long("release").help("Test release mode contracts.").display_order(1)
+        ).arg(
+            Arg::with_name("testname")
+                .takes_value(true)
+                .value_name("TESTNAME")
+                .help("If specified, only run tests containing this string in their names.")
+                .display_order(2)
         ).display_order(5))
         .subcommand(
             SubCommand::with_name("deploy")
@@ -360,7 +366,8 @@ fn run_cli() -> Result<()> {
             } else {
                 BuildEnv::Debug
             };
-            Tester::run(&context, build_env, &signal, env_file)?;
+            let test_name = args.value_of("testname");
+            Tester::run(&context, build_env, test_name)?;
         }
         ("deploy", Some(args)) => {
             let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
