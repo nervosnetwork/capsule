@@ -23,13 +23,11 @@ impl Tester {
             cmd.arg(test_name);
         }
         cmd.arg("--").arg("--nocapture");
-        let output = cmd.output()?;
-        if output.status.success() {
-            println!("{}", String::from_utf8(output.stdout)?);
-        } else {
+        let status = cmd.status()?;
+        if !status.success() {
             return Err(anyhow::anyhow!(
-                "cargo test failed: \n{}",
-                String::from_utf8(output.stderr)?
+                "cargo test failed: {}",
+                status.code().unwrap_or(-1)
             ));
         }
         Ok(())
