@@ -53,7 +53,10 @@ fn test_build<P: AsRef<Path>>(
         .arg(template_type)
         .output()?;
     if !output.status.success() {
-        panic!("command crash, stderr {:?}", String::from_utf8(output.stderr)?);
+        panic!(
+            "command crash, stderr {:?}",
+            String::from_utf8(output.stderr)?
+        );
     }
     println!("Building ...");
     env::set_current_dir(&contract_path)?;
