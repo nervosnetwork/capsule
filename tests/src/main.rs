@@ -46,15 +46,14 @@ fn test_build<P: AsRef<Path>>(
     contract_path.push(&dir);
     contract_path.push(name);
     println!("Creating {:?} ...", contract_path);
-    let exit_code = Command::new(bin_path)
+    let output = Command::new(bin_path)
         .arg("new")
         .arg(name)
         .arg("--template")
         .arg(template_type)
-        .spawn()?
-        .wait()?;
-    if !exit_code.success() {
-        panic!("command crash, exit_code {:?}", exit_code.code());
+        .output()?;
+    if !output.status.success() {
+        panic!("command crash, stderr {:?}", String::from_utf8(output.stderr)?);
     }
     println!("Building ...");
     env::set_current_dir(&contract_path)?;
@@ -69,7 +68,7 @@ fn test_build<P: AsRef<Path>>(
     println!("Run contract test ...");
     let exit_code = Command::new("bash")
         .arg("-c")
-        .arg(format!("cargo test -p tests"))
+        .arg(format!("capsule test"))
         .spawn()?
         .wait()?;
     if !exit_code.success() {

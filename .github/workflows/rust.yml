@@ -17,5 +17,7 @@ jobs:
       run: cargo build
     - name: Install dependencies
       run: cargo install --version 0.7.3 moleculec
-    - name: Run tests
-      run: cargo test && cargo run -p tests
+    - name: Cargo test
+      run: cargo test
+    - name: Run integration tests
+      run: bash ./dev-tools/integration-tests.sh
