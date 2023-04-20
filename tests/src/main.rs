@@ -71,7 +71,7 @@ fn test_build<P: AsRef<Path>>(
     println!("Run contract test ...");
     let exit_code = Command::new("bash")
         .arg("-c")
-        .arg(format!("capsule test"))
+        .arg("capsule test")
         .spawn()?
         .wait()?;
     if !exit_code.success() {

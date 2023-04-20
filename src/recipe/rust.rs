@@ -33,7 +33,7 @@ impl Rust {
 
     fn contract_path(&self, name: &str) -> PathBuf {
         let mut path = self.context.contracts_path();
-        path.push(&name);
+        path.push(name);
         path
     }
 
@@ -55,7 +55,7 @@ impl Rust {
         let has_cargo_config = self.has_cargo_config(name);
         match config.build_env {
             _ if has_cargo_config => "".to_string(),
-            BuildEnv::Debug => format!("RUSTFLAGS=\"{}\"", BASE_RUSTFLAGS.to_string()),
+            BuildEnv::Debug => format!("RUSTFLAGS=\"{}\"", BASE_RUSTFLAGS),
             BuildEnv::Release => {
                 if config.always_debug {
                     format!(
@@ -145,7 +145,7 @@ impl Recipe for Rust {
             cmd.arg(toolchain);
         }
         let output = cmd
-            .args(["new", &name, "--vcs", "none"])
+            .args(["new", name, "--vcs", "none"])
             .current_dir(&path)
             .output()?;
         if !output.status.success() {
@@ -195,7 +195,7 @@ impl Recipe for Rust {
             cmd = cmd.map_volume(rustup_dir.to_string(), "/root/.rustup".to_string());
         }
 
-        cmd.run(build_cmd, &signal)?;
+        cmd.run(build_cmd, signal)?;
         Ok(())
     }
 

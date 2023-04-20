@@ -22,11 +22,7 @@ pub fn tx_sign_message(tx: &TransactionView, begin_index: usize, len: usize) -> 
         buf.resize(SIGNATURE_SIZE, 0);
         buf.into()
     };
-    let witness_for_digest = witness
-        .clone()
-        .as_builder()
-        .lock(Some(zero_lock).pack())
-        .build();
+    let witness_for_digest = witness.as_builder().lock(Some(zero_lock).pack()).build();
     let witness_len = witness_for_digest.as_bytes().len() as u64;
     blake2b.update(&witness_len.to_le_bytes());
     blake2b.update(&witness_for_digest.as_bytes());
@@ -37,8 +33,7 @@ pub fn tx_sign_message(tx: &TransactionView, begin_index: usize, len: usize) -> 
         blake2b.update(&witness.raw_data());
     });
     blake2b.finalize(&mut message);
-    let message = H256::from(message);
-    message
+    H256::from(message)
 }
 
 pub fn attach_signature(

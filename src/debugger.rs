@@ -8,24 +8,38 @@ use ckb_testtool::ckb_hash::new_blake2b;
 use serde::Serialize;
 use std::collections::HashSet;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tera::{self, Context as TeraContext};
 
-pub fn start_debugger<P: AsRef<Path>>(
-    context: &Context,
-    template_path: P,
-    contract_name: &str,
-    env: BuildEnv,
-    script_group_type: &str,
-    cell_index: usize,
-    cell_type: &str,
-    max_cycles: u64,
-    listen_port: usize,
-    tty: bool,
-    signal: &Signal,
-    docker_env_file: String,
-) -> Result<()> {
+pub struct DebuggerArgs {
+    pub template_path: PathBuf,
+    pub contract_name: String,
+    pub env: BuildEnv,
+    pub script_group_type: String,
+    pub cell_index: usize,
+    pub cell_type: String,
+    pub max_cycles: u64,
+    pub listen_port: usize,
+    pub tty: bool,
+    pub docker_env_file: String,
+}
+
+#[allow(clippy::single_char_pattern)]
+pub fn start_debugger(context: &Context, signal: &Signal, args: DebuggerArgs) -> Result<()> {
     const DEBUG_SERVER_NAME: &str = "capsule-debugger-server";
+
+    let DebuggerArgs {
+        template_path,
+        contract_name,
+        env,
+        script_group_type,
+        cell_index,
+        cell_type,
+        max_cycles,
+        listen_port,
+        tty,
+        docker_env_file,
+    } = args;
 
     let project_path = context
         .project_path
@@ -33,7 +47,6 @@ pub fn start_debugger<P: AsRef<Path>>(
         .expect("project path")
         .to_string();
     let template_file_path = template_path
-        .as_ref()
         .file_name()
         .expect("not a file")
         .to_str()
@@ -41,11 +54,7 @@ pub fn start_debugger<P: AsRef<Path>>(
     let patched_template_dir = format!("{}/.tmp", project_path);
     let patched_template_path = format!("{}/{}", patched_template_dir, template_file_path);
     fs::create_dir_all(patched_template_dir)?;
-    let template_path = template_path
-        .as_ref()
-        .to_str()
-        .expect("template path")
-        .to_string();
+    let template_path = template_path.to_str().expect("template path").to_string();
     patch_template(context, env, &template_path, &patched_template_path)?;
 
     // start GDB server container
@@ -143,7 +152,7 @@ pub fn patch_template<P: AsRef<Path>>(
             return Err(anyhow!("'}}}}' at {} has no begin mark", end));
         }
         let patch_target = template[(start + 2)..end].to_string();
-        let mut parts: Vec<_> = patch_target.split(".").map(|s| s.to_string()).collect();
+        let mut parts: Vec<_> = patch_target.split('.').map(|s| s.to_string()).collect();
         if parts.len() != 2 {
             return Err(anyhow!(
                 "template mark syntax error: '{}' expect 'contract.attribute'",

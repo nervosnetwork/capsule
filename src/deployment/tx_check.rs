@@ -25,13 +25,13 @@ fn find_output(
                 .outputs_data()
                 .get(index as usize)
                 .expect("data")
-                .to_owned()
                 .unpack();
             let data_hash = packed::CellOutput::calc_data_hash(&data);
-            (output.clone(), data_hash)
+            (output, data_hash)
         })
 }
 
+#[allow(clippy::mutable_key_type)]
 pub fn tx_check(wallet: &Wallet, tx: &TransactionView) -> Result<()> {
     let mut dep_data_hashes: HashSet<packed::Byte32> = HashSet::new();
     let mut dep_type_hashes: HashSet<packed::Byte32> = HashSet::new();

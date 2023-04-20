@@ -10,6 +10,7 @@ use ckb_capsule::checker::Checker;
 use ckb_capsule::config::{Contract, TemplateType};
 use ckb_capsule::config_manipulate::{append_contract, Document};
 use ckb_capsule::debugger;
+use ckb_capsule::debugger::DebuggerArgs;
 use ckb_capsule::deployment::manage::{DeployOption, Manage as DeployManage};
 use ckb_capsule::generator::new_project;
 use ckb_capsule::project_context::{
@@ -239,19 +240,19 @@ fn run_cli() -> Result<()> {
                 .value_of("name")
                 .expect("name")
                 .trim()
-                .trim_end_matches("/")
+                .trim_end_matches('/')
                 .to_string();
             let template_type: TemplateType =
                 args.value_of("template").expect("template").parse()?;
             let mut path = PathBuf::new();
-            if let Some(index) = name.rfind("/") {
+            if let Some(index) = name.rfind('/') {
                 path.push(&name[..index]);
                 name = name[index + 1..].to_string();
             } else {
                 path.push(env::current_dir()?);
             }
             let project_path = new_project(name.to_string(), path)?;
-            let context = Context::load_from_path(&project_path)?;
+            let context = Context::load_from_path(project_path)?;
             let c = Contract {
                 name,
                 template_type,
@@ -374,7 +375,7 @@ fn run_cli() -> Result<()> {
             Checker::build(ckb_cli_bin)?.check_ckb_cli()?;
             let address = {
                 let address_hex = args.value_of("address").expect("address");
-                Address::from_str(&address_hex).expect("parse address")
+                Address::from_str(address_hex).expect("parse address")
             };
             let context = Context::load()?;
             let ckb_rpc_url = args.value_of("api").expect("api");
@@ -398,7 +399,7 @@ fn run_cli() -> Result<()> {
                 let contract = args.value_of("name").expect("contract name");
                 let template_content = debugger::build_template(contract.to_string())?;
                 let template_path = args.value_of("output-file").expect("output file");
-                fs::write(&template_path, template_content)?;
+                fs::write(template_path, template_content)?;
                 println!("Write transaction debugging template to {}", template_path,);
             }
             ("start", Some(args)) => {
@@ -420,20 +421,20 @@ fn run_cli() -> Result<()> {
                     .parse()
                     .expect("listen port");
                 let tty = !args.is_present("only-server");
-                debugger::start_debugger(
-                    &context,
-                    template_path,
-                    contract_name,
-                    build_env,
-                    script_group_type,
+
+                let args = DebuggerArgs {
+                    template_path: template_path.into(),
+                    env: build_env,
+                    contract_name: contract_name.to_string(),
+                    script_group_type: script_group_type.to_string(),
                     cell_index,
-                    cell_type,
+                    cell_type: cell_type.to_string(),
                     max_cycles,
                     listen_port,
                     tty,
-                    &signal,
-                    env_file,
-                )?;
+                    docker_env_file: env_file,
+                };
+                debugger::start_debugger(&context, &signal, args)?;
             }
             (command, _) => {
                 eprintln!("unknown debugger subcommand '{}'", command);
@@ -452,8 +453,7 @@ fn run_cli() -> Result<()> {
 
 fn main() {
     let backtrace_level = env::var("RUST_BACKTRACE").unwrap_or("".to_string());
-    let enable_backtrace =
-        !backtrace_level.is_empty() && backtrace_level.as_str() != "0".to_string();
+    let enable_backtrace = !backtrace_level.is_empty() && backtrace_level.as_str() != "0";
     match run_cli() {
         Ok(_) => {}
         err if enable_backtrace => {

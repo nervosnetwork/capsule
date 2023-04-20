@@ -82,11 +82,10 @@ impl Version {
         let s = String::from_utf8(buf)?;
         let vers = s.trim_start_matches(prefix);
         let vers = vers
-            .trim()
             .split_whitespace()
             .next()
             .ok_or(anyhow!("no version found"))?;
-        let mut vers_numbers = vers.split(".");
+        let mut vers_numbers = vers.split('.');
         let major: usize = vers_numbers
             .next()
             .ok_or(anyhow!("miss major version"))?

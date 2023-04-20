@@ -130,13 +130,12 @@ impl<R: LuaRecipe> Lua<R> {
         )?;
 
         // Generate files
-        for f in &["Makefile"] {
-            let template_path = format!("{}/{}", LUA_TEMPLATE_DIR_PREFIX, f);
-            let content = TEMPLATES.render(&template_path, &tera::Context::default())?;
-            let mut file_path = lua_dir.clone();
-            file_path.push(f);
-            fs::write(file_path, content)?;
-        }
+        let f = "Makefile";
+        let template_path = format!("{}/{}", LUA_TEMPLATE_DIR_PREFIX, f);
+        let content = TEMPLATES.render(&template_path, &tera::Context::default())?;
+        let mut file_path = lua_dir;
+        file_path.push(f);
+        fs::write(file_path, content)?;
 
         Ok(())
     }
@@ -250,7 +249,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         let mut bin_path = self.lua_dir();
         bin_path.push(&path);
         // make sure the bin dir is exist
-        fs::create_dir_all(&bin_path.parent().ok_or(anyhow!("expect build dir"))?)?;
+        fs::create_dir_all(bin_path.parent().ok_or(anyhow!("expect build dir"))?)?;
         self.run(c, "make build".to_string(), signal)?;
 
         // copy to build dir
@@ -263,7 +262,7 @@ impl<R: LuaRecipe> Recipe for Lua<R> {
         let mut target_path = self.context.project_path.clone();
         target_path.push(&path);
         // make sure the target dir is exist
-        fs::create_dir_all(&target_path.parent().ok_or(anyhow!("expect build dir"))?)?;
+        fs::create_dir_all(target_path.parent().ok_or(anyhow!("expect build dir"))?)?;
         fs::copy(bin_path, target_path)?;
         Ok(())
     }

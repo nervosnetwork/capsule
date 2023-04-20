@@ -24,13 +24,13 @@ impl FromStr for Version {
         }
         let commit_id = items.get(1).map(|s| s.to_string()).unwrap_or_default();
         // parse pre
-        let items: Vec<_> = items[0].split("-").collect();
+        let items: Vec<_> = items[0].split('-').collect();
         if items.len() > 2 || items.is_empty() {
             return Err(anyhow!("unexpected parts after split '-': {}", items.len()));
         }
         let pre = items.get(1).map(|s| s.to_string()).unwrap_or_default();
         // parse versions
-        let items: Vec<_> = items[0].split(".").collect();
+        let items: Vec<_> = items[0].split('.').collect();
         if items.len() > 3 || items.is_empty() {
             return Err(anyhow!("unexpected parts after split '.': {}", items.len()));
         }
@@ -51,10 +51,10 @@ impl ToString for Version {
     fn to_string(&self) -> String {
         let mut version = format!("{}.{}.{}", self.major, self.minor, self.patch);
         if !self.pre.is_empty() {
-            version.push_str("-");
+            version.push('-');
             version.push_str(&self.pre);
         }
-        version.push_str(" ");
+        version.push(' ');
         version.push_str(&self.commit_id);
         version.trim().to_string()
     }

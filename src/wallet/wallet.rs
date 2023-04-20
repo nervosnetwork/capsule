@@ -75,7 +75,7 @@ impl Wallet {
         tx.as_advanced_builder().cell_dep(cell_dep).build()
     }
 
-    pub fn complete_tx_inputs<'a>(
+    pub fn complete_tx_inputs(
         &self,
         tx: TransactionView,
         original_inputs_capacity: Capacity,
@@ -119,13 +119,11 @@ impl Wallet {
             .as_builder()
             .capacity(change_capacity.pack())
             .build();
-        let tx = tx
-            .as_advanced_builder()
+        tx.as_advanced_builder()
             .set_inputs(inputs)
             .output(change_output)
             .output_data(Default::default())
-            .build();
-        tx
+            .build()
     }
 
     pub fn read_password(&self) -> Result<Password> {
@@ -141,11 +139,7 @@ impl Wallet {
             // input group witness
             witnesses.push(packed::WitnessArgs::default().as_bytes());
         }
-        witnesses.extend(
-            (witnesses.len()..tx.inputs().len())
-                .into_iter()
-                .map(|_| Bytes::new()),
-        );
+        witnesses.extend((witnesses.len()..tx.inputs().len()).map(|_| Bytes::new()));
         let tx = tx.as_advanced_builder().witnesses(witnesses.pack()).build();
         let witnesses_len = tx.witnesses().len();
         let message: [u8; 32] = util::tx_sign_message(&tx, 0, witnesses_len).into();
