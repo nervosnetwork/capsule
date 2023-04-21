@@ -1,18 +1,26 @@
 # Capsule
 
+![Github Actions][GH-action-badge] [![Rust crate][rust-crate-badge]](https://crates.io/crates/ckb-capsule)
+
+[GH-action-badge]: https://img.shields.io/github/actions/workflow/status/nervosnetwork/capsule/rust.yml?branch=develop&style=flat
+[rust-crate-badge]: https://img.shields.io/crates/v/ckb-capsule?style=flat
+
+
+**Capsule is an out-of-box development framework for creating smart contract on Nervos' CKB.**
+
+Capsule consists of:
+
+- Capsule CLI - Scaffolding tool.
+- [CKB-testtool](https://github.com/nervosnetwork/capsule/tree/develop/crates/testtool) - CKB scripts testing framework.
+
+CKB supports several programming languages for writing scripts, and the language supporting libraries are maintained in the following repositories:
+
+- [ckb-std](https://github.com/nervosnetwork/ckb-std) - Rust
+- [ckb-c-stdlib](https://github.com/nervosnetwork/ckb-c-stdlib) - C
+- [ckb-lua](https://github.com/nervosnetwork/ckb-lua) - Lua
+
+
 ![Capsule](./capsule.jpg)
-
-> Capsule is still under active development and considered to be a work in progress.
-
-Capsule is a development framework for creating smart contract for Nervos' CKB layer 1 blockchain. Capsule is designed to provide an out-of-the-box solution that helps Nervos developers accomplish common tasks quickly and painlessly.
-
-Capsule provides the following functionality:
-- Scaffolding for new projects.
-- Building of RISC-V binaries for Nervos CKB-VM.
-- Local execution of smart contract scripts via Docker.
-- Automated testing of smart contract scripts.
-- Configurable deployment of scripts to Nervos CKB.
-- Generation of simulated transaction data for debugging.
 
 ## Installation
 
@@ -53,24 +61,8 @@ cargo install ckb-capsule --git https://github.com/nervosnetwork/capsule.git --b
 
 ## Usage
 
-```
-USAGE:
-capsule [SUBCOMMAND]
-
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-
-SUBCOMMANDS:
-    check           Check environment and dependencies
-    new             Create a new project
-    new-contract    Create a new contract
-    build           Build contracts
-    run             Run command in contract build image
-    test            Run tests
-    deploy          Deploy contracts, edit deployment.toml to custodian deployment recipe.
-    debugger        CKB debugger
-    help            Prints this message or the help of the given subcommand(s)
+``` sh
+capsule help
 ```
 
 ### Quick Start
