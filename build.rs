@@ -11,7 +11,7 @@ fn main() {
         .unwrap();
 
     let get_command_id = std::process::Command::new("git")
-        .args(&[
+        .args([
             "describe",
             "--dirty",
             "--always",
@@ -21,7 +21,7 @@ fn main() {
         ])
         .output();
     let commit_id = match get_command_id {
-        Ok(output) => String::from_utf8(output.stdout).ok().expect("commit id"),
+        Ok(output) => String::from_utf8(output.stdout).expect("commit id"),
         Err(err) => {
             if let ErrorKind::NotFound = err.kind() {
                 panic!("error when get commit id: `git` was not found!");

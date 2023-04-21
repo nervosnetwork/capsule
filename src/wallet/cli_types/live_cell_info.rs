@@ -26,13 +26,13 @@ pub struct LiveCellInfo {
     pub mature: bool,
 }
 
-impl Into<LiveCell> for LiveCellInfo {
-    fn into(self) -> LiveCell {
-        let capacity = self.capacity();
-        let index = self.index.output_index;
+impl From<LiveCellInfo> for LiveCell {
+    fn from(value: LiveCellInfo) -> Self {
+        let capacity = value.capacity();
+        let index = value.index.output_index;
         let LiveCellInfo {
             tx_hash, mature, ..
-        } = self;
+        } = value;
         LiveCell {
             tx_hash,
             index,

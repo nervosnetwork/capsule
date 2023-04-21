@@ -82,15 +82,14 @@ impl DeploymentProcess {
             inputs_cells.extend(
                 self.wallet
                     .collect_live_cells(Capacity::shannons(1))
-                    .into_iter()
-                    .map(|i| i.into()),
+                    .into_iter(),
             );
             self.wallet
                 .lock_out_points(inputs_cells.iter().map(|c| c.out_point()));
         }
         // build outputs
         let output = {
-            let mut output = packed::CellOutput::new_builder().lock(lock.clone());
+            let mut output = packed::CellOutput::new_builder().lock(lock);
             if cell.enable_type_id {
                 let input_cell = &inputs_cells[0];
                 let tx: packed::Transaction = self
@@ -140,7 +139,7 @@ impl DeploymentProcess {
     ) -> Result<TransactionView> {
         fn find_cell(name: &str, cell_recipes: &[CellRecipe]) -> Option<(H256, CellRecipe)> {
             cell_recipes
-                .into_iter()
+                .iter()
                 .find(|c| c.name == name)
                 .map(|cell_recipe| (cell_recipe.tx_hash.to_owned(), cell_recipe.clone()))
         }
@@ -167,7 +166,7 @@ impl DeploymentProcess {
                         let (tx_hash, cell) = find_cell(name, cell_recipes).expect("must exists");
                         (tx_hash, cell.index)
                     }
-                    CellLocation::OutPoint { tx_hash, index } => (tx_hash.into(), index),
+                    CellLocation::OutPoint { tx_hash, index } => (tx_hash, index),
                 };
                 let out_point = packed::OutPoint::new_builder()
                     .tx_hash(tx_hash.pack())
@@ -180,7 +179,7 @@ impl DeploymentProcess {
         let data = out_points.as_bytes();
         let data_len = data.len();
         let output = packed::CellOutput::new_builder()
-            .lock(lock.clone())
+            .lock(lock)
             .build_exact_capacity(Capacity::bytes(data_len).expect("bytes"))
             .expect("build");
         let inputs: Vec<_> = input_cells.iter().map(|cell| cell.input()).collect();
@@ -381,7 +380,7 @@ fn build_cell_recipe(tx: &TransactionView, cell: Cell) -> CellRecipe {
     };
     CellRecipe {
         index: index as u32,
-        name: cell.name.to_owned(),
+        name: cell.name,
         data_hash: packed::CellOutput::calc_data_hash(&data).unpack(),
         occupied_capacity,
         tx_hash: tx.hash().unpack(),
@@ -401,7 +400,7 @@ fn build_dep_group_recipe(tx: &TransactionView, dep_group: DepGroup) -> DepGroup
         .as_u64();
     DepGroupRecipe {
         index: index as u32,
-        name: dep_group.name.to_owned(),
+        name: dep_group.name,
         occupied_capacity,
         tx_hash: tx.hash().unpack(),
     }
@@ -414,7 +413,7 @@ fn is_type_id_script(script: &packed::Script) -> bool {
 
 fn build_type_id_script(input: &packed::CellInput, output_index: u64) -> packed::Script {
     let mut blake2b = new_blake2b();
-    blake2b.update(&input.as_slice());
+    blake2b.update(input.as_slice());
     blake2b.update(&output_index.to_le_bytes());
     let mut ret = [0; 32];
     blake2b.finalize(&mut ret);

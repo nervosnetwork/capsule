@@ -141,7 +141,7 @@ impl DockerCommand {
     pub fn stop(name: &str) -> Result<()> {
         println!("Stop container {}...", name);
         let mut cmd = Command::new(DOCKER_BIN);
-        cmd.args(&["stop", name]);
+        cmd.args(["stop", name]);
         let exit_status = cmd.spawn()?.wait()?;
         if !exit_status.success() {
             return Err(anyhow!(
@@ -177,7 +177,7 @@ impl DockerCommand {
         cmd.stdin(Stdio::inherit())
             .stderr(Stdio::inherit())
             .stdout(Stdio::inherit());
-        cmd.args(&[
+        cmd.args([
             "run",
             "--init",
             format!("-eUID={}", uid).as_str(),
@@ -242,7 +242,7 @@ impl DockerCommand {
             shell_cmd.push_str(format!("; chown -R $UID:$GID {f}").as_str());
         }
         shell_cmd.push_str("; exit $EXITCODE");
-        cmd.args(&[docker_image.as_ref(), "bash", "-c", shell_cmd.as_str()]);
+        cmd.args([docker_image.as_ref(), "bash", "-c", shell_cmd.as_str()]);
 
         Ok(cmd)
     }

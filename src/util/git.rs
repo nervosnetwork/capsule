@@ -7,10 +7,10 @@ const GIT_BIN: &str = "git";
 
 fn wait(status: ExitStatus) -> Result<()> {
     if status.success() {
-        return Ok(());
+        Ok(())
     } else {
         let err = anyhow!("{} exit with code {:?}", GIT_BIN, status.code());
-        return Err(err);
+        Err(err)
     }
 }
 

@@ -9,15 +9,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: install rust format
-      run: rustup component add rustfmt
-    - name: check format
+    - name: Install Rust components
+      run: rustup component add rustfmt clippy
+    - name: Check format
       run: cargo fmt --all -- --check
+    - name: Run cargo clippy
+      run: cargo clippy --all
     - name: Build
       run: cargo build
     - name: Install dependencies
       run: cargo install --version 0.7.3 moleculec
-    - name: Cargo test
+    - name: Run cargo test
       run: cargo test
     - name: Run integration tests
       run: bash ./dev-tools/integration-tests.sh

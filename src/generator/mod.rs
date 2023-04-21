@@ -58,7 +58,7 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
     }
     // generate files
     let context = Context::from_serialize(&CreateProject {
-        name: name.clone(),
+        name,
         path: project_path.clone(),
         version: Version::current().to_string(),
     })?;
@@ -97,7 +97,7 @@ fn gen_project_test<P: AsRef<Path>>(name: String, project_path: P) -> Result<()>
     };
     // initialize tests code
     let context = Context::from_serialize(&CreateProject {
-        name: name.clone(),
+        name,
         path: project_path.clone(),
         version: Version::current().to_string(),
     })?;
