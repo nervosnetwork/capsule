@@ -11,6 +11,8 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install Rust components
       run: rustup component add rustfmt clippy
+    - name: Install cross
+      run: cargo install cross --git https://github.com/cross-rs/cross --rev=6982b6c
     - name: Check format
       run: cargo fmt --all -- --check
     - name: Run cargo clippy
