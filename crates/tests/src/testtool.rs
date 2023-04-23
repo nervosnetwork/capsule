@@ -12,7 +12,7 @@ use ckb_types::{
 use std::fs;
 
 const MAX_CYCLES: u64 = 500_0000;
-const TEST_CONTRACT_PATH: &str = "tests/test-contract/build/debug/test-contract";
+const TEST_CONTRACT_PATH: &str = "crates/tests/test-contract/build/debug/test-contract";
 
 fn blake160(data: &[u8]) -> [u8; 20] {
     let mut buf = [0u8; 20];

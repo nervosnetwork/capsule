@@ -9,7 +9,7 @@ prepare_capsule_test() {
 
 prepare_testtool_test() {
     echo "Prepare Ckb-testtool testing environment..."
-    pushd tests/test-contract && ../../target/debug/capsule build && popd
+    pushd crates/tests/test-contract && ../../../target/debug/capsule build && popd
 }
 
 run_tests() {
