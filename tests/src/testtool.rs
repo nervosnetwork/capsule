@@ -1,7 +1,7 @@
-use crate::context::Context;
 use ckb_crypto::secp::{Generator, Privkey};
 use ckb_hash::{blake2b_256, new_blake2b};
 use ckb_system_scripts::BUNDLED_CELL;
+use ckb_testtool::{context::Context, *};
 use ckb_types::{
     bytes::Bytes,
     core::{TransactionBuilder, TransactionView},
@@ -12,7 +12,7 @@ use ckb_types::{
 use std::fs;
 
 const MAX_CYCLES: u64 = 500_0000;
-const TEST_CONTRACT_PATH: &str = "../test-contract/build/debug/test-contract";
+const TEST_CONTRACT_PATH: &str = "tests/test-contract/build/debug/test-contract";
 
 fn blake160(data: &[u8]) -> [u8; 20] {
     let mut buf = [0u8; 20];
@@ -70,7 +70,6 @@ fn sign_tx(tx: TransactionView, key: &Privkey) -> TransactionView {
         .build()
 }
 
-#[test]
 fn test_sighash_all_unlock() {
     // generate key pair
     let privkey = Generator::random_privkey();
@@ -138,7 +137,6 @@ fn test_sighash_all_unlock() {
         .expect("pass verification");
 }
 
-#[test]
 fn test_load_header() {
     // deploy contract
     let mut context = Context::default();
@@ -216,4 +214,10 @@ fn test_load_header() {
     context
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");
+}
+
+pub fn run() {
+    println!("Testing ckb-testtool ...");
+    test_load_header();
+    test_sighash_all_unlock();
 }

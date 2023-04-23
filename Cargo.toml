@@ -44,4 +44,4 @@ members = [
     "tests",
     "crates/testtool",
 ]
-exclude = ["tmp"]
+exclude = ["tmp", "tests/test-contract"]

@@ -97,6 +97,3 @@ pub use ckb_traits;
 pub use ckb_types;
 pub use ckb_types::bytes;
 pub use ckb_verification;
-
-#[cfg(test)]
-mod tests;

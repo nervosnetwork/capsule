@@ -499,12 +499,11 @@ dependencies = [
  "ckb-jsonrpc-types",
  "ckb-resource",
  "ckb-script",
- "ckb-system-scripts",
  "ckb-traits",
  "ckb-types",
  "ckb-verification",
  "lazy_static",
- "rand 0.7.3",
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -2333,6 +2332,8 @@ name = "tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "ckb-system-scripts",
+ "ckb-testtool 0.9.0",
 ]
 
 [[package]]
