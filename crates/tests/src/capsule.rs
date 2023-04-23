@@ -42,12 +42,12 @@ fn test_build<P: AsRef<Path>>(
     name: &str,
     template_type: &str,
 ) -> Result<(), Error> {
-    env::set_current_dir(&dir)?;
     let mut contract_path = PathBuf::new();
     contract_path.push(&dir);
     contract_path.push(name);
     println!("Creating {:?} ...", contract_path);
     let output = Command::new(bin_path)
+        .current_dir(&dir)
         .arg("new")
         .arg(name)
         .arg("--template")
@@ -60,8 +60,8 @@ fn test_build<P: AsRef<Path>>(
         );
     }
     println!("Building ...");
-    env::set_current_dir(&contract_path)?;
     let exit_code = Command::new("bash")
+        .current_dir(&contract_path)
         .arg("-c")
         .arg(format!("{} build --host", bin_path))
         .spawn()?
@@ -71,6 +71,7 @@ fn test_build<P: AsRef<Path>>(
     }
     println!("Run contract test ...");
     let exit_code = Command::new("bash")
+        .current_dir(&contract_path)
         .arg("-c")
         .arg(format!("{} test", bin_path))
         .spawn()?
@@ -80,6 +81,7 @@ fn test_build<P: AsRef<Path>>(
     }
     println!("Clean contract ...");
     let exit_code = Command::new("bash")
+        .current_dir(&contract_path)
         .arg("-c")
         .arg(format!("{} clean", bin_path))
         .spawn()?
@@ -97,12 +99,12 @@ fn test_build_sharedlib<P: AsRef<Path>>(
     name: &str,
     template_type: &str,
 ) -> Result<(), Error> {
-    env::set_current_dir(&dir)?;
     let mut contract_path = PathBuf::new();
     contract_path.push(&dir);
     contract_path.push(name);
     println!("Creating {:?} ...", contract_path);
     let exit_code = Command::new(bin_path)
+        .current_dir(&dir)
         .arg("new")
         .arg(name)
         .arg("--template")
@@ -113,8 +115,8 @@ fn test_build_sharedlib<P: AsRef<Path>>(
         panic!("command crash, exit_code {:?}", exit_code.code());
     }
     println!("Building ...");
-    env::set_current_dir(&contract_path)?;
     let exit_code = Command::new("bash")
+        .current_dir(&contract_path)
         .arg("-c")
         .arg(format!("{} build --host", bin_path))
         .spawn()?
