@@ -41,7 +41,7 @@ includedir_codegen = "0.6"
 
 [workspace]
 members = [
-    "tests",
     "crates/testtool",
+    "crates/tests",
 ]
-exclude = ["tmp"]
+exclude = ["tmp", "tests/test-contract"]

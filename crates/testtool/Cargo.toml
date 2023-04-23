@@ -10,7 +10,7 @@ description = "CKB contract testing tools"
 
 [dependencies]
 ckb-always-success-script = "0.0.1"
-rand = "0.7"
+rand = "0.8"
 lazy_static = "1.4"
 ckb-chain-spec = "0.108.0"
 ckb-types = "0.108.0"
@@ -22,6 +22,3 @@ ckb-crypto = "0.108.0"
 ckb-resource = "0.108.0"
 ckb-verification = "0.108.0"
 ckb-traits = "0.108.0"
-
-[dev-dependencies]
-ckb-system-scripts = "0.5"
