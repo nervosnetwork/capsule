@@ -34,7 +34,8 @@ CKB supports several programming languages for writing scripts, and the language
 
 The following must be installed and available to use Capsule.
 
-- Docker - Capsule uses `docker` to build contracts and run tests. https://docs.docker.com/get-docker/
+- cargo - Capsule uses `cargo` to generate Rust contracts and run tests.
+- docker - Capsule uses `docker` container to reproducible build contracts. https://docs.docker.com/get-docker/
 - ckb-cli (optional) - Capsule requires `ckb-cli` to enable the smart contract deployment feature. https://github.com/nervosnetwork/ckb-cli/releases
 
 Note: Docker and ckb-cli must be accessible in the `PATH` in order for them to be used by Capsule.
