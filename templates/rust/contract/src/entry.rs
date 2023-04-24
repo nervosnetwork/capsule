@@ -35,3 +35,8 @@ pub fn main() -> Result<(), Error> {
     Ok(())
 }
 
+// Unit tests are supported.
+#[test]
+fn test_foo() {
+    assert!(true);
+}

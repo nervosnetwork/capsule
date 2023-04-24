@@ -7,20 +7,16 @@ use crate::project_context::{
 };
 use crate::recipe::Recipe;
 use crate::signal::Signal;
-use crate::util::docker::DockerCommand;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
+use path_macro::path;
 use tera;
+use xshell::{cmd, Shell};
 
 use std::fs;
 use std::path::PathBuf;
 
 pub const DOCKER_IMAGE: &str = "thewawar/ckb-capsule:2022-08-01";
 const RUST_TARGET: &str = "riscv64imac-unknown-none-elf";
-const CARGO_CONFIG_PATH: &str = ".cargo/config";
-const BASE_RUSTFLAGS: &str =
-    "-Z pre-link-arg=-zseparate-code -Z pre-link-arg=-zseparate-loadable-segments";
-const RELEASE_RUSTFLAGS: &str = "-C link-arg=-s";
-const ALWAYS_DEBUG_RUSTFLAGS: &str = "--cfg=debug_assertions";
 
 pub struct Rust {
     context: Context,
@@ -35,38 +31,6 @@ impl Rust {
         let mut path = self.context.contracts_path();
         path.push(name);
         path
-    }
-
-    fn contract_relative_path(&self, name: &str) -> PathBuf {
-        let mut path = PathBuf::new();
-        path.push(CONTRACTS_DIR);
-        path.push(name);
-        path
-    }
-
-    fn has_cargo_config(&self, name: &str) -> bool {
-        let mut contract_path = self.contract_path(name);
-        contract_path.push(CARGO_CONFIG_PATH);
-        contract_path.exists()
-    }
-
-    /// inject rustflags on release build unless project has cargo config
-    fn injection_rustflags(&self, config: BuildConfig, name: &str) -> String {
-        let has_cargo_config = self.has_cargo_config(name);
-        match config.build_env {
-            _ if has_cargo_config => "".to_string(),
-            BuildEnv::Debug => format!("RUSTFLAGS=\"{}\"", BASE_RUSTFLAGS),
-            BuildEnv::Release => {
-                if config.always_debug {
-                    format!(
-                        "RUSTFLAGS=\"{} {} {}\"",
-                        BASE_RUSTFLAGS, RELEASE_RUSTFLAGS, ALWAYS_DEBUG_RUSTFLAGS
-                    )
-                } else {
-                    format!("RUSTFLAGS=\"{} {}\"", BASE_RUSTFLAGS, RELEASE_RUSTFLAGS)
-                }
-            }
-        }
     }
 
     fn rewrite_config_for_new_contract(&self, name: &str) -> Result<()> {
@@ -95,32 +59,6 @@ impl Rust {
         }
         Ok(())
     }
-
-    fn docker_image(&self) -> String {
-        self.context
-            .config
-            .rust
-            .docker_image
-            .clone()
-            .unwrap_or(DOCKER_IMAGE.to_string())
-    }
-
-    fn cargo_cmd(&self) -> String {
-        if let Some(toolchain) = self.rust_toolchain_arg() {
-            format!("cargo {}", toolchain)
-        } else {
-            "cargo".to_string()
-        }
-    }
-
-    fn rust_toolchain_arg(&self) -> Option<String> {
-        self.context
-            .config
-            .rust
-            .toolchain
-            .as_ref()
-            .map(|toolchain| format!(" +{}", toolchain))
-    }
 }
 
 impl Recipe for Rust {
@@ -141,9 +79,6 @@ impl Recipe for Rust {
         let context = tera::Context::from_serialize(&CreateContract { name: name.clone() })?;
         // generate contract
         let mut cmd = std::process::Command::new("cargo");
-        if let Some(toolchain) = self.rust_toolchain_arg() {
-            cmd.arg(toolchain);
-        }
         let output = cmd
             .args(["new", name, "--vcs", "none"])
             .current_dir(&path)
@@ -175,28 +110,8 @@ impl Recipe for Rust {
     }
 
     /// run command in build image
-    fn run(&self, contract: &Contract, build_cmd: String, signal: &Signal) -> Result<()> {
-        let project_path = self.context.project_path.to_str().expect("path");
-        let contract_relative_path = self.contract_relative_path(&contract.name);
-        let mut cmd = DockerCommand::with_context(
-            &self.context,
-            self.docker_image(),
-            project_path.to_string(),
-            self.context.docker_env_file.clone(),
-        )
-        .workdir(format!(
-            "/code/{}",
-            contract_relative_path.to_str().expect("path")
-        ))
-        .fix_dir_permission("/code/target".to_string())
-        .fix_dir_permission("/code/Cargo.lock".to_string())
-        .host_network(self.context.use_docker_host);
-        if let Some(rustup_dir) = self.context.rustup_dir.as_ref() {
-            cmd = cmd.map_volume(rustup_dir.to_string(), "/root/.rustup".to_string());
-        }
-
-        cmd.run(build_cmd, signal)?;
-        Ok(())
+    fn run(&self, _contract: &Contract, _build_cmd: String, _signal: &Signal) -> Result<()> {
+        bail!("run command is no longer supported for rust contracts, just use cargo or cross directly")
     }
 
     /// build contract
@@ -204,79 +119,54 @@ impl Recipe for Rust {
         &self,
         contract: &Contract,
         config: BuildConfig,
-        signal: &Signal,
+        _signal: &Signal,
         build_args_opt: Option<Vec<String>>,
     ) -> Result<()> {
         // docker cargo build
-        let mut rel_bin_path = PathBuf::new();
-        let (bin_dir_prefix, build_cmd_opt) = match config.build_env {
-            BuildEnv::Debug => ("debug", ""),
-            BuildEnv::Release => ("release", "--release"),
+        let (debug_or_release, build_cmd_opt) = match config.build_env {
+            BuildEnv::Debug => ("debug", None),
+            BuildEnv::Release => ("release", Some("--release")),
         };
-        let build_cmd_opt = if build_args_opt.is_some() {
-            format!("{} {}", build_cmd_opt, build_args_opt.unwrap().join(" "))
-        } else {
-            String::from(build_cmd_opt)
-        };
-        rel_bin_path.push(format!(
-            "target/{}/{}/{}",
-            RUST_TARGET, bin_dir_prefix, &contract.name
-        ));
-        let mut container_bin_path = PathBuf::new();
-        container_bin_path.push("/code");
-        if let Some(workspace_dir) = self.context.config.rust.workspace_dir.as_ref() {
-            container_bin_path.push(workspace_dir);
-        }
-        container_bin_path.push(&rel_bin_path);
+        let bin_path = path!("target" / RUST_TARGET / debug_or_release / &contract.name);
 
-        // run build command
-        let build_cmd = format!(
-            "{rustflags} {cargo_cmd} build --target {rust_target} {build_env}",
-            cargo_cmd = self.cargo_cmd(),
-            rustflags = self.injection_rustflags(config, &contract.name),
-            rust_target = RUST_TARGET,
-            build_env = build_cmd_opt
-        );
-        log::debug!("[build cmd]: {}", build_cmd);
-        self.run(contract, build_cmd, signal)?;
+        let sh = Shell::new()?;
+        sh.change_dir(self.context.workspace_dir()?);
+
+        // TODO: support host network.
+        if self.context.use_docker_host {
+            eprintln!("warn: host network is not supported in cross yet; as an alternative, run `cargo fetch` first");
+        }
+        let _debug_env_guard = if config.always_debug {
+            println!(r#"RUSTFLAGS="--cfg debug_assertions""#);
+            Some(sh.push_env("RUSTFLAGS", "--cfg debug_assertions"))
+        } else {
+            None
+        };
+
+        let pkg = &contract.name;
+        let args = build_args_opt.into_iter().flatten();
+        cmd!(sh, "cross build -p {pkg} {build_cmd_opt...} {args...}").run()?;
 
         // copy to build dir
-        let mut project_bin_path = self.context.workspace_dir()?;
-        project_bin_path.push(&rel_bin_path);
-        if !project_bin_path.exists() {
-            return Err(anyhow!("can't find contract binary from path {:?}, please set `workspace_dir` in capsule.toml", project_bin_path));
-        }
         let mut target_path = self.context.contracts_build_path(config.build_env);
         // make sure the dir is exist
-        fs::create_dir_all(&target_path)?;
+        sh.create_dir(&target_path)?;
         target_path.push(&contract.name);
-        fs::copy(project_bin_path, target_path)?;
+        sh.copy_file(bin_path, target_path)?;
         Ok(())
     }
 
     /// clean contract
-    fn clean(&self, contracts: &[Contract], signal: &Signal) -> Result<()> {
-        // cargo clean
-        let clean_cmd = format!(
-            "{cargo_cmd} clean --target {rust_target}",
-            cargo_cmd = self.cargo_cmd(),
-            rust_target = RUST_TARGET,
-        );
-
+    fn clean(&self, contracts: &[Contract], _signal: &Signal) -> Result<()> {
+        let sh = Shell::new()?;
+        // Do we want `cargo clean -p contract1 -p contract2 ...`?
+        cmd!(sh, "cargo clean").run()?;
+        let build_dir = self.context.contracts_build_dir();
         for c in contracts {
-            self.run(c, clean_cmd.clone(), signal)?;
-
-            // remove binary
-            for build_env in &[BuildEnv::Debug, BuildEnv::Release] {
-                let mut target_path = self.context.contracts_build_path(*build_env);
-                // make sure the dir is exist
-                fs::create_dir_all(&target_path)?;
-                target_path.push(&c.name);
-                if target_path.exists() {
-                    fs::remove_file(&target_path)?;
-                }
-            }
+            sh.remove_path(path!(build_dir / "debug" / &c.name))?;
+            sh.remove_path(path!(build_dir / "release" / &c.name))?;
         }
+
         Ok(())
     }
 }

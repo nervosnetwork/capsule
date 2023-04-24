@@ -35,6 +35,9 @@ reqwest = { version = "0.11.11", features = ["blocking", "json"] }
 jsonrpc-core = "18.0.0"
 toml_edit = { version = "0.19.8", features = ["serde"] }
 chrono = { version = "0.4.24", default-features = false, features = ["std"] }
+# 0.2.3 breaks color output: https://github.com/matklad/xshell/issues/63
+xshell = "=0.2.2"
+path_macro = "1.0.0"
 
 [build-dependencies]
 includedir_codegen = "0.6"

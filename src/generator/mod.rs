@@ -66,6 +66,8 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
         ("capsule.toml", None),
         ("deployment.toml", None),
         ("README.md", None),
+        ("rust-toolchain", None),
+        ("Cross.toml", None),
         ("Cargo.toml", Some("Cargo-manifest.toml")),
         (".gitignore", None),
     ] {

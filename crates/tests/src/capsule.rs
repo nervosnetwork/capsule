@@ -64,6 +64,9 @@ fn test_build<P: AsRef<Path>>(
         .current_dir(&contract_path)
         .arg("-c")
         .arg(format!("{} build --host", bin_path))
+        // This will be a the rust toolchain used to build this test, but we
+        // want cross to use the one in {contracts_path}/rust-toolchain.
+        .env_remove("RUSTUP_TOOLCHAIN")
         .spawn()?
         .wait()?;
     if !exit_code.success() {

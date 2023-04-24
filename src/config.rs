@@ -42,8 +42,6 @@ pub struct Contract {
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct RustConfig {
     pub workspace_dir: Option<PathBuf>, // relative path of workspace dir, default is the project dir
-    pub toolchain: Option<String>,
-    pub docker_image: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
