@@ -8,19 +8,27 @@ fn check_cmd(program: &str, arg: &str) -> Result<Output> {
 }
 
 pub struct Checker {
-    pub docker: bool,
-    pub ckb_cli: Option<Vec<u8>>,
+    cargo: bool,
+    docker: bool,
+    ckb_cli: Option<Vec<u8>>,
 }
 
 impl Checker {
     pub fn build(ckb_cli_bin: &str) -> Result<Self> {
+        let cargo = check_cmd("cargo", "version")
+            .map(|output| output.status.success())
+            .unwrap_or(false);
         let docker = check_cmd("docker", "version")
             .map(|output| output.status.success())
             .unwrap_or(false);
         let ckb_cli = check_cmd(ckb_cli_bin, "--version")
             .map(|output| output.stdout)
             .ok();
-        Ok(Checker { docker, ckb_cli })
+        Ok(Checker {
+            cargo,
+            docker,
+            ckb_cli,
+        })
     }
 
     pub fn check_ckb_cli(&self) -> Result<()> {
@@ -45,6 +53,13 @@ impl Checker {
 
     pub fn print_report(&self) {
         println!("------------------------------");
+        if self.cargo {
+            println!("cargo\tinstalled");
+        } else {
+            println!(
+                "cargo\tnot found - Please install rust (https://www.rust-lang.org/tools/install)"
+            );
+        }
         if self.docker {
             println!("docker\tinstalled");
         } else {
