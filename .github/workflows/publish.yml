@@ -26,10 +26,10 @@ jobs:
     - name: Set PKG_NAME
       run: echo "PKG_NAME=capsule_${RELEASE_VERSION}_${{ matrix.suffix }}" >> $GITHUB_ENV
     - name: Build (static link openssl)
-      if: {{ matrix.suffix == 'x86_64-linux' }}
+      if: ${{ matrix.suffix == 'x86_64-linux' }}
       run: cargo build --features=reqwest/native-tls-vendored --release --locked
     - name: Build
-      if: {{ matrix.suffix != 'x86_64-linux' }}
+      if: ${{ matrix.suffix != 'x86_64-linux' }}
       run: cargo build --release --locked
     - name: Extract signing key
       working-directory: dev-tools
