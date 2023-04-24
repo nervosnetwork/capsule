@@ -1,10 +1,10 @@
 [package]
 name = "ckb-capsule"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Nervos Network"]
 edition = "2021"
 license = "MIT"
-description = "Capsule is a development framework for creating smart contract for Nervos' CKB layer 1 blockchain."
+description = "Capsule is a development framework for creating smart contract for Nervos' CKB."
 homepage = "https://github.com/nervosnetwork/capsule"
 
 [features]
