@@ -98,6 +98,10 @@ capsule test
 
 [Capsule Wiki on GitHub](https://github.com/nervosnetwork/capsule/wiki)
 
+### Upgrading to Capsule 0.10
+
+[Upgrade an existing project to capsule 0.10](https://github.com/nervosnetwork/capsule/wiki/Upgrade-an-existing-project-to-capsule-0.10)
+
 ## LICENSE
 
 [MIT](https://github.com/nervosnetwork/capsule/blob/master/LICENSE)
