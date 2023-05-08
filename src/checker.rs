@@ -1,5 +1,4 @@
 use anyhow::{anyhow, bail, Result};
-use log::warn;
 use std::fmt;
 use std::process::Command;
 
@@ -16,18 +15,23 @@ impl BinDep {
         arg: &'static str,
         version_prefix: Option<&'static str>,
         required_version: Option<Version>,
-    ) -> Result<Self> {
-        let output = Command::new(program).arg(arg).output()?;
-        let installed = output.status.success();
-        let version = version_prefix
-            .filter(|_| installed)
-            .and_then(|prefix| Version::parse_with_prefix(prefix, output.stdout).ok());
-        Ok(BinDep {
+    ) -> Self {
+        let (installed, version) = match Command::new(program).arg(arg).output() {
+            Ok(output) => {
+                let installed = output.status.success();
+                let version = version_prefix
+                    .filter(|_| installed)
+                    .and_then(|prefix| Version::parse_with_prefix(prefix, output.stdout).ok());
+                (installed, version)
+            }
+            Err(_err) => (false, None),
+        };
+        BinDep {
             program: program.to_string(),
             installed,
             version,
             required_version,
-        })
+        }
     }
 
     /// Check if the required version is met, return true if no required version
@@ -52,7 +56,7 @@ pub struct Checker {
 }
 
 impl Checker {
-    pub fn build(ckb_cli_bin: &str) -> Result<Self> {
+    pub fn build(ckb_cli_bin: &str) -> Self {
         let [cargo, docker, cross, ckb_cli] = [
             ("cargo", "version", None, None),
             ("docker", "version", None, None),
@@ -67,12 +71,12 @@ impl Checker {
         .map(|(program, arg, version_prefix, required_version)| {
             BinDep::build(program, arg, version_prefix, required_version)
         });
-        Ok(Checker {
-            cargo: cargo?,
-            docker: docker?,
-            cross: cross?,
-            ckb_cli: ckb_cli?,
-        })
+        Checker {
+            cargo,
+            docker,
+            cross,
+            ckb_cli,
+        }
     }
 
     pub fn check_ckb_cli(&self) -> Result<()> {
@@ -127,14 +131,14 @@ impl Checker {
                     );
                 }
                 None => {
-                    warn!(
+                    println!(
                         "{:10} installed (unknown version) - The deployment feature is disabled",
                         ckb_cli_dep.program
                     );
                 }
             }
         } else {
-            warn!(
+            println!(
                 "{:10} not found - The deployment feature is disabled",
                 ckb_cli_dep.program
             );
