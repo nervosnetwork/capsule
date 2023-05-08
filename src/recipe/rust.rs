@@ -84,7 +84,7 @@ impl Recipe for Rust {
             .current_dir(&path)
             .output()?;
         if !output.status.success() {
-            bail!("failed to generate tests, status: {}", output.status);
+            bail!("failed to generate contract, status: {}", output.status);
         }
         let mut contract_path = PathBuf::new();
         contract_path.push(path);

@@ -233,7 +233,7 @@ fn run_cli() -> Result<()> {
     match matches.subcommand() {
         ("check", Some(args)) => {
             let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
-            Checker::build(ckb_cli_bin)?.print_report();
+            Checker::build(ckb_cli_bin).print_report();
         }
         ("new", Some(args)) => {
             let mut name = args
@@ -372,7 +372,7 @@ fn run_cli() -> Result<()> {
         }
         ("deploy", Some(args)) => {
             let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
-            Checker::build(ckb_cli_bin)?.check_ckb_cli()?;
+            Checker::build(ckb_cli_bin).check_ckb_cli()?;
             let address = {
                 let address_hex = args.value_of("address").expect("address");
                 Address::from_str(address_hex).expect("parse address")
