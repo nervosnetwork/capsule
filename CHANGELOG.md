@@ -2,6 +2,21 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com).
 
+## [v0.10.0] - 2023-05-08
+
+Capsule now uses `cross` to manage Rust contracts building. You can learn more details about this change in issue [#106](https://github.com/nervosnetwork/capsule/pull/106), and the wiki page [Upgrade an existing project to capsule 0.10](https://github.com/nervosnetwork/capsule/wiki/Upgrade-an-existing-project-to-capsule-0.10) provides instructions for upgrading an existing project to capsule `v0.10.0`.
+
+Feature:
+
+* Use `cross` to build Rust contracts #106
+
+Misc:
+
+* docs: add link to upgrade an existing project #112
+* Fix check command #113
+
+Full Changelog: https://github.com/nervosnetwork/capsule/compare/v0.9.2...v0.10.0
+
 ## [v0.9.2] - 2023-04-24
 
 Misc:
