@@ -45,12 +45,15 @@ impl BinDep {
 }
 
 pub struct Checker {
-    bin_deps: Vec<BinDep>,
+    cargo: BinDep,
+    docker: BinDep,
+    cross: BinDep,
+    ckb_cli: BinDep,
 }
 
 impl Checker {
     pub fn build(ckb_cli_bin: &str) -> Result<Self> {
-        let bin_deps = [
+        let [cargo, docker, cross, ckb_cli] = [
             ("cargo", "version", None, None),
             ("docker", "version", None, None),
             ("cross-util", "--version", None, None),
@@ -63,14 +66,17 @@ impl Checker {
         ]
         .map(|(program, arg, version_prefix, required_version)| {
             BinDep::build(program, arg, version_prefix, required_version)
+        });
+        Ok(Checker {
+            cargo: cargo?,
+            docker: docker?,
+            cross: cross?,
+            ckb_cli: ckb_cli?,
         })
-        .into_iter()
-        .collect::<Result<Vec<_>>>()?;
-        Ok(Checker { bin_deps })
     }
 
     pub fn check_ckb_cli(&self) -> Result<()> {
-        let ckb_cli_dep = &self.bin_deps[3];
+        let ckb_cli_dep = &self.ckb_cli;
         if !ckb_cli_dep.installed {
             bail!("Can't find ckb-cli");
         }
@@ -96,7 +102,7 @@ impl Checker {
 
     pub fn print_report(&self) {
         println!("------------------------------");
-        for (bin_dep, help_message) in self.bin_deps[..3].into_iter().zip(
+        for (bin_dep, help_message) in [&self.cargo, &self.docker, &self.cross].into_iter().zip(
             [
                 "Please install rust (https://www.rust-lang.org/tools/install)",
                 "Please install docker",
@@ -111,7 +117,7 @@ impl Checker {
             }
         }
 
-        let ckb_cli_dep = &self.bin_deps[3];
+        let ckb_cli_dep = &self.ckb_cli;
         if ckb_cli_dep.installed {
             match &ckb_cli_dep.version {
                 Some(v) => {
