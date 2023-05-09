@@ -203,10 +203,10 @@ fn test_load_header() {
         .input(input)
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
-        .cell_dep(dep_cell)
         .header_dep(h3.hash())
         .header_dep(h2.hash())
         .header_dep(h1.hash())
+        .cell_dep(dep_cell)
         .build();
     let tx = context.complete_tx(tx);
 
