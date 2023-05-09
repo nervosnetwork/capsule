@@ -3,6 +3,7 @@ members = ["contracts/test-contract"]
 exclude = ["tests"]
 
 [profile.release]
+strip = true
 overflow-checks = true
 opt-level = 's'
 lto = true
