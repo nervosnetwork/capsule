@@ -82,13 +82,16 @@ fn test_sighash_all_unlock() {
     let secp256k1_sighash_all_bin = BUNDLED_CELL
         .get("specs/cells/secp256k1_blake160_sighash_all")
         .unwrap();
-    context.deploy_cell(secp256k1_data_bin.to_vec().into());
+    let secp256k1_data_out_point = context.deploy_cell(secp256k1_data_bin.to_vec().into());
     let lock_out_point = context.deploy_cell(secp256k1_sighash_all_bin.to_vec().into());
     let lock_script = context
         .build_script(&lock_out_point, Default::default())
         .expect("script")
         .as_builder()
         .args(pubkey_hash.to_vec().pack())
+        .build();
+    let secp256k1_data_dep = CellDep::new_builder()
+        .out_point(secp256k1_data_out_point)
         .build();
 
     // prepare cells
@@ -121,6 +124,7 @@ fn test_sighash_all_unlock() {
         .input(input)
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
+        .cell_dep(secp256k1_data_dep)
         .build();
     let tx = context.complete_tx(tx);
 
@@ -157,6 +161,9 @@ fn test_load_header() {
         .build();
 
     let dep_out_point = context.deploy_cell(Vec::new().into());
+    let dep_cell = CellDep::new_builder()
+        .out_point(dep_out_point.clone())
+        .build();
 
     let outputs = vec![
         CellOutput::new_builder()
@@ -199,6 +206,7 @@ fn test_load_header() {
         .header_dep(h3.hash())
         .header_dep(h2.hash())
         .header_dep(h1.hash())
+        .cell_dep(dep_cell)
         .build();
     let tx = context.complete_tx(tx);
 
