@@ -34,9 +34,6 @@
 //!     let lock_script = context
 //!         .build_script(&out_point, Default::default())
 //!         .expect("script");
-//!     let lock_script_dep = CellDep::new_builder()
-//!         .out_point(out_point)
-//!         .build();
 //!
 //!     // prepare input cell
 //!     let input_out_point = context.create_cell(
@@ -69,7 +66,6 @@
 //!         .input(input)
 //!         .outputs(outputs)
 //!         .outputs_data(outputs_data.pack())
-//!         .cell_dep(lock_script_dep)
 //!         .build();
 //!
 //!     let tx = context.complete_tx(tx);
