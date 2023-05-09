@@ -9,6 +9,7 @@ Capsule now uses `cross` to manage Rust contracts building. You can learn more d
 Feature:
 
 * Use `cross` to build Rust contracts #106
+* feat: update ckb-std and use stable rust #118
 
 Misc:
 
