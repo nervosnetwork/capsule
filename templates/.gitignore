@@ -1,7 +1,6 @@
 # Rust
-target/*
+target
 .cache/.cargo/*
-contracts/**/target/*
 
 # C
 contracts/c/build/*
