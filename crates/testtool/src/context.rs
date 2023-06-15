@@ -30,6 +30,17 @@ pub fn random_out_point() -> OutPoint {
     OutPoint::new_builder().tx_hash(random_hash()).build()
 }
 
+/// Return a random Type ID Script
+pub fn random_type_id_script() -> Script {
+    let args = random_hash().as_bytes();
+    debug_assert_eq!(args.len(), 32);
+    Script::new_builder()
+        .code_hash(TYPE_ID_CODE_HASH.pack())
+        .hash_type(ScriptHashType::Type.into())
+        .args(args.pack())
+        .build()
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Message {
     pub id: Byte32,
@@ -44,6 +55,7 @@ pub struct Context {
     pub headers: HashMap<Byte32, HeaderView>,
     pub epoches: HashMap<Byte32, EpochExt>,
     pub cells_by_data_hash: HashMap<Byte32, OutPoint>,
+    pub cells_by_type_hash: HashMap<Byte32, OutPoint>,
     capture_debug: bool,
     captured_messages: Arc<Mutex<Vec<Message>>>,
 }
@@ -69,11 +81,21 @@ impl Context {
             buf.pack()
         };
         let out_point = OutPoint::new(tx_hash, 0);
-        let cell = CellOutput::new_builder()
-            .capacity(Capacity::bytes(data.len()).expect("script capacity").pack())
-            .build();
+        let type_id_script = random_type_id_script();
+        let type_id_hash = type_id_script.calc_script_hash();
+        let cell = {
+            let cell = CellOutput::new_builder()
+                .type_(Some(type_id_script).pack())
+                .build();
+            let occupied_capacity = cell
+                .occupied_capacity(Capacity::bytes(data.len()).expect("data occupied capacity"))
+                .expect("cell capacity");
+            cell.as_builder().capacity(occupied_capacity.pack()).build()
+        };
         self.cells.insert(out_point.clone(), (cell, data));
         self.cells_by_data_hash.insert(data_hash, out_point.clone());
+        self.cells_by_type_hash
+            .insert(type_id_hash, out_point.clone());
         out_point
     }
 
@@ -129,6 +151,12 @@ impl Context {
         cell: CellOutput,
         data: Bytes,
     ) {
+        let data_hash = CellOutput::calc_data_hash(&data);
+        self.cells_by_data_hash.insert(data_hash, out_point.clone());
+        if let Some(_type) = cell.type_().to_opt() {
+            let type_hash = _type.calc_script_hash();
+            self.cells_by_type_hash.insert(type_hash, out_point.clone());
+        }
         self.cells.insert(out_point, (cell, data));
     }
 
@@ -153,11 +181,20 @@ impl Context {
         hash_type: ScriptHashType,
         args: Bytes,
     ) -> Option<Script> {
-        let (_, contract_data) = self.cells.get(out_point)?;
-        let data_hash = CellOutput::calc_data_hash(contract_data);
+        let (cell, contract_data) = self.cells.get(out_point)?;
+        let code_hash = match hash_type {
+            ScriptHashType::Data | ScriptHashType::Data1 => {
+                CellOutput::calc_data_hash(contract_data)
+            }
+            ScriptHashType::Type => cell
+                .type_()
+                .to_opt()
+                .expect("get cell's type hash")
+                .calc_script_hash(),
+        };
         Some(
             Script::new_builder()
-                .code_hash(data_hash)
+                .code_hash(code_hash)
                 .hash_type(hash_type.into())
                 .args(args.pack())
                 .build(),
@@ -170,15 +207,19 @@ impl Context {
     }
 
     fn find_cell_dep_for_script(&self, script: &Script) -> CellDep {
-        if script.hash_type() != ScriptHashType::Data.into()
-            && script.hash_type() != ScriptHashType::Data1.into()
+        let out_point = match ScriptHashType::try_from(u8::from(script.hash_type()))
+            .expect("invalid script hash type")
         {
-            panic!("do not support hash_type {} yet", script.hash_type());
-        }
+            ScriptHashType::Data | ScriptHashType::Data1 => self
+                .get_cell_by_data_hash(&script.code_hash())
+                .expect("find contract out point by data_hash"),
+            ScriptHashType::Type => self
+                .cells_by_type_hash
+                .get(&script.code_hash())
+                .cloned()
+                .expect("find contract out point by type_hash"),
+        };
 
-        let out_point = self
-            .get_cell_by_data_hash(&script.code_hash())
-            .expect("find contract out point");
         CellDep::new_builder()
             .out_point(out_point)
             .dep_type(DepType::Code.into())
@@ -201,13 +242,9 @@ impl Context {
                     cell_deps.push(dep);
                 }
                 if let Some(script) = cell.type_().to_opt() {
-                    if script.code_hash() != TYPE_ID_CODE_HASH.pack()
-                        || script.hash_type() != ScriptHashType::Type.into()
-                    {
-                        let dep = self.find_cell_dep_for_script(&script);
-                        if !cell_deps.contains(&dep) {
-                            cell_deps.push(dep);
-                        }
+                    let dep = self.find_cell_dep_for_script(&script);
+                    if !cell_deps.contains(&dep) {
+                        cell_deps.push(dep);
                     }
                 }
             }
@@ -215,13 +252,9 @@ impl Context {
 
         for (cell, _data) in tx.outputs_with_data_iter() {
             if let Some(script) = cell.type_().to_opt() {
-                if script.code_hash() != TYPE_ID_CODE_HASH.pack()
-                    || script.hash_type() != ScriptHashType::Type.into()
-                {
-                    let dep = self.find_cell_dep_for_script(&script);
-                    if !cell_deps.contains(&dep) {
-                        cell_deps.push(dep);
-                    }
+                let dep = self.find_cell_dep_for_script(&script);
+                if !cell_deps.contains(&dep) {
+                    cell_deps.push(dep);
                 }
             }
         }
