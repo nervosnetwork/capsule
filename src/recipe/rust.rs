@@ -7,11 +7,12 @@ use crate::project_context::{
 };
 use crate::recipe::Recipe;
 use crate::signal::Signal;
-use anyhow::{bail, Result};
+use anyhow::{bail, Context as _, Result};
 use path_macro::path;
 use tera;
 use xshell::{cmd, Shell};
 
+use std::env::VarError;
 use std::fs;
 use std::path::PathBuf;
 
@@ -136,9 +137,42 @@ impl Recipe for Rust {
         if self.context.use_docker_host {
             eprintln!("warn: host network is not supported in cross yet; as an alternative, run `cargo fetch` first");
         }
-        let _debug_env_guard = if config.always_debug {
-            println!(r#"RUSTFLAGS="--cfg debug_assertions""#);
-            Some(sh.push_env("RUSTFLAGS", "--cfg debug_assertions"))
+        let orig_rust_flags = match std::env::var("RUSTFLAGS") {
+            Ok(f) => Some(f),
+            Err(VarError::NotPresent) => None,
+            Err(e) => bail!(e),
+        };
+        let debug_assertions_rust_flag = if config.always_debug {
+            Some("--cfg debug_assertions".to_string())
+        } else {
+            None
+        };
+        let remap_rust_flags = if debug_or_release == "release" && config.remap {
+            // XXX: windows?
+            let home = std::env::var("HOME").context("reading environment variable HOME")?;
+            let pwd = sh.current_dir();
+            Some(format!(
+                "--remap-path-prefix={}=~ --remap-path-prefix={}=",
+                home,
+                pwd.to_string_lossy(),
+            ))
+        } else {
+            None
+        };
+
+        let rust_flags = [
+            orig_rust_flags,
+            debug_assertions_rust_flag,
+            remap_rust_flags,
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(" ");
+
+        let _env_guard = if !rust_flags.is_empty() {
+            println!("RUSTFLAGS={}", rust_flags);
+            Some(sh.push_env("RUSTFLAGS", rust_flags))
         } else {
             None
         };
@@ -152,6 +186,7 @@ impl Recipe for Rust {
         // make sure the dir is exist
         sh.create_dir(&target_path)?;
         target_path.push(&contract.name);
+        println!("Copying to target directory");
         sh.copy_file(bin_path, target_path)?;
         Ok(())
     }
