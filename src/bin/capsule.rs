@@ -108,6 +108,7 @@ fn run_cli() -> Result<()> {
                 .arg(Arg::with_name("name").short("n").long("name").multiple(true).takes_value(true).help("contract name"))
                 .arg(Arg::with_name("release").long("release").help("Build contracts in release mode."))
                 .arg(Arg::with_name("debug-output").long("debug-output").help("Always enable debugging output"))
+                .arg(Arg::with_name("no-remap").long("no-remap").help("Don't remap path prefixes"))
                 .arg(Arg::with_name("host").long("host").help("Docker runs in host mode"))
                 .arg(Arg::with_name("rustup-dir").long("rustup-dir").takes_value(true).help("Mount the directory to /root/.rustup in docker image"))
                 .display_order(3))
@@ -291,6 +292,7 @@ fn run_cli() -> Result<()> {
                 BuildEnv::Debug
             };
             let always_debug = args.is_present("debug-output");
+            let no_remap = args.is_present("no-remap");
             let rustup_dir = args
                 .value_of("rustup-dir")
                 .map(|value| {
@@ -310,6 +312,7 @@ fn run_cli() -> Result<()> {
             let build_config = BuildConfig {
                 build_env,
                 always_debug,
+                remap: !no_remap,
             };
 
             let contracts: Vec<_> = select_contracts(&context, &build_names);

@@ -36,6 +36,8 @@ impl FromStr for BuildEnv {
 pub struct BuildConfig {
     pub build_env: BuildEnv,
     pub always_debug: bool,
+    // Remap prefix paths on release build.
+    pub remap: bool,
 }
 
 #[derive(Debug, Copy, Clone)]
