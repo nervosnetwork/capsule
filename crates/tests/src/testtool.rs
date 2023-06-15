@@ -1,7 +1,7 @@
 use ckb_crypto::secp::{Generator, Privkey};
 use ckb_hash::{blake2b_256, new_blake2b};
 use ckb_system_scripts::BUNDLED_CELL;
-use ckb_testtool::{context::Context, *};
+use ckb_testtool::{ckb_types::core::ScriptHashType, context::Context, *};
 use ckb_types::{
     bytes::Bytes,
     core::{TransactionBuilder, TransactionView},
@@ -70,7 +70,11 @@ fn sign_tx(tx: TransactionView, key: &Privkey) -> TransactionView {
         .build()
 }
 
-fn test_sighash_all_unlock() {
+fn test_sighash_all_unlock(hash_type: ScriptHashType) {
+    println!(
+        "Running sighash_all_unlock test case, hash_type: {:?}",
+        hash_type
+    );
     // generate key pair
     let privkey = Generator::random_privkey();
     let pubkey = privkey.pubkey().expect("pubkey");
@@ -85,7 +89,7 @@ fn test_sighash_all_unlock() {
     let secp256k1_data_out_point = context.deploy_cell(secp256k1_data_bin.to_vec().into());
     let lock_out_point = context.deploy_cell(secp256k1_sighash_all_bin.to_vec().into());
     let lock_script = context
-        .build_script(&lock_out_point, Default::default())
+        .build_script_with_hash_type(&lock_out_point, hash_type, Default::default())
         .expect("script")
         .as_builder()
         .args(pubkey_hash.to_vec().pack())
@@ -219,5 +223,8 @@ fn test_load_header() {
 pub fn run() {
     println!("Testing ckb-testtool ...");
     test_load_header();
-    test_sighash_all_unlock();
+    // reference script by data hash
+    test_sighash_all_unlock(ScriptHashType::Data);
+    // reference script by type hash
+    test_sighash_all_unlock(ScriptHashType::Type);
 }
