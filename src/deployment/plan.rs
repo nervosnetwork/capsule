@@ -1,6 +1,6 @@
 use super::recipe::DeploymentRecipe;
 use crate::deployment::recipe::*;
-use crate::wallet::cli_types::HumanCapacity;
+use ckb_sdk::HumanCapacity;
 use ckb_testtool::ckb_types::H256;
 use serde::Serialize;
 

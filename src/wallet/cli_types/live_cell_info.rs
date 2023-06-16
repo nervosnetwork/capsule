@@ -1,5 +1,5 @@
-use super::human_capacity::HumanCapacity;
 use super::live_cell::LiveCell;
+use ckb_sdk::HumanCapacity;
 use ckb_testtool::ckb_types::H256;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;

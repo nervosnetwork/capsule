@@ -53,10 +53,7 @@ impl DeploymentProcess {
                 self.wallet.get_cell_output(live_cell.out_point());
             let wallet_lock: packed::Script = self.wallet.lock_script();
             if cell_output.lock() != wallet_lock {
-                let address = self
-                    .wallet
-                    .address()
-                    .display_with_network(self.wallet.address().network());
+                let address = self.wallet.address().to_string();
                 return Err(anyhow!("Can't unlock previously deployed cells with address '{}'\ncell '{}' uses lock:\n{}\naddress's lock:\n{}\n\nhint: update the lock field in `deployment.toml` or turn off migration with option `--migrate=off`", address, name, cell_output.lock(), wallet_lock));
             }
         }
