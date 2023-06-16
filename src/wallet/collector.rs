@@ -1,5 +1,6 @@
-use super::cli_types::{Address, HumanCapacity, LiveCell, LiveCellInfo, LiveCellInfoVec};
+use super::cli_types::{LiveCell, LiveCellInfo, LiveCellInfoVec};
 use super::util::handle_cmd;
+use ckb_sdk::{Address, HumanCapacity};
 use ckb_testtool::ckb_types::{core::Capacity, packed::*};
 use log::{debug, trace};
 use std::collections::HashSet;
@@ -115,7 +116,7 @@ impl Collector {
                 .arg("wallet")
                 .arg("get-live-cells")
                 .arg("--address")
-                .arg(address.display_with_network(address.network()))
+                .arg(address.to_string())
                 .arg("--from")
                 .arg(format!("{}", from))
                 .arg("--to")

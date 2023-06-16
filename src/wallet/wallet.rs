@@ -1,9 +1,10 @@
-use super::cli_types::{Address, LiveCell, SignatureOutput};
+use super::cli_types::{LiveCell, SignatureOutput};
 use super::collector::Collector;
 use super::password::Password;
 use super::rpc::{RpcClient, TransactionWithStatus};
 use super::util;
 use anyhow::Result;
+use ckb_sdk::Address;
 use ckb_testtool::ckb_types::{
     bytes::Bytes,
     core::{BlockView, Capacity, DepType, TransactionView},
@@ -143,9 +144,7 @@ impl Wallet {
         let tx = tx.as_advanced_builder().witnesses(witnesses.pack()).build();
         let witnesses_len = tx.witnesses().len();
         let message: [u8; 32] = util::tx_sign_message(&tx, 0, witnesses_len).into();
-        let address_hex = self
-            .address()
-            .display_with_network(self.address().network());
+        let address = self.address().to_string();
         let message_hex = {
             let mut dst = [0u8; 64];
             hex_encode(&message, &mut dst).expect("hex");
@@ -163,7 +162,7 @@ impl Wallet {
             .arg("--output-format")
             .arg("json")
             .arg("--from-account")
-            .arg(address_hex)
+            .arg(address)
             .arg("--message")
             .arg(message_hex)
             .spawn()?;
@@ -212,7 +211,7 @@ impl Wallet {
     pub fn collect_live_cells(&self, capacity: Capacity) -> HashSet<LiveCell> {
         let cells = self
             .collector
-            .collect_live_cells(self.address().to_owned(), capacity);
+            .collect_live_cells(self.address().clone(), capacity);
         // check cells lock code_hash
         // This is a double check to prevent ckb-cli returns unexpected cells
         #[cfg(feature = "strict-check")]

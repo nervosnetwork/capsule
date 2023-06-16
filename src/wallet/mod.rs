@@ -6,5 +6,4 @@ mod util;
 #[allow(clippy::module_inception)]
 mod wallet;
 
-pub use cli_types::Address;
 pub use wallet::*;
