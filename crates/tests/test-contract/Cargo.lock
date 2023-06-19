@@ -3,6 +3,12 @@
 version = 3
 
 [[package]]
+name = "blake2b-ref"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "294d17c72e0ba59fad763caa112368d0672083779cdebbb97164f4bb4c1e339a"
+
+[[package]]
 name = "buddy-alloc"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -22,19 +28,20 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "ckb-standalone-types"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22d7cbbdab96e6b809a102cf88bfec28795a0a3c06bfdea4abe4de89777801cd"
+checksum = "acafe9a1a706e9704a3c37cdc05fddb84cf991fb0744df21e5a0d91e128163b8"
 dependencies = [
+ "blake2b-ref",
  "cfg-if",
  "molecule",
 ]
 
 [[package]]
 name = "ckb-std"
-version = "0.12.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8dbb4cafeca131457738f8428ef31a7729f7914b99b5c210554433f03eb2f936"
+checksum = "ef02519ff65a2326e0ce8d3b4920c7dedac28f79eee4d7aef3ce64fccb556710"
 dependencies = [
  "buddy-alloc",
  "cc",
