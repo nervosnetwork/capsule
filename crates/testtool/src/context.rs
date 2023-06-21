@@ -200,10 +200,10 @@ impl Context {
                 .build(),
         )
     }
-    /// Build script with out_point, args (hash_type = ScriptHashType::Data1)
+    /// Build script with out_point, args and hash_type(ScriptHashType::Type)
     /// return none if the out-point is not exist
     pub fn build_script(&mut self, out_point: &OutPoint, args: Bytes) -> Option<Script> {
-        self.build_script_with_hash_type(out_point, ScriptHashType::Data1, args)
+        self.build_script_with_hash_type(out_point, ScriptHashType::Type, args)
     }
 
     fn find_cell_dep_for_script(&self, script: &Script) -> CellDep {
