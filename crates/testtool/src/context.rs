@@ -1,14 +1,15 @@
 use crate::tx_verifier::OutputsDataVerifier;
-use ckb_chain_spec::consensus::TYPE_ID_CODE_HASH;
+use ckb_chain_spec::consensus::{ConsensusBuilder, TYPE_ID_CODE_HASH};
 use ckb_error::Error as CKBError;
-use ckb_script::TransactionScriptsVerifier;
-use ckb_traits::{CellDataProvider, HeaderProvider};
+use ckb_script::{TransactionScriptsVerifier, TxVerifyEnv};
+use ckb_traits::{CellDataProvider, ExtensionProvider, HeaderProvider};
 use ckb_types::{
     bytes::Bytes,
     core::{
         cell::{CellMeta, CellMetaBuilder, ResolvedTransaction},
-        Capacity, Cycle, DepType, EpochExt, HeaderView, ScriptHashType, TransactionInfo,
-        TransactionView,
+        hardfork::{HardForks, CKB2021, CKB2023},
+        Capacity, Cycle, DepType, EpochExt, HeaderBuilder, HeaderView, ScriptHashType,
+        TransactionInfo, TransactionView,
     },
     packed::{Byte32, CellDep, CellOutput, OutPoint, Script},
     prelude::*,
@@ -48,12 +49,13 @@ pub struct Message {
 }
 
 /// Verification Context
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Context {
     pub cells: HashMap<OutPoint, (CellOutput, Bytes)>,
     pub transaction_infos: HashMap<OutPoint, TransactionInfo>,
     pub headers: HashMap<Byte32, HeaderView>,
     pub epoches: HashMap<Byte32, EpochExt>,
+    pub block_extensions: HashMap<Byte32, Bytes>,
     pub cells_by_data_hash: HashMap<Byte32, OutPoint>,
     pub cells_by_type_hash: HashMap<Byte32, OutPoint>,
     capture_debug: bool,
@@ -183,7 +185,7 @@ impl Context {
     ) -> Option<Script> {
         let (cell, contract_data) = self.cells.get(out_point)?;
         let code_hash = match hash_type {
-            ScriptHashType::Data | ScriptHashType::Data1 => {
+            ScriptHashType::Data | ScriptHashType::Data1 | ScriptHashType::Data2 => {
                 CellOutput::calc_data_hash(contract_data)
             }
             ScriptHashType::Type => cell
@@ -210,7 +212,7 @@ impl Context {
         let out_point = match ScriptHashType::try_from(u8::from(script.hash_type()))
             .expect("invalid script hash type")
         {
-            ScriptHashType::Data | ScriptHashType::Data1 => self
+            ScriptHashType::Data | ScriptHashType::Data1 | ScriptHashType::Data2 => self
                 .get_cell_by_data_hash(&script.code_hash())
                 .expect("find contract out point by data_hash"),
             ScriptHashType::Type => self
@@ -333,7 +335,20 @@ impl Context {
     pub fn verify_tx(&self, tx: &TransactionView, max_cycles: u64) -> Result<Cycle, CKBError> {
         self.verify_tx_consensus(tx)?;
         let resolved_tx = self.build_resolved_tx(tx);
-        let mut verifier = TransactionScriptsVerifier::new(&resolved_tx, self);
+        let consensus = ConsensusBuilder::default()
+            .hardfork_switch(HardForks {
+                ckb2021: CKB2021::new_dev_default(),
+                ckb2023: CKB2023::new_dev_default(),
+            })
+            .build();
+        let tip = HeaderBuilder::default().number(0.pack()).build();
+        let tx_verify_env = TxVerifyEnv::new_submit(&tip);
+        let mut verifier = TransactionScriptsVerifier::new(
+            Arc::new(resolved_tx),
+            self.clone(),
+            Arc::new(consensus),
+            Arc::new(tx_verify_env),
+        );
         if self.capture_debug {
             let captured_messages = self.captured_messages.clone();
             verifier.set_debug_printer(move |id, message| {
@@ -378,5 +393,14 @@ impl HeaderProvider for Context {
     // load header
     fn get_header(&self, block_hash: &Byte32) -> Option<HeaderView> {
         self.headers.get(block_hash).cloned()
+    }
+}
+
+impl ExtensionProvider for Context {
+    fn get_block_extension(
+        &self,
+        hash: &ckb_types::packed::Byte32,
+    ) -> Option<ckb_types::packed::Bytes> {
+        self.block_extensions.get(hash).map(|b| b.pack())
     }
 }
