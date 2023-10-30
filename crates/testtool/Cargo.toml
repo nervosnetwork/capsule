@@ -5,6 +5,7 @@ authors = ["Nervos Network"]
 edition = "2021"
 license = "MIT"
 description = "CKB contract testing tools"
+repository = "https://github.com/nervosnetwork/capsule"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
