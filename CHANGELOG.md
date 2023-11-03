@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com).
 
+## [v0.10.2] - 2023-11-3
+
+Misc:
+
+* chore: upgrade to ckb v0.111
+
 ## [v0.10.1] - 2023-06-19
 
 Bug fixes:
