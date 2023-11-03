@@ -17,7 +17,7 @@ anyhow = "1.0"
 tera = "1.2"
 lazy_static = "1.4"
 serde = { version = "1.0", features = [ "derive" ] }
-ckb-testtool = "0.9.1"
+ckb-testtool = "0.10"
 secp256k1 = "0.24"
 serde_json = "1.0"
 rpassword = "4.0"
@@ -38,7 +38,7 @@ chrono = { version = "0.4.24", default-features = false, features = ["std"] }
 # 0.2.3 breaks color output: https://github.com/matklad/xshell/issues/63
 xshell = "=0.2.2"
 path_macro = "1.0.0"
-ckb-sdk = "2.5.0"
+ckb-sdk = "3.0"
 
 [build-dependencies]
 includedir_codegen = "0.6"

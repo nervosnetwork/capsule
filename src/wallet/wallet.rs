@@ -243,7 +243,7 @@ impl Wallet {
     }
 
     pub fn lock_script(&self) -> packed::Script {
-        self.address().payload().into()
+        (&self.address).into()
     }
 
     pub fn address(&self) -> &Address {
