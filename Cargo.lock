@@ -205,7 +205,7 @@ dependencies = [
  "atty",
  "chrono",
  "ckb-sdk",
- "ckb-testtool",
+ "ckb-testtool 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap",
  "ctrlc",
  "env_logger",
@@ -407,13 +407,13 @@ dependencies = [
 [[package]]
 name = "ckb-mock-tx-types"
 version = "0.111.0"
-source = "git+https://github.com/cryptape/ckb-mock-tx-types?branch=exec/bump-0.111.0#0c9ba51eccff289ed83615378c0d62d5fb7a1fd9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcd5b156c36f03ad6053e174e26a874088c8e9098c3a2e80ec93dc9831ecfac3"
 dependencies = [
  "ckb-jsonrpc-types",
  "ckb-traits",
  "ckb-types",
  "serde",
- "serde_derive",
 ]
 
 [[package]]
@@ -505,8 +505,9 @@ dependencies = [
 
 [[package]]
 name = "ckb-sdk"
-version = "2.6.0"
-source = "git+https://github.com/eval-exec/ckb-sdk-rust?branch=exec/data2#f5d0bd598ba4d92e101a4163b65ea6beaac4b2ce"
+version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "718c12dee9e39d9e438a6cc6da0168ac83ca8dc17ace32ce08a2568d4b574398"
 dependencies = [
  "anyhow",
  "bech32",
@@ -566,6 +567,27 @@ checksum = "d5c03dd01263a66eaf171fb1bbadd12d80a0b54abe19aa55a2c53c5ae3300cda"
 [[package]]
 name = "ckb-testtool"
 version = "0.10.0"
+dependencies = [
+ "ckb-always-success-script",
+ "ckb-chain-spec",
+ "ckb-crypto",
+ "ckb-error",
+ "ckb-hash",
+ "ckb-jsonrpc-types",
+ "ckb-resource",
+ "ckb-script",
+ "ckb-traits",
+ "ckb-types",
+ "ckb-verification",
+ "lazy_static",
+ "rand 0.8.5",
+]
+
+[[package]]
+name = "ckb-testtool"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61f7426eb44c6cfc703a68fb99c74b675a378fdca12df5af94683b27a60d377e"
 dependencies = [
  "ckb-always-success-script",
  "ckb-chain-spec",
@@ -2512,7 +2534,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "ckb-system-scripts",
- "ckb-testtool",
+ "ckb-testtool 0.10.0",
 ]
 
 [[package]]
