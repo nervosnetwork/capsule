@@ -1,6 +1,5 @@
 [workspace]
-members = []
-exclude = ["tests"]
+members = ["tests"]
 
 [profile.release]
 overflow-checks = true
