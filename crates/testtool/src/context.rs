@@ -1,6 +1,7 @@
 use crate::tx_verifier::OutputsDataVerifier;
 use ckb_chain_spec::consensus::{ConsensusBuilder, TYPE_ID_CODE_HASH};
 use ckb_error::Error as CKBError;
+use ckb_mock_tx_types::{MockCellDep, MockInfo, MockInput, MockTransaction, ReprMockTransaction};
 use ckb_script::{TransactionScriptsVerifier, TxVerifyEnv};
 use ckb_traits::{CellDataProvider, ExtensionProvider, HeaderProvider};
 use ckb_types::{
@@ -11,7 +12,7 @@ use ckb_types::{
         Capacity, Cycle, DepType, EpochExt, HeaderBuilder, HeaderView, ScriptHashType,
         TransactionInfo, TransactionView,
     },
-    packed::{Byte32, CellDep, CellOutput, OutPoint, Script},
+    packed::{Byte32, CellDep, CellDepBuilder, CellOutput, OutPoint, OutPointVec, Script},
     prelude::*,
 };
 use rand::{thread_rng, Rng};
@@ -286,28 +287,50 @@ impl Context {
                 b.build()
             })
             .collect();
-        let resolved_cell_deps = tx
-            .cell_deps()
-            .into_iter()
-            .map(|deps_out_point| {
-                let (dep_output, dep_data) = self.cells.get(&deps_out_point.out_point()).unwrap();
-                let tx_info_opt = self.transaction_infos.get(&deps_out_point.out_point());
+        let mut resolved_cell_deps = vec![];
+        let mut resolved_dep_groups = vec![];
+        tx.cell_deps().into_iter().for_each(|cell_dep| {
+            let mut out_points = vec![];
+            if cell_dep.dep_type() == DepType::DepGroup.into() {
+                let (dep_group_output, dep_group_data) =
+                    self.cells.get(&cell_dep.out_point()).unwrap();
+                let dep_group_tx_info_opt = self.transaction_infos.get(&cell_dep.out_point());
+                let mut b = CellMetaBuilder::from_cell_output(
+                    dep_group_output.to_owned(),
+                    dep_group_data.to_vec().into(),
+                )
+                .out_point(cell_dep.out_point());
+                if let Some(tx_info) = dep_group_tx_info_opt {
+                    b = b.transaction_info(tx_info.to_owned());
+                }
+                resolved_dep_groups.push(b.build());
+
+                let sub_out_points =
+                    OutPointVec::from_slice(dep_group_data).expect("Parsing dep group error!");
+                out_points.extend(sub_out_points.into_iter());
+            } else {
+                out_points.push(cell_dep.out_point());
+            }
+
+            for out_point in out_points {
+                let (dep_output, dep_data) = self.cells.get(&out_point).unwrap();
+                let tx_info_opt = self.transaction_infos.get(&out_point);
                 let mut b = CellMetaBuilder::from_cell_output(
                     dep_output.to_owned(),
                     dep_data.to_vec().into(),
                 )
-                .out_point(deps_out_point.out_point());
+                .out_point(out_point);
                 if let Some(tx_info) = tx_info_opt {
                     b = b.transaction_info(tx_info.to_owned());
                 }
-                b.build()
-            })
-            .collect();
+                resolved_cell_deps.push(b.build());
+            }
+        });
         ResolvedTransaction {
             transaction: tx.clone(),
             resolved_cell_deps,
             resolved_inputs: input_cells,
-            resolved_dep_groups: vec![],
+            resolved_dep_groups,
         }
     }
 
@@ -364,6 +387,65 @@ impl Context {
             });
         }
         verifier.verify(max_cycles)
+    }
+
+    /// Dump the transaction in mock transaction format, so we can offload it to ckb debugger
+    pub fn dump_tx(&self, tx: &TransactionView) -> Result<ReprMockTransaction, CKBError> {
+        let rtx = self.build_resolved_tx(tx);
+        let mut inputs = Vec::with_capacity(rtx.resolved_inputs.len());
+        // We are doing it this way so we can keep original since value is available
+        for (i, input) in rtx.resolved_inputs.iter().enumerate() {
+            inputs.push(MockInput {
+                input: rtx.transaction.inputs().get(i).unwrap(),
+                output: input.cell_output.clone(),
+                data: input.mem_cell_data.clone().unwrap(),
+                header: input.transaction_info.clone().map(|info| info.block_hash),
+            });
+        }
+        // MockTransaction keeps both types of cell deps in a single array, the order does
+        // not really matter for now
+        let mut cell_deps =
+            Vec::with_capacity(rtx.resolved_cell_deps.len() + rtx.resolved_dep_groups.len());
+        for dep in rtx.resolved_cell_deps.iter() {
+            cell_deps.push(MockCellDep {
+                cell_dep: CellDepBuilder::default()
+                    .out_point(dep.out_point.clone())
+                    .dep_type(DepType::Code.into())
+                    .build(),
+                output: dep.cell_output.clone(),
+                data: dep.mem_cell_data.clone().unwrap(),
+                header: None,
+            });
+        }
+        for dep in rtx.resolved_dep_groups.iter() {
+            cell_deps.push(MockCellDep {
+                cell_dep: CellDepBuilder::default()
+                    .out_point(dep.out_point.clone())
+                    .dep_type(DepType::DepGroup.into())
+                    .build(),
+                output: dep.cell_output.clone(),
+                data: dep.mem_cell_data.clone().unwrap(),
+                header: None,
+            });
+        }
+        let mut header_deps = Vec::with_capacity(rtx.transaction.header_deps().len());
+        let mut extensions = Vec::new();
+        for header_hash in rtx.transaction.header_deps_iter() {
+            header_deps.push(self.get_header(&header_hash).unwrap());
+            if let Some(extension) = self.get_block_extension(&header_hash) {
+                extensions.push((header_hash, extension.unpack()));
+            }
+        }
+        Ok(MockTransaction {
+            mock_info: MockInfo {
+                inputs,
+                cell_deps,
+                header_deps,
+                extensions,
+            },
+            tx: rtx.transaction.data(),
+        }
+        .into())
     }
 }
 
