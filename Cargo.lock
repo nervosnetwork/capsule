@@ -574,6 +574,7 @@ dependencies = [
  "ckb-error",
  "ckb-hash",
  "ckb-jsonrpc-types",
+ "ckb-mock-tx-types",
  "ckb-resource",
  "ckb-script",
  "ckb-traits",
