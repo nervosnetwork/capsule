@@ -89,7 +89,6 @@ capsule test
 * `contracts`       - Contracts directory.
 * `tests`           - Contracts tests.
 * `build`           - Contracts binaries.
-* `migrations`      - Deployment histories.
 
 ## Documentation
 

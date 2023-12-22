@@ -48,7 +48,7 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
     };
     fs::create_dir(&project_path)
         .with_context(|| format!("directory exists {:?}", &project_path))?;
-    for f in &["contracts", "build", "migrations"] {
+    for f in &["contracts", "build"] {
         let mut dir_path = PathBuf::new();
         dir_path.push(&project_path);
         dir_path.push(f);
