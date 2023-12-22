@@ -5,5 +5,3 @@
 
 # capsule version
 version = "{{ version }}"
-# path of deployment config file
-deployment = "deployment.toml"

@@ -64,7 +64,6 @@ fn gen_project_layout<P: AsRef<Path>>(name: String, project_path: P) -> Result<(
     })?;
     for (f, template_name) in &[
         ("capsule.toml", None),
-        ("deployment.toml", None),
         ("README.md", None),
         ("rust-toolchain", None),
         ("Cross.toml", None),

@@ -127,7 +127,7 @@ fn run_cli() -> Result<()> {
         ).display_order(5))
         .subcommand(
             SubCommand::with_name("deploy")
-                .about("Deploy contracts, edit deployment.toml to custodian deployment recipe.")
+                .about("[DEPRECATED] Deploy contracts, edit deployment.toml to custodian deployment recipe.")
                 .args(&[
                     Arg::with_name("address").long("address").help(
                         "Denote which address provides cells",
@@ -374,6 +374,8 @@ fn run_cli() -> Result<()> {
             Tester::run(&context, build_env, test_name)?;
         }
         ("deploy", Some(args)) => {
+            eprintln!("Warning: capsule deploy is deprecated in favor of ckb-cli deploy");
+
             let ckb_cli_bin = args.value_of("ckb-cli").expect("ckb-cli");
             Checker::build(ckb_cli_bin).check_ckb_cli()?;
             let address = {

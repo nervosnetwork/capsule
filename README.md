@@ -42,8 +42,6 @@ The following must be installed and available to use Capsule.
 $ cargo install cross --git https://github.com/cross-rs/cross
 ```
 
-- ckb-cli (optional) - Capsule requires `ckb-cli` to enable the smart contract deployment feature. https://github.com/nervosnetwork/ckb-cli/releases
-
 Note: All commands must be accessible in the `PATH` in order for them to be used by Capsule.
 
 Note: The current user must have permission to manage Docker instances. [How to manage Docker as a non-root user.](https://docs.docker.com/engine/install/linux-postinstall/)
@@ -88,7 +86,6 @@ capsule test
 ### Project Layout
 
 * `capsule.toml`    - Capsule manifest file.
-* `deployment.toml` - Deployment configuration.
 * `contracts`       - Contracts directory.
 * `tests`           - Contracts tests.
 * `build`           - Contracts binaries.
