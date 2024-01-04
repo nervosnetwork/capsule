@@ -50,7 +50,7 @@ pub struct Config {
     pub version: String,
     #[serde(default)]
     pub contracts: Vec<Contract>,
-    pub deployment: PathBuf, // path of deployment config file
+    pub deployment: Option<PathBuf>, // path of deployment config file
     #[serde(default)]
     pub rust: RustConfig,
 }

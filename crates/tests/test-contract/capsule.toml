@@ -5,8 +5,6 @@
 
 # capsule version
 version = "0.10.0"
-# path of deployment config file
-deployment = "deployment.toml"
 
 [[contracts]]
 name = "test-contract"

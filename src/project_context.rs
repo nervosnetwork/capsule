@@ -150,7 +150,12 @@ impl Context {
 
     pub fn load_deployment(&self) -> Result<Deployment> {
         let mut path = self.project_path.clone();
-        path.push(&self.config.deployment);
+        path.push(
+            self.config
+                .deployment
+                .as_deref()
+                .unwrap_or_else(|| Path::new("deployment.toml")),
+        );
         match toml_edit::de::from_str(&fs::read_to_string(&path)?) {
             Ok(deployment) => Ok(deployment),
             Err(err) => {
