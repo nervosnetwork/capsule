@@ -1,6 +1,6 @@
 [package]
 name = "ckb-capsule"
-version = "0.10.2"
+version = "0.10.3"
 authors = ["Nervos Network"]
 edition = "2021"
 license = "MIT"

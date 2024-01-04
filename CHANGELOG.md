@@ -2,6 +2,20 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com).
 
+## [v0.10.3] - 2024-01-4
+
+Capsule:
+
+* chore: deprecate deploy #139
+
+CKB Testtool(v0.10.1):
+
+* upgrade rust-toolchain in generated rust project #135
+* update Cargo.toml in generated rust project #136
+* feat: Add utility function to dump tx as MockTransaction format #137
+
+Full Changelog: https://github.com/nervosnetwork/capsule/compare/v0.10.2...v0.10.3
+
 ## [v0.10.2] - 2023-11-3
 
 Misc:
