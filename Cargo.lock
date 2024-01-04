@@ -199,13 +199,13 @@ checksum = "8b3b72a38c9920a29990df12002c4d069a147c8782f0c211f8a01b2df8f42bfd"
 
 [[package]]
 name = "ckb-capsule"
-version = "0.10.2"
+version = "0.10.3"
 dependencies = [
  "anyhow",
  "atty",
  "chrono",
  "ckb-sdk",
- "ckb-testtool 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ckb-testtool 0.10.0",
  "clap",
  "ctrlc",
  "env_logger",
@@ -567,6 +567,8 @@ checksum = "d5c03dd01263a66eaf171fb1bbadd12d80a0b54abe19aa55a2c53c5ae3300cda"
 [[package]]
 name = "ckb-testtool"
 version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61f7426eb44c6cfc703a68fb99c74b675a378fdca12df5af94683b27a60d377e"
 dependencies = [
  "ckb-always-success-script",
  "ckb-chain-spec",
@@ -574,7 +576,6 @@ dependencies = [
  "ckb-error",
  "ckb-hash",
  "ckb-jsonrpc-types",
- "ckb-mock-tx-types",
  "ckb-resource",
  "ckb-script",
  "ckb-traits",
@@ -586,9 +587,7 @@ dependencies = [
 
 [[package]]
 name = "ckb-testtool"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61f7426eb44c6cfc703a68fb99c74b675a378fdca12df5af94683b27a60d377e"
+version = "0.10.1"
 dependencies = [
  "ckb-always-success-script",
  "ckb-chain-spec",
@@ -596,6 +595,7 @@ dependencies = [
  "ckb-error",
  "ckb-hash",
  "ckb-jsonrpc-types",
+ "ckb-mock-tx-types",
  "ckb-resource",
  "ckb-script",
  "ckb-traits",
@@ -2535,7 +2535,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "ckb-system-scripts",
- "ckb-testtool 0.10.0",
+ "ckb-testtool 0.10.1",
 ]
 
 [[package]]
