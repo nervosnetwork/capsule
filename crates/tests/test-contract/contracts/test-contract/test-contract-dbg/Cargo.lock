@@ -32,9 +32,9 @@ dependencies = [
 
 [[package]]
 name = "buddy-alloc"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6aa666383df80e31d5e162998ed05880695bb377f2a98210978e586f006aaec"
+checksum = "1f0d2da64a6a895d5a7e0724882825d50f83c13396b1b9f1878e19a024bab395"
 
 [[package]]
 name = "bytes"
@@ -47,9 +47,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.67"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3c69b077ad434294d3ce9f1f6143a2a4b89a8a2d54ef813d85003a4fd1137fd"
+checksum = "47de7e88bbbd467951ae7f5a6f34f70d1b4d9cfce53d5fd70f74ebe118b3db56"
 
 [[package]]
 name = "cfg-if"
@@ -126,10 +126,21 @@ dependencies = [
  "cfg-if",
  "ckb-error",
  "ckb-fixed-hash",
- "ckb-hash",
+ "ckb-hash 0.112.1",
  "ckb-occupied-capacity",
  "molecule",
  "numext-fixed-uint",
+]
+
+[[package]]
+name = "ckb-gen-types"
+version = "0.116.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a0f2d0f4224507a027d25d64824dd0dc8d367c8b5bead30289eaffe1381a7fb"
+dependencies = [
+ "cfg-if",
+ "ckb-hash 0.116.1",
+ "molecule",
 ]
 
 [[package]]
@@ -140,6 +151,15 @@ checksum = "25af660fc8746f7c756444e6aa47ede9a874206563b6a1ce1b230a5b86519392"
 dependencies = [
  "blake2b-ref",
  "blake2b-rs",
+]
+
+[[package]]
+name = "ckb-hash"
+version = "0.116.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5754bc49cf76a7e8829fe6a7cf1eea1284cbca9777b521f072c76d6ae28d303"
+dependencies = [
+ "blake2b-ref",
 ]
 
 [[package]]
@@ -218,15 +238,20 @@ dependencies = [
 [[package]]
 name = "ckb-std"
 version = "0.15.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9357d9464ed36a8e542a7d588e894aff25ccb0cdd66221ac94e76bc69ca3ad55"
 dependencies = [
  "buddy-alloc",
  "cc",
- "ckb-gen-types",
- "ckb-x64-simulator",
+ "ckb-gen-types 0.116.1",
+ "ckb-x64-simulator 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gcd",
 ]
+
+[[package]]
+name = "ckb-std"
+version = "0.15.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9357d9464ed36a8e542a7d588e894aff25ccb0cdd66221ac94e76bc69ca3ad55"
+replace = "ckb-std 0.15.3"
 
 [[package]]
 name = "ckb-traits"
@@ -249,8 +274,8 @@ dependencies = [
  "ckb-constant",
  "ckb-error",
  "ckb-fixed-hash",
- "ckb-gen-types",
- "ckb-hash",
+ "ckb-gen-types 0.112.1",
+ "ckb-hash 0.112.1",
  "ckb-merkle-mountain-range",
  "ckb-occupied-capacity",
  "ckb-rational",
@@ -266,8 +291,6 @@ dependencies = [
 [[package]]
 name = "ckb-x64-simulator"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e10ecef7cf93eb5175519b335d31db6d51cdf55276d7fbb8955bbd10e26eb847"
 dependencies = [
  "cc",
  "ckb-mock-tx-types",
@@ -279,6 +302,13 @@ dependencies = [
  "serde_derive",
  "serde_json",
 ]
+
+[[package]]
+name = "ckb-x64-simulator"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e10ecef7cf93eb5175519b335d31db6d51cdf55276d7fbb8955bbd10e26eb847"
+replace = "ckb-x64-simulator 0.8.0"
 
 [[package]]
 name = "crossbeam-channel"
@@ -583,7 +613,15 @@ dependencies = [
 name = "test-contract"
 version = "0.1.0"
 dependencies = [
- "ckb-std",
+ "ckb-std 0.15.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "test-contract-dbg"
+version = "0.1.0"
+dependencies = [
+ "ckb-std 0.15.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "test-contract",
 ]
 
 [[package]]

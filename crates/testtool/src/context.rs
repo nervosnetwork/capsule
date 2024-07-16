@@ -61,6 +61,8 @@ pub struct Context {
     pub cells_by_type_hash: HashMap<Byte32, OutPoint>,
     capture_debug: bool,
     captured_messages: Arc<Mutex<Vec<Message>>>,
+    #[cfg(feature = "simulator")]
+    simulator_hash_map: HashMap<Byte32, String>,
 }
 
 impl Context {
@@ -355,6 +357,7 @@ impl Context {
     }
 
     /// Verify the transaction in CKB-VM
+    #[cfg(not(feature = "simulator"))]
     pub fn verify_tx(&self, tx: &TransactionView, max_cycles: u64) -> Result<Cycle, CKBError> {
         self.verify_tx_consensus(tx)?;
         let resolved_tx = self.build_resolved_tx(tx);
@@ -389,6 +392,124 @@ impl Context {
         verifier.verify(max_cycles)
     }
 
+    #[cfg(feature = "simulator")]
+    pub fn set_simulator(mut self, code_hash: Byte32, path: &str) -> Self {
+        assert!(std::path::PathBuf::from(path).is_file());
+        self.simulator_hash_map.insert(code_hash, path.to_string());
+        self
+    }
+
+    #[cfg(feature = "simulator")]
+    pub fn verify_tx(&self, tx: &TransactionView, max_cycles: u64) -> Result<Cycle, CKBError> {
+        self.verify_tx_consensus(tx)?;
+        let resolved_tx = self.build_resolved_tx(tx);
+        let consensus = ConsensusBuilder::default()
+            .hardfork_switch(HardForks {
+                ckb2021: CKB2021::new_dev_default(),
+                ckb2023: CKB2023::new_dev_default(),
+            })
+            .build();
+        let tip = HeaderBuilder::default().number(0.pack()).build();
+        let tx_verify_env = TxVerifyEnv::new_submit(&tip);
+        let mut verifier = TransactionScriptsVerifier::new(
+            Arc::new(resolved_tx),
+            self.clone(),
+            Arc::new(consensus),
+            Arc::new(tx_verify_env),
+        );
+        if self.capture_debug {
+            let captured_messages = self.captured_messages.clone();
+            verifier.set_debug_printer(move |id, message| {
+                let msg = Message {
+                    id: id.clone(),
+                    message: message.to_string(),
+                };
+                captured_messages.lock().unwrap().push(msg);
+            });
+        } else {
+            verifier.set_debug_printer(|_id, msg| {
+                println!("[contract debug] {}", msg);
+            });
+        }
+
+        /// An argument passed to this program.
+        #[repr(transparent)]
+        pub struct Arg(*const core::ffi::c_char);
+        type CkbMainFunc<'a> = libloading::Symbol<
+            'a,
+            unsafe extern "C" fn(
+                argc: core::ffi::c_int,
+                // Arg is the same as *const c_char ABI wise.
+                argv: *const Arg,
+                // tx: *const core::ffi::c_char,
+                // tx_len: core::ffi::c_int,
+            ) -> i8,
+        >;
+
+        let mut cycles: Cycle = 0;
+
+        let mut index = 0;
+        for (hash, group) in verifier.groups() {
+            let code_hash = group.script.code_hash();
+            let use_cycles = match self.simulator_hash_map.get(&code_hash) {
+                Some(sim_path) => {
+                    //
+                    let tmp_dir = std::env::temp_dir().join("ckb-simulator-debugger");
+                    if !tmp_dir.exists() {
+                        std::fs::create_dir(tmp_dir.clone())
+                            .expect("create tmp dir: ckb-simulator-debugger");
+                    }
+
+                    let running_setup = tmp_dir.join("ckb_running_setup.json");
+
+                    let setup = format!(
+                            "{{\"is_lock_script\": {}, \"is_output\": false, \"script_index\": {}, \"vm_version\": 1, \"native_binaries\": {{}} }}",
+                            group.group_type == ckb_script::ScriptGroupType::Lock,
+                            index,
+                        );
+                    std::fs::write(&running_setup, setup).expect("write setup");
+                    std::env::set_var("CKB_RUNNING_SETUP", running_setup.to_str().unwrap());
+
+                    let tx_file = tmp_dir.join("ckb_running_tx.json");
+                    let dump_tx = self.dump_tx(&tx)?;
+
+                    let tx_json = serde_json::to_string(&dump_tx).expect("dump tx to string");
+                    std::fs::write(&tx_file, tx_json).expect("write setup");
+
+                    std::env::set_var("CKB_TX_FILE", tx_file.to_str().unwrap());
+
+                    unsafe {
+                        if let Ok(lib) = libloading::Library::new(sim_path) {
+                            if let Ok(func) = lib.get(b"__ckb_std_main") {
+                                let func: CkbMainFunc = func;
+                                let rc = { func(0, [].as_ptr()) };
+                                assert!(rc == 0, "run simulator failed");
+                            }
+                        }
+                    }
+                    index += 1;
+                    0
+                }
+                None => {
+                    index += 1;
+                    group.script.code_hash();
+                    verifier
+                        .verify_single(group.group_type, hash, max_cycles)
+                        .map_err(|e| {
+                            #[cfg(feature = "logging")]
+                            logging::on_script_error(_hash, &self.hash(), &e);
+                            e.source(group)
+                        })?
+                }
+            };
+            let r = cycles.overflowing_add(use_cycles);
+            assert!(!r.1, "cycles overflow");
+            cycles = r.0;
+        }
+
+        Ok(cycles)
+    }
+
     /// Dump the transaction in mock transaction format, so we can offload it to ckb debugger
     pub fn dump_tx(&self, tx: &TransactionView) -> Result<ReprMockTransaction, CKBError> {
         let rtx = self.build_resolved_tx(tx);
@@ -414,7 +535,7 @@ impl Context {
                     .build(),
                 output: dep.cell_output.clone(),
                 data: dep.mem_cell_data.clone().unwrap(),
-                header: None,
+                header: dep.transaction_info.clone().map(|info| info.block_hash),
             });
         }
         for dep in rtx.resolved_dep_groups.iter() {
@@ -425,7 +546,7 @@ impl Context {
                     .build(),
                 output: dep.cell_output.clone(),
                 data: dep.mem_cell_data.clone().unwrap(),
-                header: None,
+                header: dep.transaction_info.clone().map(|info| info.block_hash),
             });
         }
         let mut header_deps = Vec::with_capacity(rtx.transaction.header_deps().len());

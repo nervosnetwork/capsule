@@ -176,7 +176,7 @@ fn test_load_header() {
             .build(),
         CellOutput::new_builder()
             .capacity(500u64.pack())
-            .lock(lock_script)
+            .lock(lock_script.clone())
             .build(),
     ];
 
@@ -213,6 +213,12 @@ fn test_load_header() {
         .cell_dep(dep_cell)
         .build();
     let tx = context.complete_tx(tx);
+
+    #[cfg(feature = "simulator")]
+    let context = context.set_simulator(
+        lock_script.code_hash(),
+        "crates/tests/test-contract/build/debug/libtest_contract_dbg.so",
+    );
 
     // run
     context
