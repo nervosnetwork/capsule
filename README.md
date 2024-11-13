@@ -5,6 +5,7 @@
 [GH-action-badge]: https://img.shields.io/github/actions/workflow/status/nervosnetwork/capsule/rust.yml?branch=develop&style=flat
 [rust-crate-badge]: https://img.shields.io/crates/v/ckb-capsule?style=flat
 
+> ⚠️ **DEPRECATION NOTICE**: This project is no longer maintained. Please use [ckb-script-templates](https://github.com/cryptape/ckb-script-templates).
 
 **Capsule is an out-of-box development framework for creating smart contract on Nervos' CKB.**
 
